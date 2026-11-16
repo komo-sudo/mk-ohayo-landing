@@ -409,6 +409,23 @@
   $('g-btn').addEventListener('click', function () { gi = gi === gSteps.length - 1 ? 0 : gi + 1; paintGoal(); });
 
   /* Hero A: the short card comes forward on its own so "profit on a drop" is seen without a tap. First tap takes over. */
+  /* Hero 3D scene: the canvas fills the hero; zoom the Spline camera by data-zoom once the scene has loaded.
+     The viewer has no public zoom attribute, so this reaches its runtime (_spline.setZoom); the viewer version is pinned in index.html.
+     At zoom 1 the cards' right edge sits about 540px right of the canvas centre (measured, with some margin), so narrower windows get less zoom to keep them on screen. */
+  (function () {
+    var v = document.querySelector('spline-viewer.hero-scene'), max = v && parseFloat(v.getAttribute('data-zoom')), tries = 0, app = null;
+    if (!v || !(max > 0)) return;
+    function apply() { if (app) app.setZoom(Math.max(1, Math.min(max, (v.clientWidth / 2 - 24) / 540))); }
+    var t = setInterval(function () {
+      if (v._loaded && v._spline && typeof v._spline.setZoom === 'function') { app = v._spline; apply(); clearInterval(t); }
+      else if (++tries > 150) clearInterval(t);
+    }, 200);
+    window.addEventListener('resize', apply);
+    /* Wheel over the scene scrolls the page only: stop the event at the viewer host (capture) so Spline's camera never sees it.
+       No preventDefault, so the page still scrolls. */
+    v.addEventListener('wheel', function (e) { e.stopPropagation(); }, { capture: true, passive: true });
+  })();
+
   var pcards = $('pcards'), flipT = null;
   if (pcards) pcards.addEventListener('click', function () { if (flipT) { clearInterval(flipT); flipT = null; } this.classList.toggle('swap'); });
   if (pcards && !noMotion) flipT = setInterval(function () { if (!document.hidden && !$('hero-a').hidden && !pcards.matches(':hover')) pcards.classList.toggle('swap'); }, 5000);
