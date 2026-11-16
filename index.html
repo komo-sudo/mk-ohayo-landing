@@ -13,12 +13,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Doto:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="assets/css/landing.css">
+<script type="module" src="https://unpkg.com/@splinetool/viewer@2.0.126/build/spline-viewer.js"></script>
 </head>
 <body>
 
 <header class="top">
   <div class="wrap">
-    <a class="wordmark" href="#top" data-scroll="top">OHAYO<span>.</span></a>
+    <a class="wordmark" href="#top" data-scroll="top"><img src="assets/img/ohayo-logo.svg" alt="OHAYO" width="80" height="24"></a>
     <nav class="main" aria-label="Sections">
       <button type="button" data-scroll="compare">How it compares</button>
       <button type="button" data-scroll="tournament">Tournaments</button>
@@ -56,25 +57,8 @@
 
     <div class="hero-visual">
       <div class="hero-a" id="hero-a">
-      <div class="pcards" id="pcards">
-      <button type="button" class="pcard" data-card="1" aria-label="NVDA SHORT 20x card">
-        <div class="pc-head"><span><span class="av" style="width:34px;height:34px;font-size:13px">SH</span>Semi Hunter</span><em>OHAYO</em></div>
-        <div class="pc-tick">NVDA<span class="side short">SHORT 20x</span></div>
-        <div class="pc-move">Stock <b class="down">−3.1%</b><span aria-hidden="true">→</span>you</div>
-        <div class="led pc-big">+62.0%</div>
-        <div class="pc-foot"><div><b class="led">+$620</b><small>on $1,000 · held 1d 4h</small></div>
-          <svg width="120" height="48" viewBox="0 0 120 48" fill="none" aria-hidden="true"><polyline points="0,10 12,6 24,12 36,18 48,16 60,26 72,30 84,28 96,38 108,42 120,40" stroke="#fafafa" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
-      </button>
-      <button type="button" class="pcard" data-card="0" aria-label="SK hynix LONG 10x card">
-        <div class="pc-head"><span><span class="av" style="width:34px;height:34px;font-size:13px">TB</span>Trader Baek</span><em>OHAYO</em></div>
-        <div class="pc-tick">SK hynix<span class="side">LONG 10x</span></div>
-        <div class="pc-move">Stock <b class="up">+4.8%</b><span aria-hidden="true">→</span>you</div>
-        <div class="led pc-big">+48.2%</div>
-        <div class="pc-foot"><div><b class="led">+$482</b><small>on $1,000 · held 3h 12m</small></div>
-          <svg width="120" height="48" viewBox="0 0 120 48" fill="none" aria-hidden="true"><polyline points="0,36 12,39 24,44 36,40 48,30 60,26 72,20 84,22 96,10 108,6 120,8" stroke="#fafafa" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
-      </button>
-      </div>
-      <p class="muted">Sample cards. Tap to flip. Real trades go here.</p>
+        <spline-viewer class="hero-scene" url="https://prod.spline.design/DVfG5mA1Kp08mDLR/scene.splinecode" aria-hidden="true"></spline-viewer>
+        <img class="hero-cards" src="assets/img/hero-cards.png" width="2920" height="2012" alt="Two sample result cards. NVDA short 20x: the stock fell 3.1%, the position is up 62.0%. SK hynix long 10x: the stock rose 4.8%, the position is up 48.2%.">
       </div>
 
       <div class="hb" id="hero-b" hidden>
@@ -165,7 +149,7 @@
 
       <div class="chart-wrap"><canvas id="chart" role="img" aria-label="Candlestick chart of the sample trade. The right edge shows the price move and, next to it, your return at the chosen leverage."></canvas></div>
       <div class="chart-cap">
-        <span class="muted">Price <b id="p-move" style="color:var(--fg)">+4.8%</b> · owning the shares instead: <b id="p-shares" style="color:var(--fg)">+$48</b></span>
+        <span class="muted">Price <b id="p-move" style="color:var(--fg-base)">+4.8%</b> · owning the shares instead: <b id="p-shares" style="color:var(--fg-base)">+$48</b></span>
         <button type="button" class="linkbtn" id="replay">Replay the trade</button>
       </div>
 
@@ -460,7 +444,7 @@
       <button type="button" class="x" data-close aria-label="Close">×</button>
     </div>
     <p class="note" id="done-body"></p>
-    <div class="card" style="background:#000">
+    <div class="card" style="background:var(--bg-base)">
       <h3>While you wait: the OHAYO Discord</h3>
       <p>Market talk, tournament Q&amp;A and pre-launch events happen there first.</p>
     </div>

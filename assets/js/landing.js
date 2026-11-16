@@ -63,7 +63,7 @@
     ctx.strokeStyle = '#272727'; ctx.beginPath(); ctx.moveTo(pw + 0.5, 0); ctx.lineTo(pw + 0.5, hgt - BT); ctx.stroke();
     ctx.textAlign = 'left'; ctx.fillStyle = '#909090'; ctx.fillText('PRICE', pw + 8, 9);
     ctx.textAlign = 'right'; ctx.fillStyle = '#ff5a00'; ctx.fillText('YOU ' + state.lev + 'x', w - 6, 9);
-    ctx.textAlign = 'left'; ctx.fillStyle = '#6a6a6a'; ctx.fillText('ENTRY', 4, hgt - 9);
+    ctx.textAlign = 'left'; ctx.fillStyle = '#6c6c6c'; ctx.fillText('ENTRY', 4, hgt - 9);
     ctx.textAlign = 'right'; ctx.fillText('CLOSE', pw - 4, hgt - 9);
 
     /* entry level */
@@ -111,7 +111,7 @@
     var p = positions[state.pos], dir = p.side === 'SHORT' ? -1 : 1;
     var pct = drawChart(progress);
     var ours = state.amt * state.lev * pct / 100 * dir, shares = state.amt * pct / 100;
-    var color = ours < 0 ? 'var(--neg)' : 'var(--pos)';
+    var color = ours < 0 ? 'var(--fg-negative)' : 'var(--fg-positive)';
     $('p-pnl').textContent = signed(ours); $('p-pnl').style.color = color;
     $('p-roe').textContent = signedPct(state.lev * pct * dir); $('p-roe').style.color = color;
     $('p-move').textContent = signedPct(pct);
@@ -215,7 +215,7 @@
     var lo = Math.min.apply(null, t.path) - 0.8, hi = Math.max.apply(null, t.path) + 0.8;
     var X = function (i) { return P + i / (t.path.length - 1) * (W - 2 * P); }, Y = function (v) { return P + (hi - v) / (hi - lo) * (H - 2 * P); };
     var line = t.path.map(function (v, i) { return X(i).toFixed(1) + ',' + Y(v).toFixed(1); }).join(' ');
-    var svg = '<line x1="0" x2="' + W + '" y1="' + Y(0) + '" y2="' + Y(0) + '" stroke="#3a3a3a" stroke-dasharray="4 4"/>' +
+    var svg = '<line x1="0" x2="' + W + '" y1="' + Y(0) + '" y2="' + Y(0) + '" stroke="#404040" stroke-dasharray="4 4"/>' +
       '<polyline points="' + line + '" fill="none" stroke="#b0b0b0" stroke-width="2" stroke-linejoin="round"/>';
     t.fills.forEach(function (m, k) {
       var buy = m.side === 'BUY', col = buy ? '#11ec8a' : '#ff4b4e', sel = k === tvS.fill;
@@ -410,8 +410,8 @@
 
   /* Hero A: the short card comes forward on its own so "profit on a drop" is seen without a tap. First tap takes over. */
   var pcards = $('pcards'), flipT = null;
-  pcards.addEventListener('click', function () { if (flipT) { clearInterval(flipT); flipT = null; } this.classList.toggle('swap'); });
-  if (!noMotion) flipT = setInterval(function () { if (!document.hidden && !$('hero-a').hidden && !pcards.matches(':hover')) pcards.classList.toggle('swap'); }, 5000);
+  if (pcards) pcards.addEventListener('click', function () { if (flipT) { clearInterval(flipT); flipT = null; } this.classList.toggle('swap'); });
+  if (pcards && !noMotion) flipT = setInterval(function () { if (!document.hidden && !$('hero-a').hidden && !pcards.matches(':hover')) pcards.classList.toggle('swap'); }, 5000);
 
   /* Hero B (team vote): the same move at your broker and here, on an up day and a down day */
   var hbData = [
@@ -421,8 +421,8 @@
   var hbBtns = all('[data-hb]');
   function hbPaint(i) {
     var d = hbData[i], t = $('hb-dots-them'), u = $('hb-dots-us');
-    $('hb-them').textContent = d.them; $('hb-them').style.color = d.themNeg ? 'var(--neg)' : 'var(--fg-subtle)';
-    t.style.setProperty('--cols', 5); t.style.setProperty('--rows', 2); t.style.color = d.themNeg ? 'var(--neg)' : '';
+    $('hb-them').textContent = d.them; $('hb-them').style.color = d.themNeg ? 'var(--fg-negative)' : 'var(--fg-subtle)';
+    t.style.setProperty('--cols', 5); t.style.setProperty('--rows', 2); t.style.color = d.themNeg ? 'var(--fg-negative)' : '';
     $('hb-us').textContent = d.us; $('hb-x').textContent = d.x; $('hb-label').textContent = d.label;
     u.style.setProperty('--cols', d.cols); u.style.setProperty('--rows', d.rows);
   }
