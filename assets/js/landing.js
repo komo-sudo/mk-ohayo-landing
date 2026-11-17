@@ -159,6 +159,13 @@
   window.addEventListener('resize', settle);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (!raf) paint(1); });
   settle();
+  /* The chart sits below the first screen, so draw it in (play) the first time it scrolls into view rather than on load. */
+  if ('IntersectionObserver' in window && !noMotion) {
+    var chartSeen = new IntersectionObserver(function (entries) {
+      if (entries.some(function (e) { return e.isIntersecting; })) { chartSeen.disconnect(); play(); }
+    }, { threshold: 0.4 });
+    chartSeen.observe($('chart'));
+  }
 
   /* TradeView mock: pick someone, step through their trades on the chart, read why, react. Sample data. */
   var tvData = [
@@ -273,6 +280,22 @@
   });
   lbPaint();
 
+  /* Header: slide up out of view while scrolling down, back in on scroll up, always shown near the top or when it has focus. */
+  (function () {
+    var hdr = document.querySelector('header.top'), lastY = window.pageYOffset, ticking = false;
+    if (!hdr) return;
+    function update() {
+      var y = window.pageYOffset;
+      if (y < 80 || hdr.contains(document.activeElement)) hdr.classList.remove('is-hidden');
+      else if (y > lastY + 4) hdr.classList.add('is-hidden');
+      else if (y < lastY - 4) hdr.classList.remove('is-hidden');
+      if (Math.abs(y - lastY) > 4) lastY = y;
+      ticking = false;
+    }
+    window.addEventListener('scroll', function () { if (!ticking) { ticking = true; requestAnimationFrame(update); } }, { passive: true });
+    hdr.addEventListener('focusin', function () { hdr.classList.remove('is-hidden'); });
+  })();
+
   /* Section scrolling */
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   all('[data-scroll]').forEach(function (el) {
@@ -280,7 +303,8 @@
       e.preventDefault();
       var target = $(el.getAttribute('data-scroll'));
       if (!target) return;
-      var y = target.getBoundingClientRect().top + window.pageYOffset - 64;
+      /* Scrolling down hides the header, so only leave room for it when the target is above. */
+      var top = target.getBoundingClientRect().top, y = top + window.pageYOffset - (top > 0 ? 16 : 88);
       window.scrollTo({ top: y, behavior: reduce ? 'auto' : 'smooth' });
     });
   });
@@ -414,13 +438,28 @@
      At zoom 1 the cards' right edge sits about 540px right of the canvas centre (measured, with some margin), so narrower windows get less zoom to keep them on screen. */
   (function () {
     var v = document.querySelector('spline-viewer.hero-scene'), max = v && parseFloat(v.getAttribute('data-zoom')), tries = 0, app = null;
-    if (!v || !(max > 0)) return;
-    function apply() { if (app) app.setZoom(Math.max(1, Math.min(max, (v.clientWidth / 2 - 24) / 540))); }
+    if (!v) return;
+    /* data-zoom is optional; without it the camera keeps the zoom set in Spline */
+    function apply() { if (app && max > 0) app.setZoom(Math.max(1, Math.min(max, (v.clientWidth / 2 - 24) / 540))); }
     var t = setInterval(function () {
       if (v._loaded && v._spline && typeof v._spline.setZoom === 'function') { app = v._spline; apply(); clearInterval(t); }
       else if (++tries > 150) clearInterval(t);
     }, 200);
     window.addEventListener('resize', apply);
+    /* At 1080px and below the CSS hides the scene (display: none). A hidden canvas has zero size and the WebGPU renderer then
+       errors on every frame, so stop the render loop while hidden and resume it when the scene is shown again. */
+    var hiddenMq = window.matchMedia('(max-width: 1080px)');
+    var stopped = false;
+    /* resume only once the viewer's canvas has its size back, otherwise the first frames still render at zero size */
+    function resume() {
+      if (hiddenMq.matches || !stopped) return;
+      var c = v.shadowRoot && v.shadowRoot.querySelector('canvas');
+      if (v.clientWidth > 0 && c && c.width > 0 && c.height > 0) { app.play(); stopped = false; apply(); }
+      else requestAnimationFrame(resume);
+    }
+    function syncRun() { if (!app) return; if (hiddenMq.matches) { if (!stopped) { app.stop(); stopped = true; } } else if (stopped) requestAnimationFrame(resume); }
+    if (hiddenMq.addEventListener) hiddenMq.addEventListener('change', syncRun); else hiddenMq.addListener(syncRun);
+    var waitApp = setInterval(function () { if (app) { clearInterval(waitApp); syncRun(); } }, 200);
     /* Wheel over the scene scrolls the page only: stop the event at the viewer host (capture) so Spline's camera never sees it.
        No preventDefault, so the page still scrolls. */
     v.addEventListener('wheel', function (e) { e.stopPropagation(); }, { capture: true, passive: true });
