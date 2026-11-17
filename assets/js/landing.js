@@ -449,17 +449,20 @@
     /* At 1080px and below the CSS hides the scene (display: none). A hidden canvas has zero size and the WebGPU renderer then
        errors on every frame, so stop the render loop while hidden and resume it when the scene is shown again. */
     var hiddenMq = window.matchMedia('(max-width: 1080px)');
+    /* hidden on narrow screens, and in the preview's 2type hero (body.hero-2type) */
+    function isHidden() { return hiddenMq.matches || document.body.classList.contains('hero-2type'); }
     var stopped = false;
     /* resume only once the viewer's canvas has its size back, otherwise the first frames still render at zero size */
     function resume() {
-      if (hiddenMq.matches || !stopped) return;
+      if (isHidden() || !stopped) return;
       var c = v.shadowRoot && v.shadowRoot.querySelector('canvas');
       if (v.clientWidth > 0 && c && c.width > 0 && c.height > 0) { app.play(); stopped = false; apply(); }
       else requestAnimationFrame(resume);
     }
-    function syncRun() { if (!app) return; if (hiddenMq.matches) { if (!stopped) { app.stop(); stopped = true; } } else if (stopped) requestAnimationFrame(resume); }
+    function syncRun() { if (!app) return; if (isHidden()) { if (!stopped) { app.stop(); stopped = true; } } else if (stopped) requestAnimationFrame(resume); }
     if (hiddenMq.addEventListener) hiddenMq.addEventListener('change', syncRun); else hiddenMq.addListener(syncRun);
     var waitApp = setInterval(function () { if (app) { clearInterval(waitApp); syncRun(); } }, 200);
+    document.addEventListener('herochange', syncRun);
     /* Wheel over the scene scrolls the page only: stop the event at the viewer host (capture) so Spline's camera never sees it.
        No preventDefault, so the page still scrolls. */
     v.addEventListener('wheel', function (e) { e.stopPropagation(); }, { capture: true, passive: true });
@@ -469,21 +472,69 @@
   if (pcards) pcards.addEventListener('click', function () { if (flipT) { clearInterval(flipT); flipT = null; } this.classList.toggle('swap'); });
   if (pcards && !noMotion) flipT = setInterval(function () { if (!document.hidden && !$('hero-a').hidden && !pcards.matches(':hover')) pcards.classList.toggle('swap'); }, 5000);
 
-  /* Hero B (team vote): the same move at your broker and here, on an up day and a down day */
-  var hbData = [
-    { them: '+$48', themNeg: false, us: '+$482', x: '×10', label: 'OHAYO · LONG 10x', cols: 10, rows: 10 },
-    { them: '−$31', themNeg: true, us: '+$620', x: 'SHORT ×20', label: 'OHAYO · SHORT 20x', cols: 10, rows: 20 }
-  ];
-  var hbBtns = all('[data-hb]');
-  function hbPaint(i) {
-    var d = hbData[i], t = $('hb-dots-them'), u = $('hb-dots-us');
-    $('hb-them').textContent = d.them; $('hb-them').style.color = d.themNeg ? 'var(--fg-negative)' : 'var(--fg-subtle)';
-    t.style.setProperty('--cols', 5); t.style.setProperty('--rows', 2); t.style.color = d.themNeg ? 'var(--fg-negative)' : '';
-    $('hb-us').textContent = d.us; $('hb-x').textContent = d.x; $('hb-label').textContent = d.label;
-    u.style.setProperty('--cols', d.cols); u.style.setProperty('--rows', d.rows);
-  }
-  hbBtns.forEach(function (b) { b.addEventListener('click', function () { press(hbBtns, b); hbPaint(Number(b.getAttribute('data-hb'))); }); });
-  hbPaint(0);
+
+  /* 2type hero vector sequence (Figma storyboard 75:10785, cuts 1-6), 8s then a 2s hold, looping.
+     Times below are on a 4s scale; SPEED stretches them (2 = 8s):
+     1  0.00-0.80  "SK hynix up 4.8%" types in large in the centre, "$1,000 invested: Returns compared" fades in under it
+     2  0.80-1.40  that heading shrinks up into its slot; "SHARES AT YOUR BROKER" appears large in the centre
+     3  1.40-2.30  the caption moves to its slot (top left); the broker bar fills from the bottom up (58 dots), +$0 -> +$48
+     4  2.30-2.70  "OHAYO · LONG 10x" appears large in the centre
+     5  2.70-3.50  it moves to its slot (top right); the OHAYO block fills from the bottom up (576 dots), +$0 -> +$482
+     6  3.50-3.95  a big orange multiplier counts up 0x -> 10x, centre
+     Runs only while the 2type hero is shown. */
+  (function () {
+    var seq = document.querySelector('.hero-seq');
+    if (!seq) return;
+    var st = seq.querySelector('.hs-stage'), q = function (c) { return st.querySelector(c); };
+    var head = q('.hs-head'), tw = q('.hs-w'), tg = q('.hs-g'), sub = q('.hs-sub'), capT = q('.hs-cap--them'), capU = q('.hs-cap--us');
+    var vT = q('.hs-val--them'), vU = q('.hs-val--us'), dT = q('.hs-dots--them'), dU = q('.hs-dots--us'), x10 = q('.hs-x');
+    var T1 = 'SK hynix ', T2 = 'up 4.8%', SPEED = 2, LOOP = 4000 * SPEED + 2000, raf = null, t0 = 0;
+    var clamp = function (x) { return x < 0 ? 0 : x > 1 ? 1 : x; };
+    var seg = function (t, a, b) { return clamp((t - a) / (b - a)); };
+    var easeOut = function (x) { return 1 - Math.pow(1 - x, 3); };
+    var easeInOut = function (x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+    /* translate from an element's slot centre to centre stage (540, cy); slots come from CSS, sizes measured once */
+    function bigOffset(el, cy) { return { x: 540 - (el.offsetLeft + el.offsetWidth / 2), y: cy - (el.offsetTop + el.offsetHeight / 2) }; }
+    var oHead, oT, oU;
+    function measure() { oHead = bigOffset(head, 103); oT = bigOffset(capT, 109); oU = bigOffset(capU, 109); }
+    function place(el, o, scale, k) { /* k = 0 at centre stage (large), 1 in its slot */
+      el.style.transform = 'translate(' + (o.x * (1 - k)).toFixed(1) + 'px,' + (o.y * (1 - k)).toFixed(1) + 'px) scale(' + (scale + (1 - scale) * k).toFixed(3) + ')';
+    }
+    function fill(box, k) { /* light k dots, 24 per row, from the bottom row up */
+      var full = Math.floor(k / 24), rem = k % 24, f = box.firstElementChild, part = box.lastElementChild;
+      f.style.height = full * 6 + 'px'; part.style.bottom = full * 6 + 'px'; part.style.width = rem * 6 + 'px';
+    }
+    function fit() { var k = Math.min(1, seq.clientWidth / 1080 || 1); st.style.transform = 'scale(' + k + ')'; seq.style.height = Math.round(200 * k) + 'px'; }
+    function render(t) {
+      // 1: heading types in large, subtitle fades in; 2: the pair shrinks up into its slot
+      var n = Math.round(seg(t, 0, 500) * (T1.length + T2.length));
+      tw.textContent = T1.slice(0, n); tg.textContent = T2.slice(0, Math.max(0, n - T1.length));
+      sub.style.opacity = seg(t, 450, 700);
+      place(head, oHead, 2.28, easeInOut(seg(t, 800, 1100)));
+      // 2-3: broker caption appears large, then moves to its slot; bar + count
+      capT.style.opacity = seg(t, 950, 1150);
+      place(capT, oT, 1.9, easeInOut(seg(t, 1400, 1650)));
+      var p1 = easeOut(seg(t, 1600, 2300));
+      vT.style.opacity = seg(t, 1600, 1700); vT.textContent = '+$' + Math.round(48 * p1); fill(dT, Math.round(58 * p1));
+      // 4-5: OHAYO caption appears large, then moves to its slot; block + count
+      capU.style.opacity = seg(t, 2300, 2500);
+      place(capU, oU, 1.9, easeInOut(seg(t, 2700, 2950)));
+      var p2 = easeOut(seg(t, 2900, 3500));
+      vU.style.opacity = seg(t, 2900, 3000); vU.textContent = '+$' + Math.round(482 * p2); fill(dU, Math.round(576 * p2));
+      // 6: the multiplier counts up 0x -> 10x
+      var p3 = easeOut(seg(t, 3500, 3950));
+      x10.style.opacity = seg(t, 3500, 3580); x10.textContent = Math.round(10 * p3) + 'x';
+    }
+    function loop(ts) { if (!t0) t0 = ts; render(((ts - t0) % LOOP) / SPEED); raf = requestAnimationFrame(loop); }
+    function sync() {
+      var on = document.body.classList.contains('hero-2type');
+      if (on) { fit(); measure(); if (noMotion) { render(4000); return; } if (!raf) { t0 = 0; raf = requestAnimationFrame(loop); } }
+      else if (raf) { cancelAnimationFrame(raf); raf = null; }
+    }
+    document.addEventListener('herochange', sync);
+    window.addEventListener('resize', fit);
+    sync();
+  })();
 
   /* Preview controls */
   var heads = {
@@ -501,13 +552,15 @@
     b.addEventListener('click', function () {
       var isB = b.getAttribute('data-hero') === 'x10', h = isB ? 'C' : 'A';
       press(heroBtns, b);
-      $('hero-a').hidden = isB; $('hero-b').hidden = !isB;
+      $('hero-a').hidden = isB; /* 2type: empty slot for the next hero concept, no 3D scene */
+      document.body.classList.toggle('hero-2type', isB); document.dispatchEvent(new Event('herochange'));
+      var line = document.querySelector('.hero-line');
+      if (line) { line.classList.remove('is-drawn'); if (isB) requestAnimationFrame(function () { requestAnimationFrame(function () { line.classList.add('is-drawn'); }); }); }
       $('headline').textContent = heads[h];
       press(hBtns, hBtns.filter(function (x) { return x.getAttribute('data-h') === h; })[0]);
     });
   });
-  $('notes-btn').addEventListener('click', function () { var on = !document.body.classList.contains('notes'); document.body.classList.toggle('notes', on); this.setAttribute('aria-pressed', on ? 'true' : 'false'); });
   $('preview-x').addEventListener('click', function () { $('preview').hidden = true; });
-  /* Preview controls (headline A-D, hero A/B, designer notes) only show with ?preview=1 */
+  /* Preview controls (headline A-D, hero A/B) only show with ?preview=1 */
   if (/[?&]preview=1/.test(location.search)) { $('preview').hidden = false; }
 })();

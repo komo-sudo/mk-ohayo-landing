@@ -126,7 +126,54 @@ nav.main button:hover { color: var(--fg-base); }
    No offset or zoom of our own, so it frames the same way as the Spline editor. */
 .hero-scene { position: absolute; left: 0; top: 0; display: block; width: 100%; height: 100vh; height: 100svh; pointer-events: auto; }
 .fold:has(.hero-scene:defined) .hero-cards { visibility: hidden; }
-.hero-grid > .hero-visual > .hb { position: absolute; right: max(20px, 50% - 540px); top: 78px; }
+/* Preview 2type hero: no 3D scene (landing.js also stops its render loop) */
+.hero-2type .hero-scene { display: none; }
+/* 2type hero line art (Figma 75:9371): a 6px orange curve behind the copy. In Figma it sits at x -268 / y 157 of the
+   1440 hero frame (top = 65px below the page top here) and is rotated 8.29deg.
+   It runs as a comet on a loop: a bright head travelling from the lower end to the upper end with a fading tail. SVG has no
+   gradient along a path, so the tail is 24 copies of the curve, each a dash of growing length (up to 80% of the curve) at low
+   opacity, all sharing the same moving head; the overlap is densest at the head and thins out towards the tail. */
+.hero-line { display: none; position: absolute; inset: 0; overflow: hidden; pointer-events: none; color: var(--fg-primary); }
+/* Line art is parked for now (hidden in 2type too). To bring it back, restore: .hero-2type .hero-line { display: block; } */
+/* 2type hero vector sequence (Figma 75:9419): a 1080 x 200 band centred between the copy and the creators row.
+   Dots are 6px LED cells (4px dot), 24 per row. Only lit dots are drawn: landing.js fills each graph dot by dot from the
+   bottom row up (full rows + a partial row) while the numbers count up. Dot counts follow the money: broker 58 dots
+   ($48), OHAYO 576 dots ($482), so the area is 10x. */
+.hero-seq { display: none; position: relative; z-index: 1; width: min(1080px, 100%); height: 200px; margin: 0 auto; } /* narrower screens: landing.js scales the stage down */
+.hero-2type .hero { display: flex; flex-direction: column; }
+.hero-2type .hero-grid { flex: 1 0 auto; display: flex; flex-direction: column; width: 100%; } /* auto side margins would otherwise shrink the .wrap to its content in a flex column */
+.hero-2type .hero-visual { flex: 1 0 auto; display: flex; align-items: center; justify-content: center; padding: 24px 0; }
+.hero-2type .hero-seq { display: block; }
+.hs-stage { position: absolute; left: 0; top: 0; width: 1080px; height: 200px; transform-origin: 0 0; }
+.hs-stage > * { position: absolute; margin: 0; }
+.hs-head, .hs-cap { transform-origin: 50% 50%; will-change: transform, opacity; } /* landing.js moves them from centre stage (large) into their slots */
+.hs-head { left: 0; right: 0; top: 23px; height: 47px; text-align: center; }
+.hs-head p { margin: 0; white-space: pre; }
+.hs-title { font-weight: 700; font-size: 14px; line-height: 21.7px; }
+.hs-sub { margin-top: 4px !important; font-size: 14px; line-height: 20.1px; color: var(--fg-muted); }
+.hs-w { color: var(--fg-base); } .hs-g { color: var(--fg-positive); }
+.hs-cap { top: 36px; font-weight: 500; font-size: 12px; line-height: 18.6px; letter-spacing: 0.7px; text-transform: uppercase; color: var(--fg-muted); white-space: nowrap; }
+.hs-cap--them { left: 101px; top: 35px; } .hs-cap--us { left: 701px; color: var(--fg-primary); }
+.hs-val { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hs-val--them { left: 260px; top: 160px; font-weight: 700; font-size: 26px; line-height: 26px; letter-spacing: 0.5px; color: var(--fg-subtle); }
+.hs-val--us { left: 870px; top: 86px; font-weight: 900; font-size: 50px; line-height: 60px; color: var(--fg-positive); }
+.hs-dots { display: block; }
+.hs-dots i { position: absolute; left: 0; bottom: 0; width: 100%; height: 0; background: radial-gradient(circle, currentColor 1.7px, transparent 2.1px) 0 0 / 6px 6px; }
+.hs-dots .hs-part { width: 0; height: 6px; }
+.hs-dots--them { left: 101px; top: 182px; width: 144px; height: 18px; color: var(--fg-subtle); } /* 3 rows: 24 + 24 + 10 = 58 dots */
+.hs-dots--us { left: 701px; top: 55px; width: 144px; height: 144px; color: var(--fg-positive); }
+.hs-x { left: 478px; top: 83px; width: 124px; text-align: center; font-weight: 900; font-size: 70px; line-height: 84px; color: var(--fg-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hero-line svg { position: absolute; left: calc(max(20px, 50% - 540px) - 448px); top: 222px; width: 1730px; height: 970px; max-width: none; transform: rotate(-8.29deg); transform-origin: 0 0; }
+.hl-trail { stroke-dashoffset: -1; }
+.hl-trail use { fill: none; stroke: currentColor; stroke-width: 6; stroke-miterlimit: 10; stroke-dasharray: var(--d) 2; opacity: 0.085; }
+.hl-trail .hl-head { opacity: 1; stroke-linecap: round; }
+.hero-line.is-drawn .hl-trail { animation: hero-line 6s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+@keyframes hero-line { 0% { stroke-dashoffset: -1; } 85%, 100% { stroke-dashoffset: 0.82; } }
+@media (prefers-reduced-motion: reduce) {
+  .hero-line.is-drawn .hl-trail { animation: none; }
+  .hl-trail use { stroke-dasharray: none; opacity: 0; }
+  .hl-trail .hl-head { opacity: 1; }
+}
 .hero-cta { gap: 4px 20px; margin-top: 8px; }
 
 /* Dot-matrix board */
@@ -238,15 +285,7 @@ nav.main button:hover { color: var(--fg-base); }
 .pay i.on { background: var(--bg-primary); }
 @media (max-width: 900px) { .soon { grid-template-columns: minmax(0, 1fr); } }
 
-/* v6: designer notes, TradeView mock, spotlight */
-.dn-wrap { padding-top: 20px; padding-bottom: 20px; }
-body:not(.notes) .dn-wrap { display: none; }
-.dn { border: 1px dashed var(--bg-primary); border-radius: var(--radius-8); background: rgba(255, 90, 0, 0.07); padding: 16px 18px; font-family: "Pretendard Variable", "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; font-size: 14px; line-height: 1.65; color: var(--fg-subtle); }
-.dn h4 { margin: 0 0 8px; font-size: 13px; letter-spacing: 0.04em; color: var(--fg-primary); }
-.dn dl { margin: 0; display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 6px 12px; }
-.dn dt { color: var(--fg-base); font-weight: 700; }
-.dn dd { margin: 0; }
-.dn ol { margin: 0; padding-left: 20px; }
+/* v6: TradeView mock, spotlight */
 .tv-app { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr); gap: 12px; margin-top: 8px; }
 .tv-list { display: flex; flex-direction: column; gap: 8px; }
 .tv-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
@@ -297,21 +336,7 @@ body:not(.notes) .dn-wrap { display: none; }
 .replay svg { flex: none; }
 
 /* v9: team thread feedback */
-.hero-a[hidden], .hb[hidden] { display: none; }
-.hb { width: 100%; max-width: 500px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; padding: 22px; border: 1px solid var(--bd-control); border-radius: var(--radius-16); background-color: var(--bg-base); --c: 12px; }
-.hb-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
-.hb-tabs .chip { font-size: 14px; }
-.hb-tabs .chip[data-hb="0"][aria-pressed="true"] { background: var(--fg-positive); border-color: var(--fg-positive); color: var(--fg-on-primary); }
-.hb-tabs .chip[data-hb="1"][aria-pressed="true"] { background: var(--fg-negative); border-color: var(--fg-negative); color: var(--fg-on-primary); }
-.hb-cols { display: grid; grid-template-columns: minmax(0, 0.7fr) auto minmax(0, 1.5fr); gap: 14px; align-items: end; min-height: 318px; }
-.hb-col { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
-.hb-col b { font-size: 26px; line-height: 1; }
-.hb-col.us b { font-size: clamp(44px, 7vw, 64px); color: var(--fg-positive); letter-spacing: -1px; }
-.hb-col small { font-family: var(--font-led); font-weight: 700; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-muted); }
-.hb-dots { display: block; width: calc(var(--cols) * var(--c)); height: calc(var(--rows) * var(--c)); background-image: radial-gradient(circle, currentColor 30%, transparent 36%); background-size: var(--c) var(--c); color: var(--fg-muted); }
-.hb-col.us .hb-dots { color: var(--fg-positive); }
-.hb-x { font-size: 28px; color: var(--fg-primary); align-self: center; white-space: nowrap; }
-@media (max-width: 520px) { .hb { --c: 8px; } .hb-cols { min-height: 236px; } .hb-x { font-size: 18px; } }
+.hero-a[hidden] { display: none; }
 /* two-column blocks share one bottom edge */
 .tv-side { padding: 18px; display: flex; flex-direction: column; gap: 8px; }
 .tv-side > .muted { margin-top: auto; padding-top: 10px; }
@@ -339,7 +364,7 @@ body:not(.notes) .dn-wrap { display: none; }
 /* Keep the creators shadow off the bottom of the 3D cards above it. */
 .fold > .creators > .wrap::before { top: -8px; }
 .fold > .hero :is(a, button, input, label, select, textarea) { pointer-events: auto; }
-.fold > .creators, .fold + * + section, .fold + section { border-top: 0; }
+.fold > .creators, .fold + section { border-top: 0; }
 @media (min-width: 1081px) {
   .fold { min-height: 100vh; min-height: 100svh; }
   .fold > .hero { flex: 1 0 auto; min-height: 440px; }
@@ -553,5 +578,4 @@ label.check small { color: var(--fg-muted); margin-left: auto; font-family: var(
   /* The scene's camera is framed for the wide layout; narrow screens keep the still image. */
   .hero-scene { display: none; }
   .fold:has(.hero-scene:defined) .hero-cards { visibility: visible; }
-  .hero-grid > .hero-visual > .hb { position: static; margin: 24px auto 0; }
 }
