@@ -13,12 +13,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Doto:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="assets/css/landing.css">
+<script type="module" src="https://unpkg.com/@splinetool/viewer@2.0.184/build/spline-viewer.js"></script>
 </head>
 <body>
 
 <header class="top">
   <div class="wrap">
-    <a class="wordmark" href="#top" data-scroll="top">OHAYO<span>.</span></a>
+    <a class="wordmark" href="#top" data-scroll="top"><img src="assets/img/ohayo-logo.svg" alt="OHAYO" width="80" height="24"></a>
     <nav class="main" aria-label="Sections">
       <button type="button" data-scroll="compare">How it compares</button>
       <button type="button" data-scroll="tournament">Tournaments</button>
@@ -32,15 +33,11 @@
 
 <main id="top">
 
-<div class="wrap dn-wrap" lang="ko"><aside class="dn"><h4>디자이너 노트 · 이 랜딩이 해야 하는 일</h4>
-<dl>
-<dt>누구</dt><dd>토스에서 SOXL·KORU·하이닉스를 사는 주식 유저. 코인 거래소는 써본 적 없음. 주식 KOL 영상이나 네이버 블로그에서 "하이닉스 10배"를 보고 "저거 어디서 하는 거야"가 궁금해서 들어온 사람.</dd>
-<dt>할 일</dt><dd>기능을 설명하는 페이지가 아니라 욕구를 건드리는 페이지. "나도 하고 싶다"가 먼저 생기고, "여기서 된다"를 확인하게 만든다.</dd>
-<dt>지킬 것</dt><dd><ol><li>히어로는 실제 매매처럼 보일 것 (하이닉스 10배 롱, 엔비디아 20배 숏. 종목별 실제 최대 레버리지)</li><li>전광판·도트 톤 (숫자는 LED)</li><li>매일 새 대회와 새 상금이 열린다는 설렘</li><li>고수 지갑을 보고, 왜 들어갔는지 읽고, 같이 얘기하는 트레이드뷰</li><li>매매만 잘해도 주목받고 팔로워가 생기는 곳</li></ol></dd>
-<dt>뺀 것</dt><dd>코인 용어와 입금 절차는 앞에서 말하지 않음. 하고 싶어진 다음에 앱 안에서 안내.</dd>
-<dt>참고</dt><dd>문구는 영어 우선. 이름·숫자·차트는 전부 샘플. 주황 점선 박스는 이 노트이고 실제 랜딩에는 없음. 왼쪽 아래 Notes 버튼으로 켜고 끔.</dd>
-</dl></aside></div>
-<div class="wrap dn-wrap" lang="ko"><aside class="dn"><h4>디자이너 노트 · 히어로</h4><dl><dt>의도</dt><dd>트레이더가 하이닉스 10배 매매를 보여줬을 때 "어떻게 하냐, 어디 거래소냐" 질문이 쏟아졌음. 그 장면을 첫 화면에서 재현하는 것이 목적. "만약 5% 오르면" 같은 가정 계산이 아니라 누군가 실제로 친 매매로 보여야 함.</dd><dt>디렉션</dt><dd>수익 인증 카드(PnL 카드) 한 장이 주인공. 종목, 롱·숏과 10배, 수익률 세 가지만 3초 안에 읽힐 것. 주식 KOL이 올리는 인증샷과 같은 모양이라 광고에서 본 것과 첫 화면이 이어짐. 뒤에 엔비디아 숏 카드가 겹쳐서 "떨어질 때도 번다"가 보일 것. 카드 안의 "STOCK −3.1% → YOU +62.0%" 한 줄이 그 역할: 종목은 빨간색으로 빠졌는데 내 수익은 초록색.</dd><dt>팀 의견</dt><dd>히어로 후보 투표에서 "1배 vs 10배 대비"(B안)에 2표, "하락·숏 수익도 보여달라"는 의견. 그래서 ① 카드에 "종목이 이만큼 움직였고 나는 이만큼"을 한 줄로 넣었고 ② 숏 카드가 저절로 앞으로 넘어오며 ③ B안도 실제 페이지에서 비교할 수 있게 아래 Preview 바에 hero 스위치를 달았음. 기본은 카드(A). 최종 선택은 주식만 하는 사람 반응을 보고 결정.</dd><dt>자유</dt><dd>카드의 그래픽과 질감, 도트·LED를 어디까지 쓸지, 카드 넘어가는 움직임. 모바일 첫 화면에 헤드라인·카드·버튼이 다 들어올 것.</dd></dl></aside></div>
+<!-- First screen: hero, creators and today's strip share the viewport height on wide screens. -->
+<div class="fold">
+  <spline-viewer class="hero-scene" url="https://prod.spline.design/DVfG5mA1Kp08mDLR/scene.splinecode" aria-hidden="true"></spline-viewer>
+  <!-- 2type hero: line art (Figma ohayo00001 · 75:9371) -->
+  <div class="hero-line" aria-hidden="true"><svg width="1730" height="970" viewBox="0 0 1729.07 969.618" fill="none"><defs><path id="hl-path" pathLength="1" d="M1726.11 14.6012C1667.77 366.96 1344.63 679.535 974.793 629.671C778.499 607.392 596.39 447.988 571.903 254.105C560.262 174.668 577.122 101.332 610.172 56.1098C650.313 -0.384362 712.265 -12.7176 756.823 23.4864C803.922 59.823 830.015 147.217 812.754 253.972C745.717 608.983 351.792 917.181 0.418208 966.647"/></defs><g class="hl-trail"><use href="#hl-path" style="--d:0.0333"/><use href="#hl-path" style="--d:0.0667"/><use href="#hl-path" style="--d:0.1000"/><use href="#hl-path" style="--d:0.1333"/><use href="#hl-path" style="--d:0.1667"/><use href="#hl-path" style="--d:0.2000"/><use href="#hl-path" style="--d:0.2333"/><use href="#hl-path" style="--d:0.2667"/><use href="#hl-path" style="--d:0.3000"/><use href="#hl-path" style="--d:0.3333"/><use href="#hl-path" style="--d:0.3667"/><use href="#hl-path" style="--d:0.4000"/><use href="#hl-path" style="--d:0.4333"/><use href="#hl-path" style="--d:0.4667"/><use href="#hl-path" style="--d:0.5000"/><use href="#hl-path" style="--d:0.5333"/><use href="#hl-path" style="--d:0.5667"/><use href="#hl-path" style="--d:0.6000"/><use href="#hl-path" style="--d:0.6333"/><use href="#hl-path" style="--d:0.6667"/><use href="#hl-path" style="--d:0.7000"/><use href="#hl-path" style="--d:0.7333"/><use href="#hl-path" style="--d:0.7667"/><use href="#hl-path" style="--d:0.8000"/><use class="hl-head" href="#hl-path" style="--d:0.012"/></g></svg></div>
 <section class="hero">
   <div class="wrap hero-grid">
     <div class="stack hero-copy">
@@ -56,74 +53,45 @@
 
     <div class="hero-visual">
       <div class="hero-a" id="hero-a">
-      <div class="pcards" id="pcards">
-      <button type="button" class="pcard" data-card="1" aria-label="NVDA SHORT 20x card">
-        <div class="pc-head"><span><span class="av" style="width:34px;height:34px;font-size:13px">SH</span>Semi Hunter</span><em>OHAYO</em></div>
-        <div class="pc-tick">NVDA<span class="side short">SHORT 20x</span></div>
-        <div class="pc-move">Stock <b class="down">−3.1%</b><span aria-hidden="true">→</span>you</div>
-        <div class="led pc-big">+62.0%</div>
-        <div class="pc-foot"><div><b class="led">+$620</b><small>on $1,000 · held 1d 4h</small></div>
-          <svg width="120" height="48" viewBox="0 0 120 48" fill="none" aria-hidden="true"><polyline points="0,10 12,6 24,12 36,18 48,16 60,26 72,30 84,28 96,38 108,42 120,40" stroke="#fafafa" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
-      </button>
-      <button type="button" class="pcard" data-card="0" aria-label="SK hynix LONG 10x card">
-        <div class="pc-head"><span><span class="av" style="width:34px;height:34px;font-size:13px">TB</span>Trader Baek</span><em>OHAYO</em></div>
-        <div class="pc-tick">SK hynix<span class="side">LONG 10x</span></div>
-        <div class="pc-move">Stock <b class="up">+4.8%</b><span aria-hidden="true">→</span>you</div>
-        <div class="led pc-big">+48.2%</div>
-        <div class="pc-foot"><div><b class="led">+$482</b><small>on $1,000 · held 3h 12m</small></div>
-          <svg width="120" height="48" viewBox="0 0 120 48" fill="none" aria-hidden="true"><polyline points="0,36 12,39 24,44 36,40 48,30 60,26 72,20 84,22 96,10 108,6 120,8" stroke="#fafafa" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
-      </button>
-      </div>
-      <p class="muted">Sample cards. Tap to flip. Real trades go here.</p>
+        <img class="hero-cards" src="assets/img/hero-cards.png" width="2920" height="2012" alt="Two sample result cards. NVDA short 20x: the stock fell 3.1%, the position is up 62.0%. SK hynix long 10x: the stock rose 4.8%, the position is up 48.2%.">
       </div>
 
-      <div class="hb" id="hero-b" hidden>
-        <div class="hb-tabs" role="group" aria-label="An up day or a down day">
-          <button type="button" class="chip" data-hb="0" aria-pressed="true">SK hynix up 4.8%</button>
-          <button type="button" class="chip" data-hb="1" aria-pressed="false">NVDA down 3.1%</button>
-        </div>
-        <div class="hb-cols" aria-live="polite">
-          <div class="hb-col">
-            <b class="led" id="hb-them">+$48</b>
-            <span class="hb-dots" id="hb-dots-them" aria-hidden="true"></span>
-            <small>Shares at your broker</small>
+      <!-- 2type hero: vector sequence (Figma ohayo00001 · 75:9419). landing.js runs the 4s sequence + 2s hold on a loop. -->
+      <div class="hero-seq" role="img" aria-label="SK hynix up 4.8%. $1,000 invested, returns compared. Shares at your broker: plus $48. OHAYO long 10x: plus $482. 10x.">
+        <div class="hs-stage" aria-hidden="true">
+          <div class="hs-head">
+            <p class="hs-title"><span class="hs-w"></span><span class="hs-g"></span></p>
+            <p class="hs-sub">$1,000 invested: Returns compared</p>
           </div>
-          <span class="led hb-x" id="hb-x">×10</span>
-          <div class="hb-col us">
-            <b class="led" id="hb-us">+$482</b>
-            <span class="hb-dots" id="hb-dots-us" aria-hidden="true"></span>
-            <small id="hb-label">OHAYO · LONG 10x</small>
-          </div>
+          <p class="hs-cap hs-cap--them">Shares at your broker</p>
+          <b class="hs-val hs-val--them">+$0</b>
+          <span class="hs-dots hs-dots--them"><i class="hs-full"></i><i class="hs-part"></i></span>
+          <p class="hs-cap hs-cap--us">OHAYO · LONG 10x</p>
+          <span class="hs-dots hs-dots--us"><i class="hs-full"></i><i class="hs-part"></i></span>
+          <b class="hs-val hs-val--us">+$0</b>
+          <b class="hs-x">10x</b>
         </div>
-        <p class="muted">Same $1,000, same move. Sample numbers.</p>
       </div>
     </div>
   </div>
 </section>
 
-<div class="wrap dn-wrap" lang="ko"><aside class="dn"><h4>디자이너 노트 · 오늘의 보드 띠</h4><dl><dt>의도</dt><dd>스크롤을 안 내려도 "오늘 여기 뭔가 열려 있다"가 보이게. 전광판 느낌이 가장 직접적으로 드러나는 자리.</dd><dt>디렉션</dt><dd>LED 글자, 흐르는 움직임, 살아 있는 카운트다운.</dd></dl></aside></div>
-<button type="button" class="strip" data-scroll="tournament" aria-label="See today's tournaments">
-  <span class="strip-label">Today's board</span>
-  <span class="strip-view"><span class="strip-run" id="strip-run"></span></span>
-</button>
-
-<div class="wrap dn-wrap" lang="ko"><aside class="dn"><h4>디자이너 노트 · 주식 KOL</h4><dl><dt>의도</dt><dd>타겟은 코인 유저가 아니라서 이 앱을 처음 봄. "내가 아는 주식 유튜버가 여기서 한다"가 신뢰의 대부분. 히어로 바로 아래에 두는 이유.</dd><dt>디렉션</dt><dd>얼굴·이름·구독자·최근 수익률. 손실 중인 사람도 한 명 섞어서 진짜 계좌처럼 보이게. 실제 KOL 확정 후 교체.</dd></dl></aside></div>
 <section class="creators">
   <div class="wrap">
     <p class="eyebrow">They trade here</p>
     <div class="creator-grid">
       <div class="creator">
-        <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="24" fill="#272727"/><text x="24" y="30" text-anchor="middle" font-family="Courier New, monospace" font-weight="700" font-size="16" fill="#ff5a00">SH</text></svg>
+        <img class="creator-avatar" src="assets/img/avatars/men-32.jpg" width="48" height="48" alt="">
         <div class="who"><b>Semi Hunter</b><span class="muted">412K subscribers · NVDA, MU</span></div>
         <div class="pnl"><span class="led up">+38.2%</span><span class="muted">30D PnL</span></div>
       </div>
       <div class="creator">
-        <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="24" fill="#272727"/><text x="24" y="30" text-anchor="middle" font-family="Courier New, monospace" font-weight="700" font-size="16" fill="#ff5a00">NJ</text></svg>
+        <img class="creator-avatar" src="assets/img/avatars/men-75.jpg" width="48" height="48" alt="">
         <div class="who"><b>Night Desk Jay</b><span class="muted">186K subscribers · TSLA, SOXL</span></div>
         <div class="pnl"><span class="led up">+21.7%</span><span class="muted">30D PnL</span></div>
       </div>
       <div class="creator">
-        <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="24" fill="#272727"/><text x="24" y="30" text-anchor="middle" font-family="Courier New, monospace" font-weight="700" font-size="16" fill="#ff5a00">CM</text></svg>
+        <img class="creator-avatar" src="assets/img/avatars/women-44.jpg" width="48" height="48" alt="">
         <div class="who"><b>Chart Mina</b><span class="muted">94K subscribers · KORU, AMD</span></div>
         <div class="pnl"><span class="led down">−6.4%</span><span class="muted">30D PnL</span></div>
       </div>
@@ -132,7 +100,12 @@
   </div>
 </section>
 
-<div class="wrap dn-wrap" lang="ko"><aside class="dn"><h4>디자이너 노트 · 레버리지 직접 밀어보기</h4><dl><dt>의도</dt><dd>히어로에서 뺀 차트와 슬라이더를 여기로 내림. 히어로는 "누가 쳤다"를 보여주고, 여기는 "나라면 얼마"를 직접 만져보는 칸. 레버리지를 올리면 오른쪽 축의 내 수익률이 같이 커지는 게 핵심. 슬라이더 끝은 종목별 실제 상한(하이닉스 10배, 엔비디아 20배).</dd></dl></aside></div>
+<button type="button" class="strip" data-scroll="tournament" aria-label="See today's tournaments">
+  <span class="strip-label">Today's board</span>
+  <span class="strip-view"><span class="strip-run" id="strip-run"></span></span>
+</button>
+</div>
+
 <section id="simulate">
   <div class="wrap">
     <div class="stack sec-head">
@@ -165,8 +138,7 @@
 
       <div class="chart-wrap"><canvas id="chart" role="img" aria-label="Candlestick chart of the sample trade. The right edge shows the price move and, next to it, your return at the chosen leverage."></canvas></div>
       <div class="chart-cap">
-        <span class="muted">Price <b id="p-move" style="color:var(--fg)">+4.8%</b> · owning the shares instead: <b id="p-shares" style="color:var(--fg)">+$48</b></span>
-        <button type="button" class="linkbtn" id="replay">Replay the trade</button>
+        <span class="muted">Price <b id="p-move" style="color:var(--fg-base)">+4.8%</b> · owning the shares instead: <b id="p-shares" style="color:var(--fg-base)">+$48</b></span>
       </div>
 
       <div class="lev">
@@ -186,16 +158,17 @@
         <span>Position <b id="p-size">$10,000</b></span>
       </div>
 
-      <div class="stack board-foot">
+      <div class="board-foot">
         <p class="muted">Sample candles and numbers, before fees and funding. The leverage caps are the real ones: 10x on SK hynix, 20x on NVDA.</p>
+        <button type="button" class="replay" id="replay"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4.5 12C4.49847 13.7352 5.09869 15.4173 6.19839 16.7596C7.29808 18.1019 8.82919 19.0214 10.5308 19.3613C12.2324 19.7012 13.9993 19.4406 15.5303 18.6238C17.0613 17.807 18.2617 16.4846 18.9269 14.8819C19.5922 13.2793 19.6811 11.4955 19.1786 9.83463C18.6761 8.17374 17.6132 6.73849 16.1711 5.77345C14.7289 4.8084 12.9968 4.37328 11.2698 4.54224C9.54275 4.71119 7.92777 5.47376 6.7 6.7M4.5 4V8H8.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>Replay the trade</button>
       </div>
     </div>
     </div>
   </div>
 </section>
 
-<div class="wrap dn-wrap" lang="ko"><aside class="dn"><h4>디자이너 노트 · 비교표 · 보조</h4><dl><dt>의도</dt><dd>"레버리지 ETF랑 뭐가 다른데"에 대한 답. 우선순위는 낮음. 표 형식은 자유. "Your money" 행은 입금을 망설이는 이유(모르는 앱에 돈 맡기기)에 대한 답이라 빼지 말 것.</dd></dl></aside></div>
 <section id="compare">
+  <div class="ticker-marquee" aria-hidden="true"><div class="tm-run"><span class="tm-item">SK hynix</span><span class="tm-item">Samsung</span><span class="tm-item">NVIDIA</span><span class="tm-item">Tesla</span><span class="tm-item">Micron</span><span class="tm-item">SOXL</span><span class="tm-item">KORU</span><span class="tm-item">Google</span><span class="tm-item">Meta</span><span class="tm-item">SK hynix</span><span class="tm-item">Samsung</span><span class="tm-item">NVIDIA</span><span class="tm-item">Tesla</span><span class="tm-item">Micron</span><span class="tm-item">SOXL</span><span class="tm-item">KORU</span><span class="tm-item">Google</span><span class="tm-item">Meta</span></div></div>
   <div class="wrap">
     <div class="stack sec-head">
       <p class="eyebrow">What OHAYO is</p>
@@ -223,7 +196,6 @@
   </div>
 </section>
 
-<div class="wrap dn-wrap" lang="ko"><aside class="dn"><h4>디자이너 노트 · 데일리 토너먼트</h4><dl><dt>의도</dt><dd>"여기는 매일 새 대회와 새 상금이 열린다"는 설렘. 오늘 놓쳐도 내일 또 있고, 그래서 매일 앱을 열 이유가 생김. 상금 규모보다 매일 바뀌는 판 자체가 주인공.</dd><dt>디렉션</dt><dd>앱 토너먼트 홈(피그마 04. Tournament, 상단 문구도 Daily Tournaments)의 구조와 카드를 그대로 가져올 것. 카운트다운은 실제로 움직일 것. 종목·주최자가 매일 달라 보이게.</dd><dt>에셋</dt><dd>디자인 시스템 05 Asset의 트로피, LED 숫자·보드, 종목 아이콘, 아바타로 교체. 지금은 대체물.</dd></dl></aside></div>
 <section id="tournament">
   <div class="wrap">
     <div class="t-hero">
@@ -293,7 +265,6 @@
   </div>
 </section>
 
-<div class="wrap dn-wrap" lang="ko"><aside class="dn"><h4>디자이너 노트 · 트레이드뷰</h4><dl><dt>의도</dt><dd>내가 좋아하는 고래, 상위 트레이더, KOL의 지갑을 보고 "얘가 왜 여기서 들어갔지"를 읽고 배우고, 같이 보는 사람들과 얘기하는 곳. 따라 사는 기능이 아니라 보고 배운 뒤 판단은 본인이 하는 곳.</dd><dt>디렉션</dt><dd>순서가 핵심: 누구를 볼지 고름 → 차트 위 매수(+)·매도(−) → 한 건을 누르면 "왜" → 댓글·전망 투표. 본인이 쓴 이유와 AI가 추정한 이유는 구분해서 보여줄 것.</dd><dt>자유</dt><dd>화면 구성과 그래픽. 고래·상위 트레이더·KOL 세 부류가 구분돼 보이면 됨. 좌우 패널의 위아래 선은 맞출 것.</dd></dl></aside></div>
 <section id="tradeview">
   <div class="wrap">
     <div class="stack sec-head">
@@ -343,7 +314,6 @@
   </div>
 </section>
 
-<div class="wrap dn-wrap" lang="ko"><aside class="dn"><h4>디자이너 노트 · 누구나 KOL이 될 수 있는 곳</h4><dl><dt>의도</dt><dd>채널도 구독자도 없는 사람이 매매만 잘해도 리더보드에서 주목받고, 사람들이 "이 사람 누구지" 하고 매매를 열어보고 팔로우함. 잘하는 사람에게는 오하요가 먼저 연락함.</dd><dt>디렉션</dt><dd>리더보드에서 한 줄이 스포트라이트를 받는 순간을 그림으로. 순위 → 팔로워 → 연락의 3단계가 한눈에 보일 것. 좌우 패널의 위아래 선은 맞출 것.</dd><dt>확인 중</dt><dd>"연락"의 구체 내용(파트너 조건, 추가 보상)은 기획 확정 전. 문구는 바뀔 수 있음.</dd></dl></aside></div>
 <section id="spotlight">
   <div class="wrap">
     <div class="stack sec-head">
@@ -366,7 +336,6 @@
   </div>
 </section>
 
-<div class="wrap dn-wrap" lang="ko"><aside class="dn"><h4>디자이너 노트 · 시작 방법 · FAQ · 알림 신청</h4><dl><dt>의도</dt><dd>보조 구간. 다만 알림 신청은 중요: 버튼은 여러 곳에 있어도 등록은 하나로 모이고, 완료 화면에서 디스코드로 보냄. 아직 안 나온 기능으로도 연락처를 모으는 것이 목적.</dd></dl></aside></div>
 <section id="start">
   <div class="wrap">
     <div class="stack sec-head">
@@ -460,7 +429,7 @@
       <button type="button" class="x" data-close aria-label="Close">×</button>
     </div>
     <p class="note" id="done-body"></p>
-    <div class="card" style="background:#000">
+    <div class="card" style="background:var(--bg-base)">
       <h3>While you wait: the OHAYO Discord</h3>
       <p>Market talk, tournament Q&amp;A and pre-launch events happen there first.</p>
     </div>
@@ -477,9 +446,8 @@
   <button type="button" class="chip" data-h="C" aria-pressed="false">C</button>
   <button type="button" class="chip" data-h="D" aria-pressed="false">D</button>
   <span>hero</span>
-  <button type="button" class="chip" data-hero="card" aria-pressed="true">Card</button>
-  <button type="button" class="chip" data-hero="x10" aria-pressed="false">1x vs 10x</button>
-  <button type="button" class="chip" id="notes-btn" aria-pressed="false">Notes</button>
+  <button type="button" class="chip" data-hero="card" aria-pressed="true">1type</button>
+  <button type="button" class="chip" data-hero="x10" aria-pressed="false">2type</button>
   <span>Samples · sign-ups not saved</span>
   <button type="button" class="x" id="preview-x" aria-label="Hide preview controls">×</button>
 </div>
