@@ -622,8 +622,9 @@
       var i = at(t), s = R.dir, cx = bx + wx[i], cy = by + s * wy[i];
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
-      // grid: 1px white lines at 10%
-      ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; ctx.beginPath();
+      // grid: 1px white lines, 10% while the belt moves, fading out as it brakes and back in as the next run starts
+      var ga = 0.1 * Math.min(clamp(sp[i] / VX), clamp(t / 500));
+      ctx.strokeStyle = 'rgba(255,255,255,' + ga.toFixed(3) + ')'; ctx.lineWidth = 1; ctx.beginPath();
       for (var gx = mod(DX + OX - cx, GX); gx < W; gx += GX) { ctx.moveTo(Math.round(gx) + 0.5, 0); ctx.lineTo(Math.round(gx) + 0.5, H); }
       for (var gy = mod(DY + OY + cy, GY); gy < H; gy += GY) { ctx.moveTo(0, Math.round(gy) + 0.5); ctx.lineTo(W, Math.round(gy) + 0.5); }
       ctx.stroke();
