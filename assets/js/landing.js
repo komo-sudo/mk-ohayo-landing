@@ -527,12 +527,164 @@
     }
     function loop(ts) { if (!t0) t0 = ts; render(((ts - t0) % LOOP) / SPEED); raf = requestAnimationFrame(loop); }
     function sync() {
-      var on = document.body.classList.contains('hero-2type');
+      var on = document.body.classList.contains('hero-2type') && getComputedStyle(seq).display !== 'none'; /* parked: hidden by CSS */
       if (on) { fit(); measure(); if (noMotion) { render(4000); return; } if (!raf) { t0 = 0; raf = requestAnimationFrame(loop); } }
       else if (raf) { cancelAnimationFrame(raf); raf = null; }
     }
     document.addEventListener('herochange', sync);
     window.addEventListener('resize', fit);
+    sync();
+  })();
+
+  /* 2type hero belt scroll. Two runs alternate: long (Figma 90:13145, SK hynix up 4.8%, OHAYO long 10x) and
+     short (Figma 91:16712, NVDA down 3.1%, OHAYO short 20x). The dot stays put while the 10% grid scrolls
+     right-to-left and, as the move steepens, top-to-bottom (long: the dot climbs) or bottom-to-top (short: it
+     falls). The tail is the dot's own recent path; its length follows the belt's speed. Timeline per run:
+     0-1.6s scene 0, LONG / SHORT over the moving grid; then (times below from 1.6s) 0-2.6s flat run-up: STOCKS then the OHAYO caption type in at 2x (0.5-1.7s) and shrink to size (1.9-2.25s);
+     2.6-12.6s the move, with $1,000 in stocks and on OHAYO counting together, one dot per dollar; then the
+     belt brakes, the 10x / 20x lands, it holds, and the next run fades in. The grid never jumps between runs. */
+  (function () {
+    var belt = document.querySelector('.hero-belt');
+    if (!belt) return;
+    var fold = belt.parentElement, cv = belt.querySelector('canvas'), ctx = cv.getContext('2d');
+    var label = belt.querySelector('.hb-label'), name = label.querySelector('.hb-name'), num = label.querySelector('b'), x10 = belt.querySelector('.hb-x'), mode = belt.querySelector('.hb-mode');
+    var grid = fold.querySelector('.hero-grid'), copy = fold.querySelector('.hero-copy'), strip = fold.querySelector('.strip'), hero = fold.querySelector('.hero');
+    var RUNS = [
+      { name: 'SK hynix', mode: 'L O N G', move: 4.8, dir: 1, mult: 10, cap: 'OHAYO · LONG 10x', x: '10x', color: '--fg-positive' },
+      { name: 'NVDA', mode: 'S H O R T', move: 3.1, dir: -1, mult: 20, cap: 'OHAYO · SHORT 20x', x: '20x', color: '--fg-negative' }
+    ];
+    var GX = 234, GY = 167, OX = -377.7, OY = -404.5;          /* grid pitch and phase relative to the dot, from the storyboard */
+    var VX = 130, INTRO = 1600, LEAD = INTRO + 2600, RISE = 10000, STOP = 1200, HOLD = 1200, FADE = 350, END = LEAD + RISE, LOOP = END + STOP + HOLD, PRE = 1000, STEP = 10;
+    var clamp = function (x) { return x < 0 ? 0 : x > 1 ? 1 : x; };
+    var mod = function (a, n) { return ((a % n) + n) % n; };
+    /* precomputed world path, sampled every 10ms from -1s (flat run-up, so the tail exists at 0%).
+       The belt accelerates through the move (up to 2.2x) and brakes to a stop after it. */
+    var wx = [], wy = [], sp = [], n = (PRE + LOOP) / STEP + 1, x = -VX * PRE / 1000, y = 0;
+    for (var i = 0; i < n; i++) {
+      var t = i * STEP - PRE;
+      var k = clamp((t - LEAD) / RISE), slope = k * k * (3 - 2 * k);   /* flat until LEAD, then the move */
+      var ka = clamp((t - LEAD) / (RISE * 0.4)), kb = clamp((t - END) / STOP);
+      var v = VX * (1 + 1.2 * ka * ka * (3 - 2 * ka)) * (1 - kb) * (1 - kb);
+      wx.push(x); wy.push(y); sp.push(v * Math.sqrt(1 + slope * slope));
+      x += v * STEP / 1000; y += v * slope * STEP / 1000;
+    }
+    var at = function (t) { return Math.min(n - 1, Math.max(0, Math.round((t + PRE) / STEP))); };
+    var yTop = wy[at(END)];
+    var cols = [].map.call(belt.querySelectorAll('.hb-col'), function (el, c) {
+      /* storyboard: STOCKS column 423px right of the dot, OHAYO 747px */
+      return { el: el, val: el.querySelector('.hb-val'), box: el.querySelector('.hb-dots'), cap: el.querySelector('.hb-cap'), txt: '', us: !!c,
+        dx: c ? 747 : 423, type: c ? [INTRO + 1000, INTRO + 1700] : [INTRO + 500, INTRO + 850] }; /* scene 2 typing windows: STOCKS, then the OHAYO caption */
+    });
+    cols[0].txt = cols[0].cap.textContent;
+    function fill(box, k, down) { /* light k dots, 12 per row, from the bottom row up (or the top row down) */
+      var full = Math.floor(k / 12), rem = k % 12, f = box.firstElementChild, part = box.lastElementChild;
+      f.style.height = full * 6 + 'px'; part.style.width = rem * 6 + 'px';
+      part.style.top = down ? full * 6 + 'px' : ''; part.style.bottom = down ? 'auto' : full * 6 + 'px';
+      box.style.height = Math.ceil(k / 12) * 6 + 'px'; /* the amount rides along with the stack */
+    }
+    var R = RUNS[0], col = '#11ec8a', rgb = '17,236,138';
+    var bx = 0, by = 0, W = 0, H = 0, dpr = 1, DX = 0, DY = 0, sc = 1, room = 1, raf = null, t0 = 0, run = 0;
+
+    function setRun(r) {
+      R = RUNS[r % RUNS.length];
+      belt.classList.toggle('is-short', R.dir < 0);
+      name.textContent = R.name; cols[1].txt = R.cap; x10.textContent = R.x; mode.textContent = R.mode;
+      col = getComputedStyle(document.documentElement).getPropertyValue(R.color).trim() || col;
+      var h = col.replace('#', ''); if (h.length === 6) rgb = [0, 2, 4].map(function (o) { return parseInt(h.substr(o, 2), 16); }).join(',');
+      place();
+    }
+    function place() {
+      cols.forEach(function (c) {
+        var down = !c.us && R.dir < 0;
+        c.el.style.left = (DX + c.dx * sc * room) + 'px';
+        if (down) { c.el.style.top = (DY - 3.5 * sc) + 'px'; c.el.style.bottom = 'auto'; }   /* caption on top, loss hangs below */
+        else { c.el.style.top = 'auto'; c.el.style.bottom = (H - (DY - 7.5 * sc)) + 'px'; }
+        c.el.style.transform = 'scale(' + sc + ')';
+      });
+    }
+    function layout() {
+      var fr = fold.getBoundingClientRect(), gr = grid.getBoundingClientRect(), cr = copy.getBoundingClientRect(), hr = hero.getBoundingClientRect();
+      W = fold.clientWidth; H = strip ? strip.offsetTop : hr.bottom - fr.top;
+      belt.style.height = H + 'px';
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      var copyBottom = cr.bottom - fr.top, heroBottom = Math.min(H, hr.bottom - fr.top);
+      DX = (cr.left - fr.left) + Math.min(160, gr.width * 0.15); /* storyboard: dot centre 160px right of the copy's left edge */
+      DY = copyBottom + (heroBottom - copyBottom) * 0.45;
+      sc = parseFloat(getComputedStyle(label).fontSize) / 32;
+      label.style.left = (DX + 20 * sc) + 'px'; label.style.top = DY + 'px';
+      room = Math.min(1, Math.max(0.5, (W - 24 - DX - 170 * sc) / 747)); /* squeeze the columns in on narrow screens */
+      x10.style.left = (DX + 604 * sc * room) + 'px'; x10.style.top = (DY - 121.5 * sc) + 'px'; /* between the two graphs */
+      mode.style.left = (W / 2) + 'px'; mode.style.top = (DY + 13.5 * sc) + 'px';      /* scene 0: centred on the stage, at the dot's height */
+      place();
+    }
+    function draw(t) {
+      var i = at(t), s = R.dir, cx = bx + wx[i], cy = by + s * wy[i];
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+      // grid: 1px white lines at 10%
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; ctx.beginPath();
+      for (var gx = mod(DX + OX - cx, GX); gx < W; gx += GX) { ctx.moveTo(Math.round(gx) + 0.5, 0); ctx.lineTo(Math.round(gx) + 0.5, H); }
+      for (var gy = mod(DY + OY + cy, GY); gy < H; gy += GY) { ctx.moveTo(0, Math.round(gy) + 0.5); ctx.lineTo(W, Math.round(gy) + 0.5); }
+      ctx.stroke();
+      // fade the dot, tail and label in at the start of a run and out at the end
+      // scene 0: LONG / SHORT fades up over the moving grid, holds, and clears before the dot arrives
+      var m0 = Math.min(clamp(t / 300), 1 - clamp((t - (INTRO - 350)) / 300)), mk = 1 - Math.pow(1 - clamp(t / 500), 3);
+      mode.style.opacity = m0; mode.style.transform = 'translate(-50%,-50%) scale(' + (sc * (0.9 + 0.1 * mk)).toFixed(3) + ')';
+      var a = Math.min(clamp((t - INTRO) / FADE), 1 - clamp((t - (LOOP - FADE)) / FADE));
+      ctx.globalAlpha = a;
+      // tail: the dot's recent path; 85px at cruise, ~3x at full speed, gone when stopped
+      var L = 85 * sp[i] / VX * sc, len = 0, j = i, px = DX, py = DY, pts = [[DX, DY]];
+      while (j > 0 && len < L) {
+        j--; var qx = DX + (wx[j] - wx[i]) * sc, qy = DY - s * (wy[j] - wy[i]) * sc;
+        len += Math.hypot(qx - px, qy - py); px = qx; py = qy; pts.push([qx, qy]);
+      }
+      if (pts.length > 1) {
+        var g = ctx.createLinearGradient(px, py, DX, DY);
+        g.addColorStop(0, 'rgba(' + rgb + ',0)'); g.addColorStop(0.65, col); g.addColorStop(1, col);
+        ctx.strokeStyle = g; ctx.lineWidth = 21 * sc; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.beginPath(); ctx.moveTo(pts[pts.length - 1][0], pts[pts.length - 1][1]);
+        for (var m = pts.length - 2; m >= 0; m--) ctx.lineTo(pts[m][0], pts[m][1]);
+        ctx.stroke();
+      }
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(DX, DY, 10.5 * sc, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+      label.style.opacity = a;
+      var pct = R.move * clamp(wy[i] / yTop);                                /* size of the move so far, in % */
+      num.textContent = pct < 0.05 ? '+0%' : (s > 0 ? '+' : '-') + pct.toFixed(1) + '%';
+      cols.forEach(function (c) {
+        // $1,000: stocks move 1:1 with the ticker; OHAYO gains mult x the move either way
+        var d = Math.round(10 * pct * (c.us ? R.mult : 1)), down = !c.us && s < 0;
+        c.el.style.opacity = a;
+        // scene 2: caption types in at 2x; scene 3: shrinks to 1x; scene 4: amount and dots join as the counting starts
+        var nc = Math.round(clamp((t - c.type[0]) / (c.type[1] - c.type[0])) * c.txt.length);
+        c.cap.textContent = c.txt.slice(0, nc);
+        var k3 = clamp((t - INTRO - 1900) / 350); k3 = k3 < 0.5 ? 4 * k3 * k3 * k3 : 1 - Math.pow(-2 * k3 + 2, 3) / 2;
+        c.cap.style.transform = 'scale(' + (2 - k3).toFixed(3) + ')';
+        var k4 = clamp((t - (LEAD - 300)) / 300);
+        c.val.style.opacity = k4; c.box.style.opacity = k4;
+        c.val.textContent = (down && d ? '-$' : '+$') + d; fill(c.box, d, down);
+      });
+      // scene 5: the 10x / 20x lands the moment OHAYO reaches its total
+      var p5 = clamp((t - END) / 400), e5 = 1 - Math.pow(1 - p5, 3);
+      x10.style.opacity = a * p5; x10.style.transform = 'scale(' + (sc * (0.8 + 0.2 * e5)).toFixed(3) + ')';
+    }
+    function loop(ts) {
+      if (!t0) t0 = ts;
+      var e = ts - t0, r = Math.floor(e / LOOP);
+      while (run < r) { bx += wx[n - 1]; by += R.dir * wy[n - 1]; run++; setRun(run); } /* carry the grid over, switch long <-> short */
+      draw(e - r * LOOP);
+      raf = requestAnimationFrame(loop);
+    }
+    function sync() {
+      var on = document.body.classList.contains('hero-2type');
+      if (on) { layout(); if (noMotion) { draw(END + STOP); return; } if (!raf) { t0 = 0; run = 0; setRun(0); raf = requestAnimationFrame(loop); } }
+      else if (raf) { cancelAnimationFrame(raf); raf = null; }
+    }
+    document.addEventListener('herochange', sync);
+    window.addEventListener('resize', function () { if (document.body.classList.contains('hero-2type')) { layout(); if (noMotion) draw(END + STOP); } });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (document.body.classList.contains('hero-2type')) layout(); });
+    setRun(0);
     sync();
   })();
 

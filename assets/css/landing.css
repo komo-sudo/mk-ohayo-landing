@@ -143,7 +143,33 @@ nav.main button:hover { color: var(--fg-base); }
 .hero-2type .hero { display: flex; flex-direction: column; }
 .hero-2type .hero-grid { flex: 1 0 auto; display: flex; flex-direction: column; width: 100%; } /* auto side margins would otherwise shrink the .wrap to its content in a flex column */
 .hero-2type .hero-visual { flex: 1 0 auto; display: flex; align-items: center; justify-content: center; padding: 24px 0; }
-.hero-2type .hero-seq { display: block; }
+/* The storyboard sequence (.hero-seq) is parked; to bring it back: .hero-2type .hero-seq { display: block; } */
+.hero-belt { display: none; position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; }
+.hero-2type .hero-belt { display: block; }
+.hero-belt canvas { display: block; width: 100%; height: 100%; }
+.hb-label { position: absolute; left: 0; top: 0; margin: 0; transform: translateY(-50%); font-weight: 700; font-size: clamp(22px, 2.3vw, 32px); line-height: 1; color: var(--fg-base); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hb-label b { font-weight: 700; color: var(--fg-positive); }
+/* $1,000 at the broker vs OHAYO 10x: one dot per dollar, 12 per row, filling bottom-up (48 vs 480 dots, 4 vs 40 rows) */
+.hb-col { position: absolute; left: 0; bottom: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; opacity: 0; transform-origin: 0 100%; }
+.hb-val { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hb-col--them .hb-val { font-weight: 700; font-size: 26px; line-height: 26px; letter-spacing: 0.5px; color: var(--fg-subtle); }
+.hb-col--us .hb-val { font-weight: 900; font-size: 50px; line-height: 60px; color: var(--fg-positive); }
+.hb-dots { position: relative; display: block; width: 72px; height: 0; } /* landing.js sets the height to the lit rows, so the amount rides on top */
+.hb-col--them .hb-dots { color: var(--fg-subtle); }
+.hb-col--us .hb-dots { color: var(--fg-positive); }
+.hb-dots i { position: absolute; left: 0; bottom: 0; width: 100%; height: 0; background: radial-gradient(circle, currentColor 1.7px, transparent 2.1px) 0 0 / 6px 6px; }
+.hb-dots i + i { width: 0; height: 6px; }
+.hb-cap { position: absolute; left: 0; top: calc(100% + 4px); margin: 0; font-weight: 500; font-size: 12px; line-height: 18.6px; letter-spacing: 0.7px; text-transform: uppercase; color: var(--fg-muted); white-space: nowrap; transform-origin: 0 50%; } /* scene 2 types it in at 2x, scene 3 shrinks it to size */
+.hb-col--us .hb-cap { color: var(--fg-primary); }
+.hero-belt.is-short .hb-label b { color: var(--fg-negative); }
+/* short run (Figma 91:16712): the stock loss hangs down from its caption in red */
+.hero-belt.is-short .hb-col--them { flex-direction: column-reverse; transform-origin: 0 0; }
+.hero-belt.is-short .hb-col--them .hb-cap { position: static; }
+.hero-belt.is-short .hb-col--them .hb-val, .hero-belt.is-short .hb-col--them .hb-dots { color: var(--fg-negative); }
+.hero-belt.is-short .hb-col--them .hb-dots i { bottom: auto; top: 0; }
+.hb-mode { position: absolute; left: 0; top: 0; font-weight: 900; font-size: 90px; line-height: 1; letter-spacing: -1.4px; white-space: pre; color: var(--fg-positive); opacity: 0; } /* scene 0: LONG / SHORT */
+.hero-belt.is-short .hb-mode { color: var(--fg-negative); }
+.hb-x { position: absolute; left: 0; top: 0; font-weight: 900; font-size: 50px; line-height: 60px; color: var(--fg-primary); white-space: nowrap; opacity: 0; transform-origin: 0 50%; } /* scene 5: lands when OHAYO hits 480 */
 .hs-stage { position: absolute; left: 0; top: 0; width: 1080px; height: 200px; transform-origin: 0 0; }
 .hs-stage > * { position: absolute; margin: 0; }
 .hs-head, .hs-cap { transform-origin: 50% 50%; will-change: transform, opacity; } /* landing.js moves them from centre stage (large) into their slots */
