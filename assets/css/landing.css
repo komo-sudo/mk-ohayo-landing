@@ -368,7 +368,11 @@ nav.main button:hover { color: var(--fg-base); }
 @media (min-width: 1081px) {
   .fold { min-height: 100vh; min-height: 100svh; }
   .fold > .hero { flex: 1 0 auto; min-height: 440px; }
+  /* 2type: the first screen is hero + ticker strip; the hero fills the viewport above the strip */
+  .hero-2type .fold > .hero { min-height: calc(100svh - 76px - var(--strip-h, 50px)); }
 }
+/* 2type: creators ("They trade here") sit below the ticker strip */
+.hero-2type .fold > .creators { order: 1; }
 .creator-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
 .creator { display: flex; align-items: center; gap: 14px; background: var(--bg-raised); border: 1px solid var(--bd-strong); border-radius: var(--radius-card); padding: 16px; }
 .creator svg { flex: none; }
