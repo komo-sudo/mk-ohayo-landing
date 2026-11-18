@@ -57,7 +57,7 @@ a { color: inherit; }
 button { font: inherit; color: inherit; cursor: pointer; }
 :focus-visible { outline: 2px solid var(--bd-focus); outline-offset: 2px; }
 .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
-section { padding: 72px 0; border-top: 1px solid var(--bd-strong); }
+section { padding: 108px 0; border-top: 1px solid var(--bd-strong); }
 .eyebrow {
   font-family: var(--font-led);
   font-weight: 700;
@@ -146,6 +146,23 @@ nav.main button:hover { color: var(--fg-base); }
 /* The storyboard sequence (.hero-seq) is parked; to bring it back: .hero-2type .hero-seq { display: block; } */
 .hero-belt { display: none; position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; }
 .hero-2type .hero-belt { display: block; }
+/* 2type page intro (kinetic type, after the reference showreel): word plates, then the headline assembles and
+   lands in the real h1. landing.js builds and drives it, then adds .is-in to the copy. */
+.hero-intro { position: absolute; left: 0; right: 0; top: 0; z-index: 3; overflow: hidden; pointer-events: none; }
+.hero-intro[hidden] { display: none; }
+.hi-stack { position: absolute; inset: 0; will-change: transform; }
+.hi-plate { position: absolute; inset: 0; display: grid; place-items: center; will-change: transform; }
+.hi-num { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 1.4vw, 22px); will-change: transform, filter; }
+.hi-label { margin: 0; font-family: var(--font-led); font-weight: 700; font-size: clamp(14px, 1.5vw, 24px); letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.75; }
+.hi-word { font-weight: 900; font-size: clamp(96px, 15vw, 280px); line-height: 1; letter-spacing: -0.045em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hi-line { position: absolute; left: 0; top: 0; margin: 0; transform-origin: 0 0; will-change: transform; }
+.hi-line span { display: inline-block; will-change: transform, opacity, filter; }
+/* 2type: the hero copy is revealed by the page intro (landing.js adds .is-in) */
+.hero-2type .hero-copy > * { opacity: 0; visibility: hidden; transform: translateY(16px); transition: opacity 0.8s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1), visibility 0s 0.8s; }
+.hero-2type .hero-copy.is-in > * { opacity: 1; visibility: visible; transform: none; transition: opacity 0.8s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1), visibility 0s; }
+.hero-2type .hero-copy.is-in > :nth-child(2) { transition-delay: 0.08s; }
+.hero-2type .hero-copy.is-in > :nth-child(3) { transition-delay: 0.16s; }
+.hero-2type .hero-copy.is-in > :nth-child(n+4) { transition-delay: 0.24s; }
 .hero-belt canvas { display: block; width: 100%; height: 100%; }
 .hb-label { position: absolute; left: 0; top: 0; margin: 0; transform: translateY(-50%); font-weight: 700; font-size: clamp(22px, 2.3vw, 32px); line-height: 1; color: var(--fg-base); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .hb-label b { font-weight: 700; color: var(--fg-positive); }
@@ -167,8 +184,7 @@ nav.main button:hover { color: var(--fg-base); }
 .hero-belt.is-short .hb-col--them .hb-cap { position: static; }
 .hero-belt.is-short .hb-col--them .hb-val, .hero-belt.is-short .hb-col--them .hb-dots { color: var(--fg-negative); }
 .hero-belt.is-short .hb-col--them .hb-dots i { bottom: auto; top: 0; }
-.hb-mode { position: absolute; left: 0; top: 0; font-weight: 900; font-size: 90px; line-height: 1; letter-spacing: -1.4px; white-space: pre; color: var(--fg-positive); opacity: 0; } /* scene 0: LONG / SHORT */
-.hero-belt.is-short .hb-mode { color: var(--fg-negative); }
+.hb-fx { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; } /* LED wipe between runs */
 .hb-x { position: absolute; left: 0; top: 0; font-weight: 900; font-size: 50px; line-height: 60px; color: var(--fg-primary); white-space: nowrap; opacity: 0; transform-origin: 0 50%; } /* scene 5: lands when OHAYO hits 480 */
 .hs-stage { position: absolute; left: 0; top: 0; width: 1080px; height: 200px; transform-origin: 0 0; }
 .hs-stage > * { position: absolute; margin: 0; }
@@ -219,15 +235,21 @@ nav.main button:hover { color: var(--fg-base); }
 .brow.ours .name { color: var(--fg-base); }
 .track {
   height: 14px;
-  background-image: radial-gradient(circle, var(--bg-selected) 2px, transparent 2.4px);
-  background-size: 7px 7px; background-position: 0 center;
+  background-image: radial-gradient(circle at 3.5px 3.5px, var(--bg-selected) 2px, transparent 2.5px);
+  background-size: 7px 7px; background-position: 0 0;
 }
 .bar {
-  height: 14px; width: 0;
+  height: 14px; width: var(--p, 0%);
   color: var(--fg-subtle);
-  background-image: radial-gradient(circle, currentColor 2px, transparent 2.4px);
-  background-size: 7px 7px; background-position: 0 center;
+  background-image: radial-gradient(circle at 3.5px 3.5px, currentColor 2px, transparent 2.5px);
+  background-size: 7px 7px; background-position: 0 0;
   transition: width 0.35s ease;
+}
+/* LED dots: whole dots only. The track shows only full 7px columns, and the fill lights whole dots
+   (--p rounded to the nearest dot), so no dot is ever cut in half at either edge. */
+@supports (width: round(1px, 1px)) {
+  .track { width: round(down, 100%, 7px); }
+  .bar { width: round(nearest, var(--p, 0%), 7px); }
 }
 .brow.ours .bar { color: var(--fg-primary); }
 .board[data-dir="down"] .bar { color: var(--fg-negative); }
@@ -272,15 +294,30 @@ nav.main button:hover { color: var(--fg-base); }
 .can span { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--bd-control); border-radius: var(--radius-control); font-size: 14px; color: var(--fg-subtle); }
 .can b { font-family: var(--font-led); font-weight: 900; }
 .can .l b { color: var(--fg-positive); } .can .s b { color: var(--fg-negative); }
-.t-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; margin-bottom: 28px; }
+.t-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; margin-bottom: 28px; }
+/* Figma 45:8529: one-line title and eyebrow with soft black shadows so they read over the 3D cubes */
+.t-hero .eyebrow { text-shadow: 0 0 4px rgba(0, 0, 0, 0.45); }
+.t-hero h2 { line-height: 47.5px; letter-spacing: -0.9px; text-shadow: 0 0 4px rgba(0, 0, 0, 0.9); }
+.t-hero .lede { margin-top: 2px; line-height: 27.9px; }
 .t-title { display: flex; align-items: center; gap: 18px; }
 .t-title .dots { width: 44px; height: 30px; flex: none; background-image: radial-gradient(circle, var(--bg-primary) 2.2px, transparent 2.6px); background-size: 8px 8px; opacity: 0.9; }
-.t-hero .lede { max-width: 52ch; }
+.t-hero .lede { max-width: 592px; }
 .t-tabs { display: flex; justify-content: center; gap: 6px; margin-bottom: 32px; }
 .t-tab { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 88px; min-height: 76px; padding: 0; background: none; border: 0; color: var(--fg-muted); font-size: 13px; font-weight: 600; }
 .t-ic { width: 48px; height: 48px; border-radius: var(--radius-avatar); display: grid; place-items: center; background: var(--bg-raised); border: 1px solid var(--bd-control); color: var(--fg-subtle); }
 .t-tab[aria-selected="true"] { color: var(--fg-base); }
 .t-tab[aria-selected="true"] .t-ic { background: var(--bg-primary); border-color: var(--bg-primary); color: var(--fg-on-primary); }
+/* Hover (DS tokens): unselected tabs lift to the selected surface with a brighter ring, icon and label;
+   the selected tab brightens a touch. Keyboard focus gets the DS focus ring. */
+.t-tab { cursor: pointer; transition: color 0.15s ease; }
+.t-ic { transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, filter 0.15s ease, transform 0.15s ease; }
+.t-tab:hover { color: var(--fg-base); }
+.t-tab:hover .t-ic { background: var(--bg-selected); border-color: var(--bd-control-hover); color: var(--fg-base); transform: translateY(-2px); }
+.t-tab[aria-selected="true"]:hover .t-ic { background: var(--bg-primary); border-color: var(--bg-primary); color: var(--fg-on-primary); filter: brightness(1.12); }
+.t-tab:active .t-ic { background: var(--bg-pressed); transform: none; }
+.t-tab[aria-selected="true"]:active .t-ic { background: var(--bg-primary); filter: brightness(0.92); }
+.t-tab:focus-visible { outline: none; }
+.t-tab:focus-visible .t-ic { box-shadow: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--bd-focus); }
 .t-sec { display: flex; align-items: baseline; gap: 8px; margin: 0 0 14px; }
 .t-sec h3 { font-size: 20px; }
 .t-sec .cnt { font-family: var(--font-led); font-weight: 900; font-size: 20px; color: var(--fg-primary); }
@@ -291,6 +328,8 @@ nav.main button:hover { color: var(--fg-base); }
 .tc-status { display: flex; justify-content: space-between; align-items: center; }
 .badge { font-family: var(--font-led); font-weight: 700; font-size: 12px; padding: 3px 8px; border-radius: var(--radius-tag); background: var(--bg-selected); color: var(--fg-subtle); text-transform: uppercase; }
 .tc-title { display: flex; align-items: center; gap: 12px; }
+.av-photo { object-fit: cover; } /* creator hosts: the same portrait as in the creators row */
+.av-logo { background: none; } /* OHAYO-hosted boards: the app symbol (Figma -OHAYO--Design 1417:35) */
 .av { flex: none; width: 40px; height: 40px; border-radius: var(--radius-avatar); display: grid; place-items: center; background: var(--bg-selected); color: var(--fg-primary); font-family: var(--font-led); font-weight: 900; font-size: 14px; }
 .tc-title b { display: block; font-weight: 600; font-size: 16px; line-height: 1.25; }
 .tc-title small, .tc-stats small, .tc-prog small { color: var(--fg-muted); font-size: 12px; }
@@ -397,8 +436,10 @@ nav.main button:hover { color: var(--fg-base); }
   /* 2type: the first screen is hero + ticker strip; the hero fills the viewport above the strip */
   .hero-2type .fold > .hero { min-height: calc(100svh - 76px - var(--strip-h, 50px)); }
 }
-/* 2type: creators ("They trade here") sit below the ticker strip */
-.hero-2type .fold > .creators { order: 1; }
+/* 2type: creators ("They trade here") are moved out of .fold, right after it (landing.js), so the fold ends at the strip */
+.hero-2type .creators { padding: 120px 0; } /* Figma creators 74:9121: 120px above and below */
+.creators + section { border-top: 0; }
+#compare { border-top: 0; } /* no rule between Try it and What OHAYO is */ /* no rule between the creators row and the section after it */
 .creator-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
 .creator { display: flex; align-items: center; gap: 14px; background: var(--bg-raised); border: 1px solid var(--bd-strong); border-radius: var(--radius-card); padding: 16px; }
 .creator svg { flex: none; }
@@ -461,7 +502,8 @@ thead th.us { background: var(--bg-raised); color: var(--fg-primary); }
 .strip-run .s-soon { color: var(--fg-primary); }
 .strip-run .s-time { color: var(--fg-subtle); }
 @keyframes slide { to { transform: translateX(-50%); } }
-@keyframes blink { 50% { opacity: 0.25; } }
+@keyframes live-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@keyframes live-ring { 0% { opacity: 0.55; transform: scale(1); } 70%, 100% { opacity: 0; transform: scale(2.6); } }
 
 /* Tournament board */
 .dep-top { justify-content: space-between; gap: 10px 20px; margin-bottom: 16px; }
@@ -472,9 +514,11 @@ thead th.us { background: var(--bg-raised); color: var(--fg-primary); }
 .dep-main { width: 100%; background: none; border: 0; padding: 14px 12px; min-height: 68px; text-align: left; border-radius: var(--radius-tag); }
 .dep-main:hover { background: rgba(255, 255, 255, 0.04); }
 .st { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-led); font-weight: 900; font-size: 13px; letter-spacing: 0.06em; }
-.st i { width: 8px; height: 8px; border-radius: var(--radius-avatar); background: currentColor; }
+.st i { position: relative; width: 8px; height: 8px; border-radius: var(--radius-avatar); background: currentColor; }
 .st-live { color: var(--fg-positive); }
-.st-live i { animation: blink 1.2s steps(2) infinite; }
+/* LIVE: a smooth breathing dot with a soft ring that spreads and fades on each beat (opacity/transform only) */
+.st-live i { animation: live-dot 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+.st-live i::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: currentColor; animation: live-ring 1.6s cubic-bezier(0.2, 0.6, 0.35, 1) infinite; will-change: transform, opacity; }
 .st-soon { color: var(--fg-primary); }
 .st-flag { color: var(--fg-base); }
 .nm b { display: block; font-weight: 600; font-size: 16px; }
@@ -524,7 +568,7 @@ thead th.us { background: var(--bg-raised); color: var(--fg-primary); }
 @media (prefers-reduced-motion: reduce) {
   .strip-run { animation: none; }
   .strip-view { overflow-x: auto; }
-  .st-live i { animation: none; }
+  .st-live i, .st-live i::after { animation: none; }
 }
 
 /* TradeView */
@@ -580,7 +624,7 @@ label.check small { color: var(--fg-muted); margin-left: auto; font-family: var(
 .preview .x { margin: 0; min-width: 36px; min-height: 36px; font-size: 18px; }
 
 @media (max-width: 900px) {
-  section { padding: 56px 0; }
+  section { padding: 84px 0; }
   .tour-grid, .tv-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; }
   .creator-grid, .steps { grid-template-columns: minmax(0, 1fr); }
   nav.main { display: none; }
@@ -608,4 +652,17 @@ label.check small { color: var(--fg-muted); margin-left: auto; font-family: var(
   /* The scene's camera is framed for the wide layout; narrow screens keep the still image. */
   .hero-scene { display: none; }
   .fold:has(.hero-scene:defined) .hero-cards { visibility: visible; }
+}
+
+/* Daily Tournaments (Figma 45:8529): 170px above, ~238px below; a Spline scene sits behind the section head
+   and a transparent-to-black gradient (from 191px down to 793px) lets it sink into the page under the cards. */
+#tournament { position: relative; overflow: clip; padding: 225px 0 238px; border-top: 0; } /* no rule above: the 3D scene runs up to the section before */
+#tournament > .wrap { position: relative; z-index: 1; }
+.t-scene { position: absolute; left: 0; right: 0; top: 0; height: 793px; z-index: 0; pointer-events: none; }
+.t-scene spline-viewer { display: block; width: 100%; height: 100%; }
+.t-fade { position: absolute; left: 0; right: 0; top: 191px; bottom: 0; background: linear-gradient(to bottom, rgba(0, 0, 0, 0), #000); }
+@media (max-width: 900px) {
+  #tournament { padding: 120px 0 160px; }
+  .t-scene { height: 600px; }
+  .t-fade { top: 140px; }
 }

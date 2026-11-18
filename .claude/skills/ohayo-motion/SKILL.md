@@ -53,12 +53,25 @@ Stagger siblings by 80ms (copy lines) or 1 beat ÷ n for a group of n cards.
 - **Tail** = the dot's own recent path. Its length follows speed: 85px at cruise, about 3x at full speed, 0 when stopped. Linear gradient from transparent at the tail end to solid by 65%.
 - **Start gating:** while the driving amount reads zero, show only the round dot. No tail, no grid. Both grow in over 0.7–0.8s from the first non-zero moment.
 - **Grid alpha** = 10% × speed factor × start gate. It is invisible at rest.
-- **Scene 0 title** ("L O N G" / "S H O R T"): 90px Black, fades up 0.3s with a 0.9→1 scale, holds, clears before the dot arrives.
+- **Ignition intro** (beats 0–3, after the reference showreel's opening): a core dot at 1/3 size lights. Coloured arc segments in the showreel's palette (cream #f4f1e8, lime #c8e34b, violet #8a7cff, cobalt #3b57e6, coral #ff6a4d, amber #f2b84b, plus the run colour; the user approved going beyond DS tokens for this effect only) orbit it on several radii (~3–11 dot radii), each with its own speed and direction. Three thin full rings expand from the core and fade. On beats 2–3 the orbit spins up, pulls inward and collapses while the core swells to the full dot. Then the label slides out. (This replaced the earlier "L O N G" / "S H O R T" title.)
 - **Captions:** typed in at 2x (character by character), then scale down to 1x into their slot with in-out over ~350ms.
 - **LED dots:** one dot per unit ($1). Rows fill bottom-up (losses hang top-down). The amount label rides on top of the lit stack. Progress tracks show whole 7px columns only, and fills round to whole dots (`round()` to the pitch). **Never show a half dot.**
+- **LED wipe between runs** (modelled on the showreel's dot grid): a full-stage matrix of whole dots on a 24px pitch, on its own canvas above the belt.
+  - A crest of near-touching circles (0.95 of the half-pitch) travels out from the stage centre, with a Gaussian swell of about ±0.075 of the corner distance.
+  - Dots away from the crest are small rounded diamonds; large ones are circles.
+  - Colour follows the crest: cream on it; lime, amber, coral, then the next run's colour inside it; near-black LEDs (#2b2b2b, #1c1c1c) outside and far behind. No blue/violet in the wipe.
+  - Cover (last beat): the crest sweeps out and leaves a medium, gently rippling field lit behind it.
+  - Reveal (first beat of the next run): a second crest sweeps out and switches the field off behind it.
+  - The hero copy stays above as the anchor.
 - **Multiplier landing** (10x / 20x): appears the moment the OHAYO stack completes. 400ms, 0.8→1 scale, out easing, no overshoot.
 - **LIVE indicator:** breathing dot (100%↔45%, 1.6s, in-out) plus a ring spreading to 2.6x and fading.
-- **Reveal after the story:** in 2type the hero copy stays hidden until the first LONG run lands its 10x, then slides up 16px over 0.8s with an 80ms stagger.
+- **Page intro (kinetic type, 2type):** runs once whenever the 2type hero is shown, before the belt. Evidence before the claim, using the belt's numbers:
+  - A cream plate rises: "SK HYNIX · SHARES", and the number counts +0.0% to +4.8%.
+  - At 1s an OHAYO-orange plate wipes over it: "OHAYO · LONG 10x", and the same number keeps counting +4.8% to +48% with a speed trail, then lands extruded (lime/cobalt stack).
+  - Numbers slam in with an 8px blur and a 1.15 to 1 scale.
+  - At 2s the stack wipes up and "Same move. Ten times." drops in word by word (70ms stagger) at centre stage.
+  - At 2.5–3.05s it FLIPs into the real h1 box (pixel-exact, same line breaks), the h1 takes over without a fade, and the rest of the copy rises in its 80ms stagger.
+  - `herointrodone` then starts the belt. (Chosen over word-per-plate because showing the move before naming it is more persuasive.)
 - **3D backgrounds** (Spline): sit behind content with a transparent→black gradient burying the lower part. Zoom via camera FOV from the canvas aspect so the field always fills the frame, never exposing its edges.
 
 ## 6. Reading storyboards (Figma)

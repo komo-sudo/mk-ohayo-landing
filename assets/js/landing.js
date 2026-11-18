@@ -365,11 +365,11 @@
   var progSample = [76, 54, 29];
   function tcard(t, i) {
     var live = t.status === 'live', ini = t.host === 'OHAYO' ? 'OH' : t.host.split(' ').map(function (s) { return s.charAt(0); }).join('').slice(0, 2);
-    var prog = live ? '<div class="tc-prog"><div class="row"><small>Time played</small><small>' + progSample[i % 3] + '%</small></div><div class="track"><div class="bar" style="width:' + progSample[i % 3] + '%"></div></div></div>'
-      : (t.status === 'flag' ? '<div class="tc-prog"><div class="row"><small>Prize unlock</small><small>up to $500,000</small></div><div class="track"><div class="bar" style="width:20%"></div></div></div>' : '');
+    var prog = live ? '<div class="tc-prog"><div class="row"><small>Time played</small><small>' + progSample[i % 3] + '%</small></div><div class="track"><div class="bar" style="--p:' + progSample[i % 3] + '%"></div></div></div>'
+      : (t.status === 'flag' ? '<div class="tc-prog"><div class="row"><small>Prize unlock</small><small>up to $500,000</small></div><div class="track"><div class="bar" style="--p:20%"></div></div></div>' : '');
     return '<article class="tcard">' +
       '<div class="tc-status"><span class="st st-' + t.status + '"><i></i>' + stText[t.status] + '</span><span class="badge">' + t.len + '</span></div>' +
-      '<div class="tc-title"><span class="av">' + esc(ini) + '</span><div><b>' + esc(t.name) + '</b><small>Hosted by ' + esc(t.host) + (t.note ? ' · ' + esc(t.note) : '') + '</small></div></div>' +
+      '<div class="tc-title">' + (t.host === 'Semi Hunter' ? '<img class="av av-photo" src="assets/img/avatars/men-32.jpg" width="40" height="40" alt="Semi Hunter">' : t.host === 'OHAYO' ? '<img class="av av-logo" src="assets/img/ohayo-avatar.svg" width="40" height="40" alt="OHAYO">' : '<span class="av">' + esc(ini) + '</span>') + '<div><b>' + esc(t.name) + '</b><small>Hosted by ' + esc(t.host) + (t.note ? ' · ' + esc(t.note) : '') + '</small></div></div>' +
       '<div class="tc-stats"><div><small>Prize pool</small><b class="led">' + usd(t.pool) + '</b></div>' +
         '<div><small>' + (live ? 'Ends in' : 'Opens in') + '</small><b class="led hot" data-clock="' + i + '">--:--:--</b></div>' +
         '<div><small>' + (live ? 'Players' : 'Min. volume') + '</small><b class="led">' + (live ? t.players.toLocaleString('en-US') : usd(t.minVol)) + '</b></div></div>' +
@@ -468,6 +468,28 @@
     v.addEventListener('wheel', function (e) { e.stopPropagation(); }, { capture: true, passive: true });
   })();
 
+  /* Tournament 3D scene: render only while the section is on screen (two live WebGPU scenes would otherwise run at once). */
+  (function () {
+    var v = document.querySelector('.t-scene spline-viewer');
+    if (!v || !('IntersectionObserver' in window)) return;
+    var app = null, visible = false, stopped = false;
+    function sync() { if (!app) return; if (visible && stopped) { app.play(); stopped = false; } else if (!visible && !stopped) { app.stop(); stopped = true; } }
+    /* Camera zoom: the cube field is a finite plane, so the scene's own 45deg view shows its edges on wide canvases.
+       Narrow the field of view instead (setZoom has no effect on this scene's camera), keeping the horizontal coverage
+       that fills a 1805 x 793 canvas at 32deg: wider canvases zoom in more, narrower ones less (never past the scene's 45deg). */
+    var REF_ASPECT = 1805 / 793, REF_FOV = 32;
+    function zoom() {
+      var c = app && app._camera, w = v.clientWidth, h = v.clientHeight;
+      if (!c || !w || !h || typeof c.updateProjectionMatrix !== 'function') return;
+      var half = Math.atan(Math.tan(REF_FOV * Math.PI / 360) * REF_ASPECT / (w / h));
+      c.fov = Math.min(45, half * 360 / Math.PI); c.updateProjectionMatrix();
+      if (app.requestRender) app.requestRender();
+    }
+    var t = setInterval(function () { if (v._loaded && v._spline) { app = v._spline; clearInterval(t); zoom(); sync(); } }, 300);
+    window.addEventListener('resize', function () { setTimeout(zoom, 120); }); /* after Spline's own resize */
+    new IntersectionObserver(function (es) { visible = es[0].isIntersecting; sync(); }, { rootMargin: '200px 0px' }).observe(v);
+  })();
+
   var pcards = $('pcards'), flipT = null;
   if (pcards) pcards.addEventListener('click', function () { if (flipT) { clearInterval(flipT); flipT = null; } this.classList.toggle('swap'); });
   if (pcards && !noMotion) flipT = setInterval(function () { if (!document.hidden && !$('hero-a').hidden && !pcards.matches(':hover')) pcards.classList.toggle('swap'); }, 5000);
@@ -536,26 +558,138 @@
     sync();
   })();
 
+  /* 2type page intro (kinetic type, after the reference showreel; ohayo-motion skill). Runs once each time the 2type
+     hero is shown, before the belt starts. 0.5s beats, sub-beats of 0.25s:
+       0-1s      evidence first: a cream plate rises, "SK HYNIX · SHARES" and the number counts +0.0% -> +4.8%
+       1-2s      an OHAYO-orange plate wipes over it, "OHAYO · LONG 10x", the same number keeps counting
+                 +4.8% -> +48% with a speed trail, then lands extruded (the 10x payoff)
+       2-2.5s    the plate stack wipes away upward and the headline drops in, word by word, at centre stage
+       2.5-3.05s it glides and shrinks into the real h1 (FLIP: a transform, never a fade); the copy then follows
+     Then body.hero-intro-on is cleared and 'herointrodone' fires, which starts the belt. */
+  (function () {
+    var fold = document.querySelector('.fold'), copy = document.querySelector('.hero-copy'), h1 = copy && copy.querySelector('h1');
+    if (!fold || !h1) return;
+    var ov = document.createElement('div'); ov.className = 'hero-intro'; ov.hidden = true; ov.setAttribute('aria-hidden', 'true');
+    fold.appendChild(ov);
+    /* the same $1,000 and the same +4.8% move as the belt: shares return +4.8%, OHAYO long 10x returns +48% */
+    var PLATES = [
+      { bg: '#f4f1e8', fg: '#111111', label: 'SK hynix · shares', a: 0, b: 4.8, ts: 0, count: [150, 700], dir: 0 },
+      { bg: '#ff5a00', fg: '#000000', label: 'OHAYO · long 10x', a: 4.8, b: 48, ts: 1000, count: [1150, 1700], dir: 1, extrude: true }
+    ];
+    var EXTRUDE = ['#c8e34b', '#3b57e6'];
+    var clamp = function (x) { return x < 0 ? 0 : x > 1 ? 1 : x; };
+    var out = function (x) { return 1 - Math.pow(1 - x, 3); };
+    var inOut = function (x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+    var raf = null, t0 = 0, words = [], stack, plates, line, spans, flip, tA = 2000;
+    var fmt = function (v) { return '+' + (v < 9.95 ? v.toFixed(1) : Math.round(v)) + '%'; };
+    function extrude(n) { var a = []; for (var i = 1; i <= n; i++) a.push(i + 'px ' + i + 'px 0 ' + (i <= 6 ? EXTRUDE[0] : EXTRUDE[1])); return a.join(','); }
+    function build() {
+      words = (h1.textContent || '').trim().split(/\s+/).slice(0, 6);
+      ov.innerHTML = ''; ov.style.height = fold.offsetHeight + 'px';
+      stack = document.createElement('div'); stack.className = 'hi-stack'; ov.appendChild(stack);
+      plates = PLATES.map(function (c) {
+        var pl = document.createElement('div'), box = document.createElement('div'), lb = document.createElement('p'), wd = document.createElement('div');
+        pl.className = 'hi-plate'; pl.style.background = c.bg; box.className = 'hi-num';
+        lb.className = 'hi-label'; lb.style.color = c.fg; lb.textContent = c.label;
+        wd.className = 'hi-word'; wd.style.color = c.fg; wd.textContent = fmt(c.a);
+        box.appendChild(lb); box.appendChild(wd); pl.appendChild(box); stack.appendChild(pl);
+        return { c: c, el: pl, box: box, word: wd, label: lb };
+      });
+      // the assembled line, styled exactly like the h1 and placed where the h1 sits (FLIP target)
+      var cs = getComputedStyle(h1), fr = fold.getBoundingClientRect(), hr = h1.getBoundingClientRect();
+      var ty = new DOMMatrixReadOnly(cs.transform === 'none' ? undefined : cs.transform).m42;   /* undo the copy's pre-reveal offset */
+      line = document.createElement('h2'); line.className = 'hi-line';
+      ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'color', 'textWrap'].forEach(function (k) { line.style[k] = cs[k]; });
+      var oneLine = hr.height < parseFloat(cs.lineHeight) * 1.5 || hr.height < parseFloat(cs.fontSize) * 1.6;
+      line.style.width = (hr.width + 4) + 'px'; line.style.whiteSpace = oneLine ? 'nowrap' : 'normal';   /* same line breaks as the h1 */ line.style.left = (hr.left - fr.left) + 'px'; line.style.top = (hr.top - fr.top - ty) + 'px';
+      line.innerHTML = words.map(function (w) { return '<span>' + w.replace(/[&<>]/g, '') + '</span>'; }).join(' ');
+      ov.appendChild(line); spans = [].slice.call(line.children);
+      var lw = hr.width, S = Math.min(2.2, (fr.width * 0.82) / lw);
+      flip = { S: S, dx: fr.width / 2 - (hr.left - fr.left) - lw * S / 2, dy: fold.offsetHeight * 0.42 - (hr.top - fr.top - ty) - hr.height * S / 2 };
+    }
+    function render(t) {
+      // 1. number plates: each wipes in (the first rises, the second slides over it), its number slams in with a
+      //    speed blur and counts on the beat; the count leaves a trail while it runs; the OHAYO number lands extruded
+      plates.forEach(function (p) {
+        var c = p.c, w = out(clamp((t - c.ts) / 260));
+        p.el.style.transform = c.dir ? 'translateX(' + (100 * (1 - w)).toFixed(2) + '%)' : 'translateY(' + (100 * (1 - w)).toFixed(2) + '%)';
+        var s = out(clamp((t - c.ts - 120) / 300));
+        p.box.style.transform = 'translateX(' + (-70 * (1 - s)).toFixed(1) + 'px) scale(' + (1.15 - 0.15 * s).toFixed(3) + ')';
+        p.box.style.filter = s < 1 ? 'blur(' + (8 * (1 - s)).toFixed(2) + 'px)' : 'none';
+        p.box.style.opacity = s > 0 ? 1 : 0;
+        var k = clamp((t - c.count[0]) / (c.count[1] - c.count[0])), e = out(k), v = c.a + (c.b - c.a) * e;
+        p.word.textContent = fmt(v);
+        var speed = k > 0 && k < 1 ? 3 * (1 - k) * (1 - k) : 0;           /* d(out)/dk: fast at first, settling */
+        var ghost = speed > 0.15 ? '0 ' + (7 * speed).toFixed(1) + 'px 0 color-mix(in srgb, currentColor 30%, transparent), 0 ' + (14 * speed).toFixed(1) + 'px 0 color-mix(in srgb, currentColor 12%, transparent)' : '';
+        var ex = c.extrude ? extrude(Math.round(12 * out(clamp((t - c.count[1] + 100) / 250)))) : '';
+        p.word.style.textShadow = [ghost, ex].filter(Boolean).join(',') || 'none';
+      });
+      // 2. the stack wipes away upward; the full headline drops in word by word at centre stage
+      var wipe = inOut(clamp((t - tA) / 420));
+      stack.style.transform = 'translateY(' + (-100 * wipe).toFixed(2) + '%)';
+      spans.forEach(function (sp, k) {
+        var d = out(clamp((t - tA - 80 - k * 70) / 280));
+        sp.style.opacity = d; sp.style.transform = 'translateY(' + (36 * (1 - d)).toFixed(1) + 'px)';
+        sp.style.filter = d < 1 ? 'blur(' + (6 * (1 - d)).toFixed(2) + 'px)' : 'none';
+      });
+      // 3. FLIP into the h1: from big at centre stage to the h1's own box
+      var f = inOut(clamp((t - (tA + 500)) / 550)), S = flip.S + (1 - flip.S) * f;
+      line.style.transform = 'translate(' + (flip.dx * (1 - f)).toFixed(1) + 'px,' + (flip.dy * (1 - f)).toFixed(1) + 'px) scale(' + S.toFixed(4) + ')';
+      return t >= tA + 1050;
+    }
+    function finish() {
+      if (raf) { cancelAnimationFrame(raf); raf = null; }
+      h1.style.transition = 'none'; copy.classList.add('is-in');            /* the h1 takes over in place, instantly */
+      requestAnimationFrame(function () { ov.hidden = true; ov.innerHTML = ''; h1.style.transition = ''; });
+      document.body.classList.remove('hero-intro-on'); document.dispatchEvent(new Event('herointrodone'));
+    }
+    function loop(ts) { if (!t0) t0 = ts; if (render(ts - t0)) finish(); else raf = requestAnimationFrame(loop); }
+    function start() {
+      if (raf) { cancelAnimationFrame(raf); raf = null; }
+      copy.classList.remove('is-in');
+      if (noMotion) { finish(); return; }
+      document.body.classList.add('hero-intro-on');
+      requestAnimationFrame(function () { build(); ov.hidden = false; render(0); t0 = 0; raf = requestAnimationFrame(loop); });
+    }
+    document.addEventListener('herochange', function () {
+      if (document.body.classList.contains('hero-2type')) start();
+      else { if (raf) { cancelAnimationFrame(raf); raf = null; } ov.hidden = true; document.body.classList.remove('hero-intro-on'); }
+    });
+    if (document.body.classList.contains('hero-2type')) start();
+  })();
+
   /* 2type hero belt scroll. Two runs alternate: long (Figma 90:13145, SK hynix up 4.8%, OHAYO long 10x) and
      short (Figma 91:16712, NVDA down 3.1%, OHAYO short 20x). The dot stays put while the 10% grid scrolls
      right-to-left and, as the move steepens, top-to-bottom (long: the dot climbs) or bottom-to-top (short: it
-     falls). The tail is the dot's own recent path; its length follows the belt's speed. Timeline per run:
-     0-1.6s scene 0, LONG / SHORT over the moving grid; then (times below from 1.6s) 0-2.6s flat run-up: STOCKS then the OHAYO caption type in at 2x (0.5-1.7s) and shrink to size (1.9-2.25s);
-     2.6-12.6s the move, with $1,000 in stocks and on OHAYO counting together, one dot per dollar; then the
-     belt brakes, the 10x / 20x lands, it holds, and the next run fades in. The grid never jumps between runs. */
+     falls). The tail is the dot's own recent path; its length follows the belt's speed.
+     Everything sits on a 0.5s beat (ohayo-motion skill). One run = 32 beats = 16s:
+       beats 0-3   ignition (after the showreel intro), at centre stage: a core dot lights, coloured arcs orbit it on
+                   several radii while thin rings expand and fade, then it glides left into place as the orbit
+                   tightens and collapses into the full dot
+       beats 3-7   run-up: the label slides out of the dot; STOCKS types (beat 4), the OHAYO caption (beat 5),
+                   both shrink into place (beat 6), amounts and dots join, staggered (beat 6.x)
+       beats 7-27  the move: $1,000 in stocks and on OHAYO count together, one dot per dollar; fast counts trail
+       beats 27-29 the belt brakes; the 10x / 20x lands on beat 27
+       beats 29-32 hold; on the last beat an LED dot matrix floods out from the stage centre in a circular wave,
+                   and on the next run's first beat a second wave from the centre switches it off again.
+                   The grid never jumps between runs. */
   (function () {
     var belt = document.querySelector('.hero-belt');
     if (!belt) return;
     var fold = belt.parentElement, cv = belt.querySelector('canvas'), ctx = cv.getContext('2d');
-    var label = belt.querySelector('.hb-label'), name = label.querySelector('.hb-name'), num = label.querySelector('b'), x10 = belt.querySelector('.hb-x'), mode = belt.querySelector('.hb-mode');
+    var label = belt.querySelector('.hb-label'), name = label.querySelector('.hb-name'), num = label.querySelector('b'), x10 = belt.querySelector('.hb-x');
+    var fx = document.createElement('canvas'); fx.className = 'hb-fx'; belt.appendChild(fx); var fctx = fx.getContext('2d');
+    var DOTS = [], LP = 24, LR = 6.7, WIPE = 1500;                                      /* LED wipe: dot pitch 24px (50% wider), dot radius 6.7px */
     var grid = fold.querySelector('.hero-grid'), copy = fold.querySelector('.hero-copy'), strip = fold.querySelector('.strip'), hero = fold.querySelector('.hero');
     var RUNS = [
-      { name: 'SK hynix', mode: 'L O N G', move: 4.8, dir: 1, mult: 10, cap: 'OHAYO · LONG 10x', x: '10x', color: '--fg-positive' },
-      { name: 'NVDA', mode: 'S H O R T', move: 3.1, dir: -1, mult: 20, cap: 'OHAYO · SHORT 20x', x: '20x', color: '--fg-negative' }
+      { name: 'SK hynix', move: 4.8, dir: 1, mult: 10, cap: 'OHAYO · LONG 10x', x: '10x', color: '--fg-positive' },
+      { name: 'NVDA', move: 3.1, dir: -1, mult: 20, cap: 'OHAYO · SHORT 20x', x: '20x', color: '--fg-negative' }
     ];
     var GX = 234, GY = 167, OX = -377.7, OY = -404.5;          /* grid pitch and phase relative to the dot, from the storyboard */
-    var VX = 130, INTRO = 1600, LEAD = INTRO + 2600, RISE = 10000, STOP = 1200, HOLD = 1200, FADE = 350, END = LEAD + RISE, LOOP = END + STOP + HOLD, PRE = 1000, STEP = 10;
+    var B = 500, VX = 130, INTRO = 3 * B, LEAD = INTRO + 4 * B, RISE = 20 * B, STOP = 2 * B, HOLD = 3 * B, FADE = B, END = LEAD + RISE, LOOP = END + STOP + HOLD, PRE = 1000, STEP = 10;
     var clamp = function (x) { return x < 0 ? 0 : x > 1 ? 1 : x; };
+    var out = function (x) { return 1 - Math.pow(1 - x, 3); };                         /* skill easings: out, in-out */
+    var inOut = function (x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
     var mod = function (a, n) { return ((a % n) + n) % n; };
     /* precomputed world path, sampled every 10ms from -1s (flat run-up, so the tail exists at 0%).
        The belt accelerates through the move (up to 2.2x) and brakes to a stop after it. */
@@ -570,10 +704,16 @@
     }
     var at = function (t) { return Math.min(n - 1, Math.max(0, Math.round((t + PRE) / STEP))); };
     var yTop = wy[at(END)];
+    /* first moment the OHAYO amount stops reading +$0 (10 x pct x mult rounds to 1 or more), per run:
+       the grid and the tail start from there */
+    function zeroUntil(r) {
+      if (r._z == null) { r._z = END; for (var q = 0; q < n; q++) if (10 * r.mult * r.move * clamp(wy[q] / yTop) >= 0.5) { r._z = q * STEP - PRE; break; } }
+      return r._z;
+    }
     var cols = [].map.call(belt.querySelectorAll('.hb-col'), function (el, c) {
       /* storyboard: STOCKS column 423px right of the dot, OHAYO 747px */
       return { el: el, val: el.querySelector('.hb-val'), box: el.querySelector('.hb-dots'), cap: el.querySelector('.hb-cap'), txt: '', us: !!c,
-        dx: c ? 747 : 423, type: c ? [INTRO + 1000, INTRO + 1700] : [INTRO + 500, INTRO + 850] }; /* scene 2 typing windows: STOCKS, then the OHAYO caption */
+        dx: c ? 747 : 423, type: c ? [INTRO + 2 * B, INTRO + 3 * B] : [INTRO + B, INTRO + 2 * B], join: LEAD - B + (c ? 120 : 0) }; /* typing on beats 4 and 5; amounts join staggered by 120ms */
     });
     cols[0].txt = cols[0].cap.textContent;
     function fill(box, k, down) { /* light k dots, 12 per row, from the bottom row up (or the top row down) */
@@ -582,14 +722,15 @@
       part.style.top = down ? full * 6 + 'px' : ''; part.style.bottom = down ? 'auto' : full * 6 + 'px';
       box.style.height = Math.ceil(k / 12) * 6 + 'px'; /* the amount rides along with the stack */
     }
-    var R = RUNS[0], col = '#11ec8a', rgb = '17,236,138';
+    var R = RUNS[0], col = '#11ec8a', rgb = '17,236,138', orange = '#ff5a00';
     var bx = 0, by = 0, W = 0, H = 0, dpr = 1, DX = 0, DY = 0, sc = 1, room = 1, raf = null, t0 = 0, run = 0;
 
     function setRun(r) {
       R = RUNS[r % RUNS.length];
       belt.classList.toggle('is-short', R.dir < 0);
-      name.textContent = R.name; cols[1].txt = R.cap; x10.textContent = R.x; mode.textContent = R.mode;
+      name.textContent = R.name; cols[1].txt = R.cap; x10.textContent = R.x;
       col = getComputedStyle(document.documentElement).getPropertyValue(R.color).trim() || col;
+      orange = getComputedStyle(document.documentElement).getPropertyValue('--fg-primary').trim() || orange;
       var h = col.replace('#', ''); if (h.length === 6) rgb = [0, 2, 4].map(function (o) { return parseInt(h.substr(o, 2), 16); }).join(',');
       place();
     }
@@ -608,34 +749,84 @@
       belt.style.height = H + 'px';
       dpr = Math.min(2, window.devicePixelRatio || 1);
       cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      fx.width = cv.width; fx.height = cv.height;
+      // LED wipe dots: whole cells only. The wave runs out from the stage centre, so each dot keeps its normalised
+      // distance from the centre (0 centre, 1 corner) plus a little jitter so the wavefront isn't a perfect ring
       var copyBottom = cr.bottom - fr.top, heroBottom = Math.min(H, hr.bottom - fr.top);
+      function DYw() { return copyBottom + (heroBottom - copyBottom) * 0.45; }
+      // the wave starts where the ignition orbit starts: centre stage, at the dot's height
+      var wcx = W / 2, wcy = DYw(), rC = Math.max(Math.hypot(wcx, wcy), Math.hypot(wcx, H - wcy));
+      DOTS = []; var cols0 = Math.floor(W / LP), rows0 = Math.floor(H / LP), ox0 = (W - cols0 * LP) / 2, oy0 = (H - rows0 * LP) / 2;
+      for (var gi = 0; gi < cols0; gi++) for (var gj = 0; gj < rows0; gj++) {
+        var hsh = Math.sin(gi * 12.9898 + gj * 78.233) * 43758.5453; hsh -= Math.floor(hsh);
+        var px0 = ox0 + (gi + 0.5) * LP, py0 = oy0 + (gj + 0.5) * LP, dn = Math.hypot(px0 - wcx, py0 - wcy) / rC;
+        DOTS.push([px0, py0, dn + (hsh - 0.5) * 0.012, hsh, dn]);
+      }
+
       DX = (cr.left - fr.left) + Math.min(160, gr.width * 0.15); /* storyboard: dot centre 160px right of the copy's left edge */
       DY = copyBottom + (heroBottom - copyBottom) * 0.45;
       sc = parseFloat(getComputedStyle(label).fontSize) / 32;
       label.style.left = (DX + 20 * sc) + 'px'; label.style.top = DY + 'px';
       room = Math.min(1, Math.max(0.5, (W - 24 - DX - 170 * sc) / 747)); /* squeeze the columns in on narrow screens */
       x10.style.left = (DX + 604 * sc * room) + 'px'; x10.style.top = (DY - 121.5 * sc) + 'px'; /* between the two graphs */
-      mode.style.left = (W / 2) + 'px'; mode.style.top = (DY + 13.5 * sc) + 'px';      /* scene 0: centred on the stage, at the dot's height */
       place();
+    }
+    /* Ignition orbit, drawn around the dot. Arcs: radius (x the dot radius), width, share of the circle, spin in
+       turns per second (sign = direction), start angle, colour slot. Rings: thin full circles that expand from the
+       core and fade. Colours: the reference showreel's intro palette (cream, lime, violet, cobalt, coral, amber),
+       slot 0 is the run's own colour (green long / red short). This effect alone may go beyond the DS palette. */
+    var FX = ['', '#f4f1e8', '#c8e34b', '#8a7cff', '#3b57e6', '#ff6a4d', '#f2b84b'];
+    var ARCS = [
+      [2.6, 2.4, 0.22, 0.55, 0.10, 1], [3.1, 2.4, 0.12, -0.8, 0.55, 2], [3.9, 3.0, 0.30, 0.42, 0.85, 3],
+      [4.6, 2.0, 0.10, -1.1, 0.30, 5], [5.4, 3.0, 0.26, 0.6, 0.70, 4], [6.3, 2.4, 0.16, -0.5, 0.05, 0],
+      [7.4, 3.4, 0.20, 0.35, 0.45, 6], [8.6, 2.0, 0.08, -0.9, 0.62, 2], [10.2, 2.6, 0.14, 0.28, 0.20, 3]
+    ], RINGS = [[0.15, 5], [0.32, 2], [0.5, 4]];
+    function ignite(t, eIn, eOut, a, ox) {   /* ox: the orbit's current x (it travels from centre stage to the dot) */
+      var cols3 = FX.slice(), r0 = 10.5 * sc, live = Math.min(eIn, 1 - eOut); cols3[0] = col;
+      if (live <= 0.002) return;
+      ctx.save(); ctx.lineCap = 'round';
+      // expanding rings: born from the core, sweep outward over about 1.1s, thinning and fading as they go
+      RINGS.forEach(function (rg) {
+        var p = clamp((t / 1000 - rg[0]) / 1.1); if (p <= 0 || p >= 1) return;
+        var e = out(p); ctx.globalAlpha = a * 0.55 * (1 - p) * (1 - eOut);
+        ctx.strokeStyle = cols3[rg[1]]; ctx.lineWidth = Math.max(0.6, 2 * (1 - p)) * sc;
+        ctx.beginPath(); ctx.arc(ox, DY, r0 * (1.5 + 46 * e), 0, Math.PI * 2); ctx.stroke();
+      });
+      // orbiting arcs: open out with the in-ease, spin faster and pull inward as they collapse into the dot
+      ARCS.forEach(function (ar, k) {
+        var rad = r0 * ar[0] * 1.5 * (0.55 + 0.45 * eIn) * (1 - 0.88 * eOut);   /* orbit spans ~3-11 dot radii */
+        var len = Math.PI * 2 * ar[2] * live * (1 + 0.8 * eOut);
+        var ang = Math.PI * 2 * (ar[4] + ar[3] * (t / 1000) * (1 + 2.5 * eOut)) - Math.PI / 2;
+        ctx.globalAlpha = a * live * (0.65 + 0.35 * ((k % 3) / 2));
+        ctx.strokeStyle = cols3[ar[5]]; ctx.lineWidth = ar[1] * sc;
+        ctx.beginPath(); ctx.arc(ox, DY, rad, ang, ang + len * (ar[3] > 0 ? 1 : -1), ar[3] < 0); ctx.stroke();
+      });
+      ctx.restore();
     }
     function draw(t) {
       var i = at(t), s = R.dir, cx = bx + wx[i], cy = by + s * wy[i];
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
-      // grid: 1px white lines, 10% while the belt moves, fading out as it brakes and back in as the next run starts
-      var ga = 0.1 * Math.min(clamp(sp[i] / VX), clamp(t / 500));
+      // grid: 1px white lines at 10%, shown only while the belt moves and once the % has left 0 (it fades in from
+      // the moment the OHAYO amount first reads non-zero, and out again as the belt brakes)
+      var ga = 0.1 * Math.min(clamp(sp[i] / VX), clamp((t - zeroUntil(R)) / 800));
       ctx.strokeStyle = 'rgba(255,255,255,' + ga.toFixed(3) + ')'; ctx.lineWidth = 1; ctx.beginPath();
       for (var gx = mod(DX + OX - cx, GX); gx < W; gx += GX) { ctx.moveTo(Math.round(gx) + 0.5, 0); ctx.lineTo(Math.round(gx) + 0.5, H); }
       for (var gy = mod(DY + OY + cy, GY); gy < H; gy += GY) { ctx.moveTo(0, Math.round(gy) + 0.5); ctx.lineTo(W, Math.round(gy) + 0.5); }
       ctx.stroke();
       // fade the dot, tail and label in at the start of a run and out at the end
       // scene 0: LONG / SHORT fades up over the moving grid, holds, and clears before the dot arrives
-      var m0 = Math.min(clamp(t / 300), 1 - clamp((t - (INTRO - 350)) / 300)), mk = 1 - Math.pow(1 - clamp(t / 500), 3);
-      mode.style.opacity = m0; mode.style.transform = 'translate(-50%,-50%) scale(' + (sc * (0.9 + 0.1 * mk)).toFixed(3) + ')';
-      var a = Math.min(clamp((t - INTRO) / FADE), 1 - clamp((t - (LOOP - FADE)) / FADE));
+      var a = Math.min(clamp(t / 150), 1 - clamp((t - (LOOP - WIPE)) / 150));   /* clears in 150ms as the LED wipe starts */
+      // ignition (beats 0-3): the orbit opens around a small core, then tightens and collapses into the full dot
+      var eIn = out(clamp(t / (B + 100))), eOut = inOut(clamp((t - 2 * B) / B));
+      var grow = 0.32 * out(clamp(t / 250)) + 0.68 * eOut;                 /* core 1/3 size, swelling to full on collapse */
+      // it ignites at centre stage and glides left into the dot's place while the orbit collapses (0.8-1.5s)
+      var ox = DX + (W / 2 - DX) * (1 - inOut(clamp((t - 800) / 700)));
       ctx.globalAlpha = a;
+      if (t < INTRO + 50) ignite(t, eIn, eOut, a, ox);
       // tail: the dot's recent path; 85px at cruise, ~3x at full speed, gone when stopped
-      var L = 85 * sp[i] / VX * sc, len = 0, j = i, px = DX, py = DY, pts = [[DX, DY]];
+      // no tail while OHAYO reads +$0: just the dot; the tail grows out from the moment its amount turns non-zero
+      var L = 85 * sp[i] / VX * sc * clamp((t - zeroUntil(R)) / 700), len = 0, j = i, px = DX, py = DY, pts = [[DX, DY]];
       while (j > 0 && len < L) {
         j--; var qx = DX + (wx[j] - wx[i]) * sc, qy = DY - s * (wy[j] - wy[i]) * sc;
         len += Math.hypot(qx - px, qy - py); px = qx; py = qy; pts.push([qx, qy]);
@@ -648,10 +839,16 @@
         for (var m = pts.length - 2; m >= 0; m--) ctx.lineTo(pts[m][0], pts[m][1]);
         ctx.stroke();
       }
-      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(DX, DY, 10.5 * sc, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(ox, DY, 10.5 * sc * Math.max(0.001, grow), 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
-      label.style.opacity = a;
+      // the label slides out of the dot as it lands (beat 3)
+      var lIn = out(clamp((t - INTRO) / 300));
+      label.style.opacity = Math.min(a, lIn); label.style.transform = 'translate(' + (-14 * sc * (1 - lIn)).toFixed(1) + 'px,-50%)';
       var pct = R.move * clamp(wy[i] / yTop);                                /* size of the move so far, in % */
+      // motion trail on fast counts: ghosts of the previous values trail below the number, scaled by how fast it moves
+      var rate = Math.abs(pct - R.move * clamp(wy[at(t - 80)] / yTop)) / 0.08, trail = clamp(rate / (1.1 * R.move / 4.8));
+      var ghost = trail < 0.06 ? 'none' : '0 ' + (5 * trail).toFixed(1) + 'px 0 color-mix(in srgb, currentColor 32%, transparent), 0 ' + (10 * trail).toFixed(1) + 'px 0 color-mix(in srgb, currentColor 12%, transparent)';
+      num.style.textShadow = ghost;
       num.textContent = pct < 0.05 ? '+0%' : (s > 0 ? '+' : '-') + pct.toFixed(1) + '%';
       cols.forEach(function (c) {
         // $1,000: stocks move 1:1 with the ticker; OHAYO gains mult x the move either way
@@ -660,29 +857,83 @@
         // scene 2: caption types in at 2x; scene 3: shrinks to 1x; scene 4: amount and dots join as the counting starts
         var nc = Math.round(clamp((t - c.type[0]) / (c.type[1] - c.type[0])) * c.txt.length);
         c.cap.textContent = c.txt.slice(0, nc);
-        var k3 = clamp((t - INTRO - 1900) / 350); k3 = k3 < 0.5 ? 4 * k3 * k3 * k3 : 1 - Math.pow(-2 * k3 + 2, 3) / 2;
+        var k3 = inOut(clamp((t - (INTRO + 3 * B)) / 350));                  /* beat 6: shrink into place */
         c.cap.style.transform = 'scale(' + (2 - k3).toFixed(3) + ')';
-        var k4 = clamp((t - (LEAD - 300)) / 300);
+        var k4 = out(clamp((t - c.join) / 300));                              /* amounts and dots join, staggered */
         c.val.style.opacity = k4; c.box.style.opacity = k4;
+        c.val.style.transform = 'translateY(' + (6 * (1 - k4)).toFixed(1) + 'px)'; c.val.style.textShadow = ghost;
         c.val.textContent = (down && d ? '-$' : '+$') + d; fill(c.box, d, down);
       });
       // scene 5: the 10x / 20x lands the moment OHAYO reaches its total
-      var p5 = clamp((t - END) / 400), e5 = 1 - Math.pow(1 - p5, 3);
+      var p5 = clamp((t - END) / 400), e5 = out(p5);
       x10.style.opacity = a * p5; x10.style.transform = 'scale(' + (sc * (0.8 + 0.2 * e5)).toFixed(3) + ')';
+    }
+    /* LED wipe at the run boundary, modelled on the showreel's dot-grid scene: a crest of near-touching circles
+       travels out from the stage centre; dots near the crest swell, dots away from it are small rotated squares.
+       Colour follows the crest: cream on it, lime > amber > coral > the next run's colour inside it, near-black
+       (unlit-looking) LEDs outside and far behind. Cover (last beat of a run): the crest sweeps out and leaves a medium field lit behind it.
+       Reveal (first beat of the next run): a second crest sweeps out and switches the field off behind it.
+       Whole dots only (ohayo-motion: never a half dot). */
+    var CREST = 0.075, FRONT = 1.3, LED_DIM = ['#1c1c1c', '#2b2b2b'];   /* unlit-looking LEDs (replace cobalt/violet in the wipe) */                                        /* crest half-width; travel (1 = corner) */
+    function fxColour(rel, nxt) {                                          /* rel = distance from the crest (<0 inside) */
+      if (rel > 0.15) return LED_DIM[0]; if (rel > 0.05) return LED_DIM[1]; /* outside: near-black LEDs */
+      if (rel > -0.05) return FX[1];                                       /* crest: cream */
+      if (rel > -0.13) return FX[2]; if (rel > -0.22) return FX[6]; if (rel > -0.33) return FX[5];   /* lime, amber, coral */
+      if (rel > -0.46) return nxt; if (rel > -0.62) return LED_DIM[1]; return LED_DIM[0];
+    }
+    function drawFx(t, cur, nxt) {
+      fctx.setTransform(dpr, 0, 0, dpr, 0, 0); fctx.clearRect(0, 0, W, H);
+      var FXD = WIPE;                                                       /* each crest takes 3 beats (1.5s) to cross */
+      var cover = t > LOOP - FXD ? (t - (LOOP - FXD)) / FXD : -1, reveal = run > 0 && t < FXD ? t / FXD : -1;
+      if (cover < 0 && reveal < 0) return;
+      var fC = cover >= 0 ? FRONT * out(cover) : FRONT, fR = reveal >= 0 ? FRONT * out(reveal) : -1;
+      var HS = LP * 0.47, buckets = {};
+      for (var d = 0; d < DOTS.length; d++) {
+        var dn = DOTS[d][2], size, colr, relC = dn - fC;
+        // cover crest: swell on the crest, a medium lit field behind it, nothing ahead of it yet
+        var gC = Math.exp(-Math.pow(relC / CREST, 2));
+        size = relC > 0 ? 0.95 * gC : Math.max(0.95 * gC, 0.42 + 0.12 * Math.cos(relC * 18));
+        colr = fxColour(relC, nxt);
+        if (fR >= 0) {                                                     /* reveal crest: swell, then off behind it */
+          var relR = dn - fR, gR = Math.exp(-Math.pow(relR / CREST, 2));
+          if (relR < 0) { size = 0.95 * gR * (relR > -0.18 ? 1 : 0); colr = fxColour(relR * 0.6, nxt); }
+          else if (gR > 0.05) { size = Math.max(size, 0.95 * gR); colr = fxColour(relR, nxt); }
+        }
+        if (size < 0.06) continue;
+        var hs = HS * size, kind = size > 0.62 ? 'o' : 'd', key = colr + kind;
+        var bk = buckets[key] || (buckets[key] = { c: colr, k: kind, p: new Path2D(), w: 0 });
+        var x = DOTS[d][0], y = DOTS[d][1];
+        if (kind === 'o') { bk.p.moveTo(x + hs, y); bk.p.arc(x, y, hs, 0, Math.PI * 2); }
+        else { var q = hs * 0.86; bk.p.moveTo(x, y - q); bk.p.lineTo(x + q, y); bk.p.lineTo(x, y + q); bk.p.lineTo(x - q, y); bk.p.closePath(); bk.w = Math.max(bk.w, hs * 0.45); }
+      }
+      fctx.lineJoin = 'round';
+      for (var key2 in buckets) {
+        var b3 = buckets[key2]; fctx.fillStyle = b3.c; fctx.fill(b3.p);
+        if (b3.k === 'd') { fctx.strokeStyle = b3.c; fctx.lineWidth = b3.w; fctx.stroke(b3.p); }   /* rounds the squares' corners */
+      }
     }
     function loop(ts) {
       if (!t0) t0 = ts;
       var e = ts - t0, r = Math.floor(e / LOOP);
       while (run < r) { bx += wx[n - 1]; by += R.dir * wy[n - 1]; run++; setRun(run); } /* carry the grid over, switch long <-> short */
-      draw(e - r * LOOP);
+      var tr = e - r * LOOP; draw(tr);
+      var rc = function (i) { return getComputedStyle(document.documentElement).getPropertyValue(RUNS[(i + RUNS.length) % RUNS.length].color).trim(); };
+      drawFx(tr, rc(tr < WIPE ? run - 1 : run), rc(tr < WIPE ? run : run + 1));   /* reveal uses the new run's colour */
       raf = requestAnimationFrame(loop);
     }
     function sync() {
       var on = document.body.classList.contains('hero-2type');
-      if (on) { layout(); if (noMotion) { draw(END + STOP); return; } if (!raf) { t0 = 0; run = 0; setRun(0); raf = requestAnimationFrame(loop); } }
-      else if (raf) { cancelAnimationFrame(raf); raf = null; }
+      if (raf) { cancelAnimationFrame(raf); raf = null; }
+      fctx.setTransform(1, 0, 0, 1, 0, 0); fctx.clearRect(0, 0, fx.width, fx.height);   /* no LED dots left behind */
+      if (on) {
+        layout();
+        if (noMotion) { draw(END + STOP); return; }
+        if (document.body.classList.contains('hero-intro-on')) { ctx.clearRect(0, 0, cv.width, cv.height); [label].concat(cols.map(function (c) { return c.el; }), [x10]).forEach(function (el) { el.style.opacity = 0; }); return; } /* wait for the page intro */
+        t0 = 0; run = 0; bx = by = 0; setRun(0); raf = requestAnimationFrame(loop);
+      }
     }
     document.addEventListener('herochange', sync);
+    document.addEventListener('herointrodone', sync);
     window.addEventListener('resize', function () { if (document.body.classList.contains('hero-2type')) { layout(); if (noMotion) draw(END + STOP); } });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (document.body.classList.contains('hero-2type')) layout(); });
     setRun(0);
@@ -706,6 +957,10 @@
       var isB = b.getAttribute('data-hero') === 'x10', h = isB ? 'C' : 'A';
       press(heroBtns, b);
       $('hero-a').hidden = isB; /* 2type: empty slot for the next hero concept, no 3D scene */
+      /* 2type: the first screen (.fold) ends at the ticker strip; the creators row moves out to sit right after it.
+         1type: it goes back inside the fold, above the strip. */
+      var fold = document.querySelector('.fold'), crs = document.querySelector('section.creators'), strip = fold && fold.querySelector('.strip');
+      if (fold && crs && strip) { if (isB) fold.after(crs); else fold.insertBefore(crs, strip); }
       document.body.classList.toggle('hero-2type', isB); document.dispatchEvent(new Event('herochange'));
       var line = document.querySelector('.hero-line');
       if (line) { line.classList.remove('is-drawn'); if (isB) requestAnimationFrame(function () { requestAnimationFrame(function () { line.classList.add('is-drawn'); }); }); }
