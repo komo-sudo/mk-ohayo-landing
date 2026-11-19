@@ -22,6 +22,10 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const root = document.querySelector('.hero-cubes');
 if (root) init(root);
@@ -80,11 +84,14 @@ function init(root) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setClearColor(0x000000, 0);
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.VSMShadowMap;   /* soft, blurred penumbras */
+  renderer.toneMapping = THREE.AgXToneMapping; renderer.toneMappingExposure = 1.15;   /* filmic roll-off instead of a hard clip */
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 400);
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x202020, 1.1));
-  const sun = new THREE.DirectionalLight(0xffffff, 0.9);           /* side fill only; the overhead pool casts the shadows */
-  sun.position.set(-10, 26, 14); scene.add(sun);
+  /* light: the overhead pool is the key (and casts the shadows); a cool rim from behind-left draws the cubes'
+     outlines against the dark; a low ambient keeps the shadow sides from going dead flat */
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x101010, 0.35));
+  const rim = new THREE.DirectionalLight(0xdfe7ff, 1.8);
+  rim.position.set(-16, 9, -24); scene.add(rim);
   /* ---------- the space: a near-black floor that fades into the page's black ---------- */
   scene.fog = new THREE.Fog(0x000000, 45, 110);                      /* the floor dissolves into black toward the horizon */
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.95, metalness: 0 }));
@@ -106,27 +113,38 @@ function init(root) {
   pool.shadow.radius = 10; pool.shadow.blurSamples = 20; pool.shadow.bias = -0.0004;   /* one light, one set of soft shadows */
   scene.add(pool, pool.target);
 
+  const mesh_tones = [];
   const geo = new RoundedBoxGeometry(0.86, 0.86, 0.86, 5, 0.21);   /* matches the physics collider (rounded 0.21) */
   const glow = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3);
   geo.setAttribute('aGlow', glow);
-  /* near-black matte: a soft studio environment lights the faces apart (diffuse fill, no sheen).
-     Only the cubes use it (envMap on their material, not scene.environment), so the floor stays black. */
+  /* near-black matte, shaded by real light only. A soft studio environment (cubes only, the floor stays black)
+     keeps the faces apart. Each cube varies a little in tone and roughness, as real objects do. */
   const envMap = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
-  const mat = new THREE.MeshStandardMaterial({ color: 0x1c1c1e, roughness: 0.92, metalness: 0, envMap, envMapIntensity: 0.7 });
-  /* colour depth, per cube: each cube grades from near-black at its own bottom to dark grey at its own top,
-     measured from its centre along world up (so the light reads as coming from above, however it lies) */
-  const DEPTH_LOW = new THREE.Color(0x060606), DEPTH_HIGH = new THREE.Color(0x343437), DEPTH_Y = [-0.5, 0.5];
-  mat.onBeforeCompile = (sh) => {                     /* LED: per-cube emissive colour; height-graded base colour */
-    sh.uniforms.uDepthLow = { value: DEPTH_LOW }; sh.uniforms.uDepthHigh = { value: DEPTH_HIGH };
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 aGlow;\nvarying vec3 vGlow;\nvarying float vDepthY;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGlow = aGlow;\nvDepthY = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).y - (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).y;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vGlow;\nvarying float vDepthY;\nuniform vec3 uDepthLow;\nuniform vec3 uDepthHigh;')
-      .replace('#include <color_fragment>', `#include <color_fragment>\ndiffuseColor.rgb = mix(uDepthLow, uDepthHigh, smoothstep(${DEPTH_Y[0].toFixed(2)}, ${DEPTH_Y[1].toFixed(2)}, vDepthY));`)
+  const mat = new THREE.MeshStandardMaterial({ color: 0x262628, roughness: 0.85, metalness: 0, envMap, envMapIntensity: 0.45 });
+  const rough = new THREE.InstancedBufferAttribute(new Float32Array(n), 1);
+  geo.setAttribute('aRough', rough);
+  {
+    let sd = 11; const r = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+    for (let k = 0; k < n; k++) { const v = 0.78 + r() * 0.44; mesh_tones.push(v); rough.setX(k, 0.82 + r() * 0.3); }
+  }
+  mat.onBeforeCompile = (sh) => {                     /* LED: per-cube emissive colour; per-cube roughness */
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 aGlow;\nvarying vec3 vGlow;\nattribute float aRough;\nvarying float vRough;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGlow = aGlow;\nvRough = aRough;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vGlow;\nvarying float vRough;')
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = clamp(roughnessFactor * vRough, 0.3, 1.0);')
       .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance += vGlow;\ndiffuseColor.rgb = mix(diffuseColor.rgb, vGlow, clamp(max(vGlow.r, max(vGlow.g, vGlow.b)), 0.0, 1.0));');
   };
   const mesh = new THREE.InstancedMesh(geo, mat, n);
   mesh.castShadow = true; mesh.receiveShadow = true; mesh.frustumCulled = false;
+  { const c = new THREE.Color(); mesh_tones.forEach((v, k) => mesh.setColorAt(k, c.setRGB(v, v, v))); }
   scene.add(mesh);
+  /* contact shading: ground-truth ambient occlusion darkens the gaps between cubes and where they meet the floor */
+  const composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  const gtao = new GTAOPass(scene, camera, 1, 1, undefined, { radius: 0.9, distanceExponent: 1.4, thickness: 1, scale: 1.2, samples: 8 });
+  gtao.blendIntensity = 1;
+  composer.addPass(gtao);
+  composer.addPass(new OutputPass());
   const LED = [new THREE.Color(css('--fg-subtle', '#b0b0b0')), new THREE.Color(css('--fg-positive', '#11ec8a'))];
   /* light spill: the brightest just-landed cubes become small lights that tint their neighbours and the floor,
      then go out with them. A fixed set of lights (always in the scene, intensity 0 when idle) so shaders never
@@ -150,8 +168,9 @@ function init(root) {
   function layout() {
     W = root.clientWidth; Hh = root.clientHeight;
     if (!W || !Hh) return false;
-    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-    renderer.setSize(W, Hh, false);
+    const pr = Math.min(1.25, window.devicePixelRatio || 1);           /* AO is per pixel: cap the ratio to keep frames cheap */
+    renderer.setPixelRatio(pr); renderer.setSize(W, Hh, false);
+    composer.setPixelRatio(pr); composer.setSize(W, Hh);
     camera.aspect = W / Hh;
     camera.setViewOffset(W, Hh, -W * 0.01, Hh * 0.04, W, Hh);         /* both piles sit around the middle of the screen */
     camera.updateProjectionMatrix();
@@ -194,7 +213,7 @@ function init(root) {
       l.color.copy(LED[h[4]]); l.position.set(h[1], h[2] + 0.2, h[3]);
       l.intensity = SPILL_I * h[0] * (h[4] ? 1 : 0.5);              /* shares glow dimmer than OHAYO's green */
     }
-    renderer.render(scene, camera);
+    composer.render();
 
     /* labels ride above each pile's current top */
     const nS = landedBy(0, t), nU = landedBy(1, t);
