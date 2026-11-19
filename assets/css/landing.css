@@ -128,6 +128,18 @@ nav.main button:hover { color: var(--fg-base); }
 .fold:has(.hero-scene:defined) .hero-cards { visibility: hidden; }
 /* Preview 2type hero: no 3D scene (landing.js also stops its render loop) */
 .hero-2type .hero-scene { display: none; }
+/* 1type hero: the cube piles (hero-cubes.js) fill the same layer the Spline scene did */
+.hero-cubes { position: absolute; left: 0; top: 0; width: 100%; height: 100vh; height: 100svh; pointer-events: none; }
+.hero-cubes canvas { display: block; width: 100%; height: 100%; }
+.fold:has(.hero-cubes) .hero-cards { visibility: hidden; }
+.hero-2type .hero-cubes { display: none; }
+.hc-tag { position: absolute; left: 0; top: 0; margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; opacity: 0; transform-origin: 50% 100%; white-space: nowrap; }
+.hc-val { font-variant-numeric: tabular-nums; transform-origin: 50% 100%; }
+.hc-tag--them .hc-val { font-weight: 700; font-size: 26px; line-height: 30px; color: var(--fg-subtle); }
+.hc-tag--us .hc-val { font-weight: 900; font-size: 50px; line-height: 56px; color: var(--fg-positive); }
+.hc-cap { font-weight: 500; font-size: 12px; line-height: 18px; letter-spacing: 0.7px; text-transform: uppercase; color: var(--fg-muted); }
+.hc-tag--us .hc-cap { color: var(--fg-primary); }
+.hc-x { position: absolute; left: 0; top: 0; font-weight: 900; font-size: 40px; line-height: 44px; color: var(--fg-primary); white-space: nowrap; opacity: 0; transform-origin: 50% 100%; }
 /* 2type hero line art (Figma 75:9371): a 6px orange curve behind the copy. In Figma it sits at x -268 / y 157 of the
    1440 hero frame (top = 65px below the page top here) and is rotated 8.29deg.
    It runs as a comet on a loop: a bright head travelling from the lower end to the upper end with a fading tail. SVG has no
@@ -654,6 +666,8 @@ label.check small { color: var(--fg-muted); margin-left: auto; font-family: var(
   /* The scene's camera is framed for the wide layout; narrow screens keep the still image. */
   .hero-scene { display: none; }
   .fold:has(.hero-scene:defined) .hero-cards { visibility: visible; }
+  .hero-cubes { display: none; }
+  .fold:has(.hero-cubes) .hero-cards { visibility: visible; }
 }
 
 /* Daily Tournaments (Figma 45:8529): 170px above, ~238px below; a Spline scene sits behind the section head

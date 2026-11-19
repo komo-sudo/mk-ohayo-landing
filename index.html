@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Doto:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="assets/css/landing.css">
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }</script>
 <script type="module" src="https://unpkg.com/@splinetool/viewer@2.0.194/build/spline-viewer.js"></script>
 </head>
 <body>
@@ -37,7 +38,12 @@
 
 <!-- First screen: hero, creators and today's strip share the viewport height on wide screens. -->
 <div class="fold">
-  <spline-viewer class="hero-scene" url="https://prod.spline.design/DVfG5mA1Kp08mDLR/scene.splinecode" aria-hidden="true"></spline-viewer>
+  <!-- 1type hero: one cube per dollar (assets/js/hero-cubes.js). Shares $48 trickle into a small pile, OHAYO 10x $480 pours into a big one. -->
+  <div class="hero-cubes" aria-hidden="true"><canvas></canvas>
+    <p class="hc-tag hc-tag--them"><b class="hc-val">+$0</b><span class="hc-cap">Shares</span></p>
+    <p class="hc-tag hc-tag--us"><b class="hc-val">+$0</b><span class="hc-cap">OHAYO · LONG</span></p>
+    <b class="hc-x">10x</b>
+  </div>
   <!-- 2type hero: line art (Figma ohayo00001 · 75:9371) -->
   <div class="hero-line" aria-hidden="true"><svg width="1730" height="970" viewBox="0 0 1729.07 969.618" fill="none"><defs><path id="hl-path" pathLength="1" d="M1726.11 14.6012C1667.77 366.96 1344.63 679.535 974.793 629.671C778.499 607.392 596.39 447.988 571.903 254.105C560.262 174.668 577.122 101.332 610.172 56.1098C650.313 -0.384362 712.265 -12.7176 756.823 23.4864C803.922 59.823 830.015 147.217 812.754 253.972C745.717 608.983 351.792 917.181 0.418208 966.647"/></defs><g class="hl-trail"><use href="#hl-path" style="--d:0.0333"/><use href="#hl-path" style="--d:0.0667"/><use href="#hl-path" style="--d:0.1000"/><use href="#hl-path" style="--d:0.1333"/><use href="#hl-path" style="--d:0.1667"/><use href="#hl-path" style="--d:0.2000"/><use href="#hl-path" style="--d:0.2333"/><use href="#hl-path" style="--d:0.2667"/><use href="#hl-path" style="--d:0.3000"/><use href="#hl-path" style="--d:0.3333"/><use href="#hl-path" style="--d:0.3667"/><use href="#hl-path" style="--d:0.4000"/><use href="#hl-path" style="--d:0.4333"/><use href="#hl-path" style="--d:0.4667"/><use href="#hl-path" style="--d:0.5000"/><use href="#hl-path" style="--d:0.5333"/><use href="#hl-path" style="--d:0.5667"/><use href="#hl-path" style="--d:0.6000"/><use href="#hl-path" style="--d:0.6333"/><use href="#hl-path" style="--d:0.6667"/><use href="#hl-path" style="--d:0.7000"/><use href="#hl-path" style="--d:0.7333"/><use href="#hl-path" style="--d:0.7667"/><use href="#hl-path" style="--d:0.8000"/><use class="hl-head" href="#hl-path" style="--d:0.012"/></g></svg></div>
   <!-- 2type hero: belt-scroll chart (Figma ohayo00001 · 90:13145). The grid scrolls left and down so the fixed dot reads as SK hynix climbing. -->
@@ -474,5 +480,6 @@
      The #.splinecode fragment is never sent; it keeps the URL ending the viewer checks for. -->
 <script>document.querySelectorAll('spline-viewer[url]').forEach(function (v) { v.setAttribute('url', v.getAttribute('url') + '?v=' + Date.now() + '#.splinecode'); });</script>
 <script src="assets/js/landing.js"></script>
+<script type="module" src="assets/js/hero-cubes.js"></script>
 </body>
 </html>
