@@ -5,7 +5,7 @@ description: Motion and animation rules for the OHAYO landing page. Use before b
 
 # OHAYO motion
 
-The landing's motion should read as one system: time-driven, beat-aware, no bounce, no cuts. These rules come from the hero belt-scroll sequence, the tournament section, and a reference showreel the designer chose (Prompt Motion, "Claude motion design showreel"). When a rule here conflicts with an explicit request in the conversation, the request wins. Note the change for later.
+The landing's motion should read as one system: time-driven, beat-aware, no bounce, no cuts. These rules come from the hero belt-scroll sequence, the tournament section, a reference showreel the designer chose (Prompt Motion, "Claude motion design showreel") and the prompt behind it (prompt-motion.com/templates/showreel). When a rule here conflicts with an explicit request in the conversation, the request wins. Note the change for later.
 
 ## 1. Principles
 
@@ -13,7 +13,8 @@ The landing's motion should read as one system: time-driven, beat-aware, no boun
 2. **Transform, don't cut.** Prefer a shape or element becoming the next thing over crossfades and hard cuts. Examples: a word contracts into the dot, a caption shrinks into its slot, a circle expands into the next scene. A plain opacity fade is acceptable only for an element's very first appearance or its exit at loop end.
 3. **One idea per beat, one trigger per idea.** Every motion has a cause the viewer can read. Tie dependent elements to the driving value, not to wall-clock time. Example: the grid and the tail start when OHAYO's amount leaves +$0, not "at 5.4s".
 4. **Values drive visuals.** Counters, dot fills, bar heights and the % label are all computed from the same underlying number, so they never disagree (+$48 means 48 lit dots).
-5. **Restraint.** One typeface family per moment (Pretendard; Doto only for LED/eyebrow). Colours come from DS tokens (`--fg-positive`, `--fg-negative`, `--fg-primary`, neutrals). No new hues.
+5. **Restraint.** One typeface family per moment (Pretendard; Doto only for LED/eyebrow). Colours come from DS tokens (`--fg-positive`, `--fg-negative`, `--fg-primary`, neutrals). No new hues. At most three colours plus black and white in any one scene. Approved exceptions keep their own palette: the ignition orbit and the LED wipe.
+6. **One camera language per section.** Pick one way the "camera" moves (tilt, push-in, or pan) and use it for every element in that section. Don't mix a tilt entrance with a zoom exit.
 
 ## 2. Easing (use only these)
 
@@ -23,6 +24,11 @@ The landing's motion should read as one system: time-driven, beat-aware, no boun
 | in-out | moving between two resting places (caption to slot) | `cubic-bezier(0.45, 0, 0.55, 1)` | `x < .5 ? 4*x*x*x : 1 - Math.pow(-2*x + 2, 3) / 2` |
 | smoothstep | continuous drivers (slope, speed ramps) | n/a | `x*x*(3 - 2*x)` |
 | linear | belts, marquees, constant scrolls only | `linear` | `x` |
+
+| exponential out | fast arrivals that should stop dead (slams, snaps) | n/a | `1 - Math.pow(2, -10 * x)` (snap to 1 at x = 1) |
+| critically damped spring | things that follow a moving target (a label riding a stack) | n/a | `1 - (1 + w*t) * Math.exp(-w*t)` with t in seconds, w ≈ 12–20 |
+
+Springs are allowed only critically damped or overdamped (no overshoot).
 
 **Banned:** bounce/back/elastic overshoot (`easeBack`, springs with overshoot), `steps()` for anything meant to feel alive, `ease`/`ease-in` on entrances.
 
@@ -41,6 +47,8 @@ Stagger siblings by 80ms (copy lines) or 1 beat ÷ n for a group of n cards.
 ## 4. Build rules (how to implement)
 
 - **Time-driven.** Sequences are a pure `render(t)`/`draw(t)` of elapsed time inside one `requestAnimationFrame` loop. Precompute paths and arrays up front. No `setTimeout` chains, and no state carried between frames other than run counters. This makes any frame reproducible and testable.
+- **Expose a seek hook.** Each sequence registers its pure render under `window.ohayoSeek[name] = function (t) {...}`. Calling it stops that loop and draws frame t, so a verification step can jump to any moment instead of sampling in real time.
+- **Blur follows speed.** On fast moves only, apply blur along the direction of travel, proportional to the current velocity (for example `filter: blur()` of 0–8px scaled from speed). It must be 0 whenever the element is slow or at rest; never a fixed blur on an element.
 - **Compositor-only properties** for DOM motion: `transform`, `opacity` (plus `filter` sparingly). Canvas for anything with many marks (grid, tails, dots).
 - **Loop continuity.** Carry world offsets across runs so backgrounds never jump. Fade only the foreground at loop seams.
 - **Respect `prefers-reduced-motion`.** Render the meaningful end state, statically. Stop loops, pulses and marquees.
@@ -81,6 +89,7 @@ Stagger siblings by 80ms (copy lines) or 1 beat ÷ n for a group of n cards.
 3. Positions are relative to the content column (copy left edge = storyboard x 180 on a 1440 frame). Convert to offsets from that edge, not absolute pixels.
 4. If the storyboard is a Figma prototype/animation, prefer the `figma-implement-motion` skill to read exact timings instead of interpolating between stills.
 5. Static storyboards don't show motion between cuts. Fill the gaps with these rules, then report what you assumed.
+6. **New sequences start with a beat storyboard.** When a request creates a sequence (not a tweak), first state the concept in one line, then show a beat-by-beat table (`beat | what happens | what it turns into`). Then build without further questions. Each technique gets an equal share of the time. For loops, the last frame matches the first, so the seam is invisible.
 
 ## 7. Banned (from the reference showreel and this project)
 
@@ -88,6 +97,7 @@ Particle bursts, glows, lens flares, camera shake, RGB split, crossfades between
 
 ## 8. Verify before reporting done
 
+- **One frame per beat.** Before reporting, use the seek hook to render one frame on every beat and screenshot it. Fix anything cluttered, off the beat, overlapping or hard to read, then re-check.
 - **Sample, don't eyeball.** Read values every 100–250ms over a full loop (opacity, transforms, label text, canvas pixel alpha/extent). Report a short table of time → values.
 - **Check every variant:** both runs (long and short), 1type and 2type, ~1920 and ~1280 widths, reduced motion.
 - **Check for errors:** console clean (no WebGPU 0-size errors). No layout shift in the surrounding page.
