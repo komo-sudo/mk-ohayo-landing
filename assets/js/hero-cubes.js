@@ -111,17 +111,17 @@ function init(root) {
   const pool = new THREE.SpotLight(0xffffff, 420, 70, 0.55, 1, 1.6);
   pool.position.set(-1.5, 34, 4); pool.target.position.set(-1.5, 0, 0);
   pool.castShadow = true; pool.shadow.mapSize.set(2048, 2048); pool.shadow.camera.near = 14; pool.shadow.camera.far = 50;
-  pool.shadow.radius = 10; pool.shadow.blurSamples = 20; pool.shadow.bias = -0.0004;   /* one light, one set of soft shadows */
+  pool.shadow.radius = 10; pool.shadow.blurSamples = 10; pool.shadow.bias = -0.0004;   /* one light, one set of soft shadows */
   scene.add(pool, pool.target);
 
   const mesh_tones = [];
-  const geo = new RoundedBoxGeometry(0.86, 0.86, 0.86, 5, 0.21);   /* matches the physics collider (rounded 0.21) */
+  const geo = new RoundedBoxGeometry(0.86, 0.86, 0.86, 3, 0.21);   /* matches the physics collider (rounded 0.21) */
   const glow = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3);
   geo.setAttribute('aGlow', glow);
   /* near-black matte, shaded by real light only. A soft studio environment (cubes only, the floor stays black)
      keeps the faces apart. Each cube varies a little in tone and roughness, as real objects do. */
   const envMap = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
-  const mat = new THREE.MeshStandardMaterial({ color: 0x262628, roughness: 0.85, metalness: 0, envMap, envMapIntensity: 0.45 });
+  const mat = new THREE.MeshStandardMaterial({ color: 0x0d0d0e, roughness: 0.85, metalness: 0, envMap, envMapIntensity: 0.3 });
   const rough = new THREE.InstancedBufferAttribute(new Float32Array(n), 1);
   geo.setAttribute('aRough', rough);
   {
@@ -140,7 +140,7 @@ function init(root) {
   { const c = new THREE.Color(); mesh_tones.forEach((v, k) => mesh.setColorAt(k, c.setRGB(v, v, v))); }
   scene.add(mesh);
   /* contact shading: ground-truth ambient occlusion darkens the gaps between cubes and where they meet the floor */
-  const composer = new EffectComposer(renderer);
+  const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { samples: 4, type: THREE.HalfFloatType }));   /* MSAA, so edges stay clean through post-processing */
   composer.addPass(new RenderPass(scene, camera));
   const gtao = new GTAOPass(scene, camera, 1, 1, undefined, { radius: 0.9, distanceExponent: 1.4, thickness: 1, scale: 1.2, samples: 8 });
   gtao.blendIntensity = 1;
@@ -169,13 +169,14 @@ function init(root) {
   cameraAt(0);
 
   /* ---------- layout ---------- */
-  let W = 0, Hh = 0;
+  let W = 0, Hh = 0, prCap = 1.5;
   function layout() {
     W = root.clientWidth; Hh = root.clientHeight;
     if (!W || !Hh) return false;
-    const pr = Math.min(1.25, window.devicePixelRatio || 1);           /* AO is per pixel: cap the ratio to keep frames cheap */
+    const pr = Math.min(prCap, window.devicePixelRatio || 1);          /* sharp with MSAA; prCap steps down only if frames run slow */
     renderer.setPixelRatio(pr); renderer.setSize(W, Hh, false);
     composer.setPixelRatio(pr); composer.setSize(W, Hh);
+    gtao.setSize(Math.round(W * pr / 2), Math.round(Hh * pr / 2));    /* the AO alone at half resolution: it is soft anyway, and the costliest pass */
     camera.aspect = W / Hh;
     camera.setViewOffset(W, Hh, -W * 0.01, Hh * 0.04, W, Hh);         /* both piles sit around the middle of the screen */
     camera.updateProjectionMatrix();
@@ -238,10 +239,14 @@ function init(root) {
   }
 
   /* ---------- clock: plays once when shown, pauses off screen, waits for the simulation ---------- */
-  let raf = null, acc = 0, last = 0, visible = false, waiting = false, pendingSeek = null;
+  let raf = null, acc = 0, last = 0, visible = false, waiting = false, pendingSeek = null, slow = 0, avg = 0;
   const hidden = () => document.body.classList.contains('hero-2type') || !root.clientWidth;
   function loop(ts) {
     const step = last ? (ts - last) / 1000 : 0; last = ts;
+    /* adaptive resolution: when the running average frame time stays above 17ms (under 60fps), step the render
+       ratio down by 0.25, never below 1; 30 frames to settle after each step */
+    if (step > 0 && step < 0.1) { avg = avg ? avg * 0.9 + step * 0.1 : step; slow++; }
+    if (slow > 30 && avg > 0.017 && prCap > 1) { prCap = Math.max(1, prCap - 0.25); slow = 0; avg = 0; layout(); }
     if (!ready(Math.min(acc + step, END))) { raf = null; waiting = true; return; }   /* resumes on the next chunk */
     acc = Math.min(END, acc + step); render(acc);
     raf = acc < END ? requestAnimationFrame(loop) : null;
