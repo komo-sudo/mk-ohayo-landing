@@ -130,7 +130,7 @@ nav.main button:hover { color: var(--fg-base); }
 .hero-2type .hero-scene { display: none; }
 /* 1type hero: the cube piles (hero-cubes.js) fill the same layer the Spline scene did */
 .hero-cubes { position: absolute; left: 0; top: 0; width: 100%; height: 100vh; height: 100svh; pointer-events: none; }
-.hero-cubes canvas { display: block; width: 100%; height: 100%; }
+.hero-cubes canvas { display: block; width: 100%; height: 100%; -webkit-mask-image: linear-gradient(#000 78%, transparent); mask-image: linear-gradient(#000 78%, transparent); } /* the floor fades out at the bottom edge instead of stopping */
 .fold:has(.hero-cubes) .hero-cards { visibility: hidden; }
 .hero-2type .hero-cubes { display: none; }
 .hc-tag { position: absolute; left: 0; top: 0; margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; opacity: 0; transform-origin: 50% 100%; white-space: nowrap; }

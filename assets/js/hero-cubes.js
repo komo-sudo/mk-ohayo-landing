@@ -77,16 +77,32 @@ function init(root) {
   const canvas = root.querySelector('canvas');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setClearColor(0x000000, 0);
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.VSMShadowMap;   /* soft, blurred penumbras */
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 400);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x202020, 1.1));
-  const sun = new THREE.DirectionalLight(0xffffff, 1.6);
-  sun.position.set(-10, 26, 14); sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 80 });
-  sun.shadow.radius = 4; scene.add(sun);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.ShadowMaterial({ opacity: 0.45 }));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.9);           /* side fill only; the overhead pool casts the shadows */
+  sun.position.set(-10, 26, 14); scene.add(sun);
+  /* ---------- the space: a near-black floor that fades into the page's black ---------- */
+  scene.fog = new THREE.Fog(0x000000, 45, 110);                      /* the floor dissolves into black toward the horizon */
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.95, metalness: 0 }));
   floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+  /* floor grid: tiny unlit LED dots at the cubes' 1-unit pitch, for scale and depth */
+  {
+    const R = 60, dots = [], dot = new THREE.CircleGeometry(0.07, 12);
+    dot.rotateX(-Math.PI / 2);
+    for (let i = -R; i <= R; i++) for (let j = -R; j <= R; j++) if (i * i + j * j <= R * R) dots.push([i - 1.5, j]);
+    const grid = new THREE.InstancedMesh(dot, new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 1 }), dots.length);   /* lit like the floor, a step brighter */
+    const gm = new THREE.Matrix4();
+    dots.forEach(([x, z], k) => { gm.makeTranslation(x, 0.005, z); grid.setMatrixAt(k, gm); });
+    scene.add(grid);
+  }
+  /* a soft overhead pool of light on the piles; everything around it falls off into the dark */
+  const pool = new THREE.SpotLight(0xffffff, 420, 70, 0.55, 1, 1.6);
+  pool.position.set(-1.5, 34, 4); pool.target.position.set(-1.5, 0, 0);
+  pool.castShadow = true; pool.shadow.mapSize.set(2048, 2048); pool.shadow.camera.near = 14; pool.shadow.camera.far = 50;
+  pool.shadow.radius = 10; pool.shadow.blurSamples = 20; pool.shadow.bias = -0.0004;   /* one light, one set of soft shadows */
+  scene.add(pool, pool.target);
 
   const geo = new RoundedBoxGeometry(0.86, 0.86, 0.86, 3, 0.07);   /* matches the physics collider */
   const glow = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3);
