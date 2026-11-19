@@ -821,15 +821,17 @@
      short (Figma 91:16712, NVDA down 3.1%, OHAYO short 20x). The dot stays put while the 10% grid scrolls
      right-to-left and, as the move steepens, top-to-bottom (long: the dot climbs) or bottom-to-top (short: it
      falls). The tail is the dot's own recent path; its length follows the belt's speed.
-     Everything sits on a 0.5s beat (ohayo-motion skill). One run = 32 beats = 16s:
+     Everything sits on a 0.5s beat (ohayo-motion skill). One run = 22 beats = 11s:
        beats 0-3   ignition (after the showreel intro), at centre stage: a core dot lights, coloured arcs orbit it on
                    several radii while thin rings expand and fade, then it glides left into place as the orbit
                    tightens and collapses into the full dot
-       beats 3-7   run-up: the label slides out of the dot; STOCKS types (beat 4), the OHAYO caption (beat 5),
-                   both shrink into place (beat 6), amounts and dots join, staggered (beat 6.x)
-       beats 7-27  the move: $1,000 in stocks and on OHAYO count together, one dot per dollar; fast counts trail
-       beats 27-29 the belt brakes; the 10x / 20x lands on beat 27
-       beats 29-32 hold; on the last beat an LED dot matrix floods out from the stage centre in a circular wave,
+       beats 3-7   run-up, one entrance per beat, each landing with a grow-and-settle kick (out, 300ms) while the
+                   dot pulses on the beat: the label pops out of the dot (3); STOCKS slides in (4), the OHAYO caption
+                   (5), both shrink into place (6), amounts and dots join and pop, staggered (6.x); the move (7)
+       beats 7-17  the move: $1,000 in stocks and on OHAYO count together, one dot per dollar, climbing linearly;
+                   each amount pops as it crosses a round number ($5 stocks, $50 OHAYO, 0.5%); fast counts trail
+       beats 17-19 the belt brakes; the 10x / 20x slams in on beat 17 (1.8x -> 1x) as the dot pulses
+       beats 19-22 hold; on the last beat an LED dot matrix floods out from the stage centre in a circular wave,
                    and on the next run's first beat a second wave from the centre switches it off again.
                    The grid never jumps between runs. */
   (function () {
@@ -845,22 +847,38 @@
       { name: 'NVDA', move: 3.1, dir: -1, mult: 20, cap: 'OHAYO · SHORT 20x', x: '20x', color: '--fg-negative' }
     ];
     var GX = 234, GY = 167, OX = -377.7, OY = -404.5;          /* grid pitch and phase relative to the dot, from the storyboard */
-    var B = 500, VX = 130, INTRO = 3 * B, LEAD = INTRO + 4 * B, RISE = 20 * B, STOP = 2 * B, HOLD = 3 * B, FADE = B, END = LEAD + RISE, LOOP = END + STOP + HOLD, PRE = 1000, STEP = 10;
+    var B = 500, VX = 130, INTRO = 3 * B, LEAD = INTRO + 4 * B, RISE = 10 * B, STOP = 2 * B, HOLD = 3 * B, FADE = B, END = LEAD + RISE, LOOP = END + STOP + HOLD, PRE = 1000, STEP = 10;
     var clamp = function (x) { return x < 0 ? 0 : x > 1 ? 1 : x; };
     var out = function (x) { return 1 - Math.pow(1 - x, 3); };                         /* skill easings: out, in-out */
     var inOut = function (x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
     var mod = function (a, n) { return ((a % n) + n) % n; };
     /* precomputed world path, sampled every 10ms from -1s (flat run-up, so the tail exists at 0%).
-       The belt accelerates through the move (up to 2.2x) and brakes to a stop after it. */
-    var wx = [], wy = [], sp = [], n = (PRE + LOOP) / STEP + 1, x = -VX * PRE / 1000, y = 0;
+       x: the belt accelerates through the move (up to 2.2x) and brakes to a stop after it.
+       y: the move climbs linearly, one steady flow. Only its first tenth bends in (a short ease-in), so the tail
+       turns from flat into the climb without a corner. */
+    var BEND = 0.1;
+    function climb(k) {                                                   /* 0..1 of the move at 0..1 of RISE */
+      var c = 1 / (1 - BEND / 2);
+      return k < BEND ? c * k * k / (2 * BEND) : c * (k - BEND / 2);
+    }
+    var wx = [], wy = [], sp = [], n = (PRE + LOOP) / STEP + 1, x = -VX * PRE / 1000, y = 0, vs = [];
     for (var i = 0; i < n; i++) {
       var t = i * STEP - PRE;
-      var k = clamp((t - LEAD) / RISE), slope = k * k * (3 - 2 * k);   /* flat until LEAD, then the move */
       var ka = clamp((t - LEAD) / (RISE * 0.4)), kb = clamp((t - END) / STOP);
       var v = VX * (1 + 1.2 * ka * ka * (3 - 2 * ka)) * (1 - kb) * (1 - kb);
-      wx.push(x); wy.push(y); sp.push(v * Math.sqrt(1 + slope * slope));
-      x += v * STEP / 1000; y += v * slope * STEP / 1000;
+      wx.push(x); vs.push(v); x += v * STEP / 1000;
     }
+    /* climb height: what the old smoothstep slope reached over the move, so the dot rises as far as before */
+    var YT = 0; for (i = 0; i < n; i++) { var tt = i * STEP - PRE, kk = clamp((tt - LEAD) / RISE); YT += vs[i] * kk * kk * (3 - 2 * kk) * STEP / 1000; if (tt >= END) break; }
+    var iEnd = Math.round((END + PRE) / STEP), endSlope = 0;
+    for (i = 0; i < n; i++) {
+      var t2 = i * STEP - PRE;
+      if (i <= iEnd) y = YT * climb(clamp((t2 - LEAD) / RISE));
+      else y += endSlope * (wx[i] - wx[i - 1]);                           /* keep the last climb angle while braking */
+      if (i === iEnd) endSlope = (y - wy[i - 1]) / Math.max(1e-6, wx[i] - wx[i - 1]);
+      wy.push(y);
+    }
+    for (i = 0; i < n; i++) { var j0 = Math.max(0, i - 1), dx = wx[i] - wx[j0], dy = wy[i] - wy[j0]; sp.push(i ? Math.hypot(dx, dy) / (STEP / 1000) : VX); }
     var at = function (t) { return Math.min(n - 1, Math.max(0, Math.round((t + PRE) / STEP))); };
     var yTop = wy[at(END)];
     /* first moment the OHAYO amount stops reading +$0 (10 x pct x mult rounds to 1 or more), per run:
@@ -872,7 +890,7 @@
     var cols = [].map.call(belt.querySelectorAll('.hb-col'), function (el, c) {
       /* storyboard: STOCKS column 423px right of the dot, OHAYO 747px */
       return { el: el, val: el.querySelector('.hb-val'), box: el.querySelector('.hb-dots'), cap: el.querySelector('.hb-cap'), txt: '', us: !!c,
-        dx: c ? 747 : 423, type: c ? [INTRO + 2 * B, INTRO + 3 * B] : [INTRO + B, INTRO + 2 * B], join: LEAD - B + (c ? 120 : 0) }; /* typing on beats 4 and 5; amounts join staggered by 120ms */
+        dx: c ? 747 : 423, type: c ? [INTRO + 2 * B, INTRO + 3 * B] : [INTRO + B, INTRO + 2 * B], join: LEAD - B + (c ? 120 : 0) }; /* captions enter on beats 4 and 5; amounts join staggered by 120ms */
     });
     cols[0].txt = cols[0].cap.textContent;
     function fill(box, k, down) { /* light k dots, 12 per row, from the bottom row up (or the top row down) */
@@ -962,6 +980,12 @@
       });
       ctx.restore();
     }
+    /* 1 just after the value (% x f) crossed a multiple of unit, decaying to 0 over 250ms */
+    function popAt(i, unit, f) {
+      var v = function (q) { return Math.floor(R.move * f * clamp(wy[q] / yTop) / unit + 1e-9); };
+      for (var j = 0; j < 25 && i - j > 0; j++) if (v(i - j) !== v(i - j - 1)) return 1 - out(clamp(j * STEP / 250));
+      return 0;
+    }
     function draw(t) {
       var i = at(t), s = R.dir, cx = bx + wx[i], cy = by + s * wy[i];
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -998,34 +1022,49 @@
         for (var m = pts.length - 2; m >= 0; m--) ctx.lineTo(pts[m][0], pts[m][1]);
         ctx.stroke();
       }
-      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(ox, DY, 10.5 * sc * Math.max(0.001, grow), 0, Math.PI * 2); ctx.fill();
+      // run-up beat kicks (beats 3-7): each beat lands one entrance, and the dot pulses with it
+      var kick = function (at0) { var d = t - at0; return d >= 0 && d < 300 ? 1 - out(d / 300) : 0; };
+      var pulse = Math.max(kick(INTRO), kick(INTRO + B), kick(INTRO + 2 * B), kick(INTRO + 3 * B), kick(LEAD), kick(END));   /* and on the 10x / 20x landing */
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(ox, DY, 10.5 * sc * Math.max(0.001, grow) * (1 + 0.35 * pulse), 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
       // the label slides out of the dot as it lands (beat 3)
       var lIn = out(clamp((t - INTRO) / 300));
-      label.style.opacity = Math.min(a, lIn); label.style.transform = 'translate(' + (-14 * sc * (1 - lIn)).toFixed(1) + 'px,-50%)';
+      label.style.opacity = Math.min(a, lIn);
+      label.style.transform = 'translate(' + (-14 * sc * (1 - lIn)).toFixed(1) + 'px,-50%) scale(' + (1 + 0.3 * kick(INTRO)).toFixed(3) + ')';   /* beat 3: the name pops out of the dot */
       var pct = R.move * clamp(wy[i] / yTop);                                /* size of the move so far, in % */
       // motion trail on fast counts: ghosts of the previous values trail below the number, scaled by how fast it moves
       var rate = Math.abs(pct - R.move * clamp(wy[at(t - 80)] / yTop)) / 0.08, trail = clamp(rate / (1.1 * R.move / 4.8));
       var ghost = trail < 0.06 ? 'none' : '0 ' + (5 * trail).toFixed(1) + 'px 0 color-mix(in srgb, currentColor 32%, transparent), 0 ' + (10 * trail).toFixed(1) + 'px 0 color-mix(in srgb, currentColor 12%, transparent)';
       num.style.textShadow = ghost;
+      // round-number pops: a value grows a little and settles (250ms, out, no overshoot) each time it crosses a round
+      // step (the % every 0.5, stocks every $5, OHAYO every $50). Values drive it, so the flow itself stays linear.
+      num.style.transform = 'scale(' + (1 + 0.06 * popAt(i, 0.5, 1)).toFixed(3) + ')';
       num.textContent = pct < 0.05 ? '+0%' : (s > 0 ? '+' : '-') + pct.toFixed(1) + '%';
       cols.forEach(function (c) {
         // $1,000: stocks move 1:1 with the ticker; OHAYO gains mult x the move either way
         var d = Math.round(10 * pct * (c.us ? R.mult : 1)), down = !c.us && s < 0;
         c.el.style.opacity = a;
         // scene 2: caption types in at 2x; scene 3: shrinks to 1x; scene 4: amount and dots join as the counting starts
-        var nc = Math.round(clamp((t - c.type[0]) / (c.type[1] - c.type[0])) * c.txt.length);
-        c.cap.textContent = c.txt.slice(0, nc);
+        // caption enters like the ticker name: whole, sliding out from the left as it fades up, with a pop (beat 4 / 5)
+        var cIn = out(clamp((t - c.type[0]) / 300));
+        if (c.cap.textContent !== c.txt) c.cap.textContent = c.txt;
+        c.cap.style.opacity = cIn;
         var k3 = inOut(clamp((t - (INTRO + 3 * B)) / 350));                  /* beat 6: shrink into place */
-        c.cap.style.transform = 'scale(' + (2 - k3).toFixed(3) + ')';
+        c.cap.style.transform = 'translateX(' + (-14 * (1 - cIn)).toFixed(1) + 'px) scale(' + ((2 - k3) * (1 + 0.3 * kick(c.type[0]))).toFixed(3) + ')';
         var k4 = out(clamp((t - c.join) / 300));                              /* amounts and dots join, staggered */
         c.val.style.opacity = k4; c.box.style.opacity = k4;
-        c.val.style.transform = 'translateY(' + (6 * (1 - k4)).toFixed(1) + 'px)'; c.val.style.textShadow = ghost;
+        var pop = c.us ? popAt(i, 5, R.mult) : popAt(i, 0.5, 1);                /* $50 on OHAYO, $5 on stocks */
+        c.val.style.transform = 'translateY(' + (6 * (1 - k4)).toFixed(1) + 'px) scale(' + ((1 + (c.us ? 0.08 : 0.05) * pop) * (1 + 0.3 * kick(c.join))).toFixed(3) + ')';   /* + a pop as it joins */ c.val.style.textShadow = ghost;
         c.val.textContent = (down && d ? '-$' : '+$') + d; fill(c.box, d, down);
       });
       // scene 5: the 10x / 20x lands the moment OHAYO reaches its total
-      var p5 = clamp((t - END) / 400), e5 = out(p5);
-      x10.style.opacity = a * p5; x10.style.transform = 'scale(' + (sc * (0.8 + 0.2 * e5)).toFixed(3) + ')';
+      // it slams in big and settles (like the run-up entrances, scaled up): 1.8x -> 1x over 400ms (out, no overshoot),
+      // visible within 150ms, with a blur that follows the shrink's speed and is gone by the time it rests
+      var p5 = clamp((t - END) / 400), e5 = out(p5), s5 = 1 + 0.8 * (1 - e5);
+      x10.style.opacity = a * out(clamp((t - END) / 150));
+      var xw = x10.offsetWidth;                                             /* scale about its centre, rest exactly where the left-origin layout puts it */
+      x10.style.transform = 'translateX(' + (xw * (sc - 1) / 2).toFixed(1) + 'px) scale(' + (sc * s5).toFixed(3) + ')';
+      x10.style.filter = p5 > 0 && p5 < 1 ? 'blur(' + (6 * (1 - e5)).toFixed(2) + 'px)' : 'none';
     }
     /* LED wipe at the run boundary, modelled on the showreel's dot-grid scene: a crest of near-touching circles
        travels out from the stage centre; dots near the crest swell, dots away from it are small rotated squares.
