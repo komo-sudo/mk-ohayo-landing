@@ -627,6 +627,61 @@
     v.addEventListener('wheel', function (e) { e.stopPropagation(); }, { capture: true, passive: true });
   })();
 
+  /* Hero 3D scene: the cube drops in from above the frame and bounces to rest under real gravity.
+     A deliberate exception to ohayo-motion's "no bounce" (the designer asked for a physical drop): the bounce comes
+     from gravity and a coefficient of restitution, not from a bounce easing, and every height and time is computed
+     from t (pure render(t)). Tuned to the beat: first impact at 0.5s, the first rebound lands at 1.0s, then quicker,
+     smaller bounces settle by ~1.5s. Each impact squashes the cube briefly, in proportion to its speed; a tumble
+     set at the drop decays to the rest pose. Plays when the scene first shows and each time the 1type hero returns. */
+  (function () {
+    var v = document.querySelector('spline-viewer.hero-scene');
+    if (!v) return;
+    var DROP = 180, T1 = 0.5, E = 0.5, G = 2 * DROP / (T1 * T1), V0 = G * T1;   /* scene units, seconds */
+    var cube = null, rest = null, raf = null, t0 = 0;
+    var impacts = [], tt = T1, vb = V0 * E;                                     /* [time, speed] of each impact */
+    impacts.push([T1, V0]);
+    while (vb > V0 * 0.02) { tt += 2 * vb / G; impacts.push([tt, vb]); vb *= E; }
+    var END = tt + 0.25;
+    function height(t) {                                                        /* height above rest, from t in s */
+      if (t < T1) return DROP - 0.5 * G * t * t;
+      for (var k = 0; k < impacts.length - 1; k++) {
+        var a = impacts[k], b = impacts[k + 1];
+        if (t < b[0]) { var u = t - a[0], vu = a[1] * E; return Math.max(0, vu * u - 0.5 * G * u * u); }
+      }
+      return 0;
+    }
+    function squash(t) {                                                         /* 0..1, a 120ms dip after each impact */
+      var q = 0;
+      impacts.forEach(function (im) { var d = t - im[0]; if (d >= 0 && d < 0.12) q = Math.max(q, (im[1] / V0) * Math.sin(Math.PI * d / 0.12)); });
+      return q;
+    }
+    function render(t) {
+      if (!cube) return;
+      var h = height(t), q = squash(t), spin = Math.pow(1 - Math.min(1, t / END), 2);
+      cube.position.y = rest.y + h;
+      cube.rotation.x = rest.rx - 0.9 * spin; cube.rotation.y = rest.ry + 1.4 * spin; cube.rotation.z = rest.rz + 0.35 * spin;
+      cube.scale.x = rest.sx * (1 + 0.1 * q); cube.scale.y = rest.sy * (1 - 0.18 * q); cube.scale.z = rest.sz * (1 + 0.1 * q);
+    }
+    function loop(ts) { if (!t0) t0 = ts; var t = (ts - t0) / 1000; render(t); raf = t < END ? requestAnimationFrame(loop) : null; if (!raf) render(END + 1); }
+    function play() {
+      if (!cube || document.body.classList.contains('hero-2type')) return;
+      if (raf) cancelAnimationFrame(raf);
+      if (noMotion) { render(END + 1); return; }
+      render(0); t0 = 0; raf = requestAnimationFrame(loop);
+    }
+    window.ohayoSeek = window.ohayoSeek || {};
+    window.ohayoSeek.cubeDrop = function (t) { if (raf) { cancelAnimationFrame(raf); raf = null; } render(t); };   /* skill: seek hook */
+    /* grab the cube on the first frame the scene is ready, before it can be seen at rest */
+    (function grab() {
+      var app = v._loaded && v._spline, c = app && app.findObjectByName && app.findObjectByName('Cube');
+      if (!c) { requestAnimationFrame(grab); return; }
+      cube = c;
+      rest = { y: c.position.y, rx: c.rotation.x, ry: c.rotation.y, rz: c.rotation.z, sx: c.scale.x, sy: c.scale.y, sz: c.scale.z };
+      render(0); play();
+    })();
+    document.addEventListener('herochange', function () { requestAnimationFrame(play); });
+  })();
+
   /* Tournament 3D scene: render only while the section is on screen (two live WebGPU scenes would otherwise run at once). */
   (function () {
     var v = document.querySelector('.t-scene spline-viewer');

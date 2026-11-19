@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Doto:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="assets/css/landing.css">
-<script type="module" src="https://unpkg.com/@splinetool/viewer@2.0.184/build/spline-viewer.js"></script>
+<script type="module" src="https://unpkg.com/@splinetool/viewer@2.0.194/build/spline-viewer.js"></script>
 </head>
 <body>
 <!-- 2type is the default hero; set it before first paint so the 1type hero never flashes (?hero=1 opens 1type) -->
@@ -469,6 +469,10 @@
   <button type="button" class="x" id="preview-x" aria-label="Hide preview controls">×</button>
 </div>
 
+<!-- Spline sends its scene files without cache headers, so browsers keep an old scene after it is republished.
+     A per-load query asks for the current file (it runs before the viewer module, which loads after parsing).
+     The #.splinecode fragment is never sent; it keeps the URL ending the viewer checks for. -->
+<script>document.querySelectorAll('spline-viewer[url]').forEach(function (v) { v.setAttribute('url', v.getAttribute('url') + '?v=' + Date.now() + '#.splinecode'); });</script>
 <script src="assets/js/landing.js"></script>
 </body>
 </html>

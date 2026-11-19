@@ -80,6 +80,7 @@ Stagger siblings by 80ms (copy lines) or 1 beat ÷ n for a group of n cards.
   - At 2s the stack wipes up and "Same move. Ten times." drops in word by word (70ms stagger) at centre stage.
   - At 2.5–3.05s it FLIPs into the real h1 box (pixel-exact, same line breaks), the h1 takes over without a fade, and the rest of the copy rises in its 80ms stagger.
   - `herointrodone` then starts the belt. (Chosen over word-per-plate because showing the move before naming it is more persuasive.)
+- **Physical drop (hero 1type cube, approved exception to "no bounce"):** an object falls in from above the frame under gravity and bounces to rest. Real physics only: gravity tuned so the first impact lands on a beat, restitution 0.5 (each rebound keeps half the speed), a short squash on each impact proportional to its speed, and a tumble that decays to the rest pose. Never a bounce/back easing curve. Drive Spline objects by name (`findObjectByName`), store the rest pose on load and render from t.
 - **3D backgrounds** (Spline): sit behind content with a transparent→black gradient burying the lower part. Zoom via camera FOV from the canvas aspect so the field always fills the frame, never exposing its edges.
 
 ## 6. Reading storyboards (Figma)
