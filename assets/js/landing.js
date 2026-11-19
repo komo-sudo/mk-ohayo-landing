@@ -382,10 +382,10 @@
 
   /* Get started: two app mockups (home, order) take turns in one spot (ohayo-motion: time-driven, out / in-out).
      Each phone's 12.5s turn:
-       0-1.5s    it rises out of the dark, tipped back ~38deg with a slight turn and roll, settling flat; the screen
-                 "wakes" over 1.0-1.5s
+       0-1.5s    it fades up from opacity 0 while rising, tipped back ~38deg with a slight turn and roll, settling flat; screen and
+                 frame fade as one
        2.5-11s   its feed scrolls like a finger flick (in-out): down to the first stop, pause, down to the end, pause
-       11-12.5s  the entrance plays in reverse: the screen dims, the phone tips back and sinks into the dark
+       11-12.5s  the entrance plays in reverse: the whole phone (screen and frame together) tips back, sinks and fades out to opacity 0
      Then the other phone takes its turn (home -> order -> home ...), forever. The clock only runs while the section
      is on screen; reduced motion shows the home phone, still. */
   (function () {
@@ -401,7 +401,7 @@
       order: [[0, 0], [2500, 0.62], [4000, 0.62], [6500, 1], [8500, 1]]     /* order form, then balances */
     };
     var phones = [].map.call(sec.querySelectorAll('.st-mock'), function (m, k) {
-      return { el: m, body: m.querySelector('.st-phone'), scr: m.querySelector('.st-screen'), feed: m.querySelector('.st-feed'), win: m.querySelector('.st-feedwin'),
+      return { el: m, body: m.querySelector('.st-phone'), feed: m.querySelector('.st-feed'), win: m.querySelector('.st-feedwin'),
         keys: KEYS[m.getAttribute('data-mock')] || KEYS.home, mirror: k % 2 ? -1 : 1 };
     });
     function scrollAt(keys, c) {
@@ -412,10 +412,11 @@
       return keys[keys.length - 1][1];
     }
     function pose(p, e) {                                                   /* e = entrance time 0..IN (exit = e reversed) */
-      var m = inOut(clamp(e / IN)), lit = out(clamp(e / 1250)), wake = out(clamp((e - 1000) / 500)), s = p.mirror;
+      /* motion eases out (fastest at the start) and opacity rises from 0 with it, so the phone is never seen
+         half-lit and standing still; the exit runs the same path backwards, down to opacity 0 */
+      var m = out(clamp(e / IN)), a = clamp(e / 1000), op = a * a * (3 - 2 * a), s = p.mirror;
       p.body.style.transform = 'translateY(' + (120 * (1 - m)).toFixed(1) + 'px) rotateX(' + (38 * (1 - m)).toFixed(2) + 'deg) rotateY(' + (-14 * s * (1 - m)).toFixed(2) + 'deg) rotateZ(' + (5 * s * (1 - m)).toFixed(2) + 'deg) scale(' + (0.9 + 0.1 * m).toFixed(4) + ')';
-      p.body.style.filter = lit < 1 ? 'brightness(' + lit.toFixed(3) + ')' : 'none';
-      p.scr.style.opacity = (0.92 * (1 - wake)).toFixed(3);
+      p.body.style.opacity = op.toFixed(3);
     }
     function render(T) {
       var cyc = T % (TURN * phones.length), turn = Math.floor(cyc / TURN), t = cyc - turn * TURN;

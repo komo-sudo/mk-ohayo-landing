@@ -672,14 +672,22 @@ label.check small { color: var(--fg-muted); margin-left: auto; font-family: var(
 /* Get started (Figma 45:8985): the app mockup sits centred above the content; the eyebrow and heading start just
    above the phone's bottom edge. The export includes the phone's shadow margin (465 x 908 for a 411 x 848 phone).
    Content starts 91.2% of the way down the image (y858 in a 1236px frame), 60px below the cards. */
-#start { --mock-w: min(372px, 68vw); /* 80% of the Figma size (465px export) */ position: relative; overflow: clip; --mock-h: calc(var(--mock-w) * 908 / 465); padding: calc(160px + var(--mock-h) * 848 / 908 + 64px) 0 60px; } /* 160px above the phone body, 64px between the phone and the content */
-#start > .wrap { position: relative; z-index: 1; }
-.st-mocks { position: absolute; left: 0; right: 0; top: calc(160px - var(--mock-h) * 30 / 908); display: grid; justify-content: center; pointer-events: none; z-index: 0; } /* the phones share one spot and take turns */
-.st-mock { grid-area: 1 / 1; position: relative; width: var(--mock-w); perspective: 1600px; visibility: hidden; }
-.st-phone { position: relative; transform-origin: 50% 85%; will-change: transform, filter; }
+#start { position: relative; overflow: clip; padding: 142px 0 186px; } /* Figma 45:8985: copy left, phone right */
+.st-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; column-gap: 32px; }
+#start .sec-head { margin-bottom: 52px; }
+#start .steps { grid-template-columns: minmax(0, 352px); gap: 22.5px; } /* steps at 277 / 512 / 747 as in Figma */
+.st-mocks { display: grid; width: 418.5px; margin: -9px -24.3px -45px 0; align-self: end; pointer-events: none; } /* 90% of the 465px export (phone body 370px); the negative margins drop the transparent edges (10px above, 50px below the phone in the export) so the phone body sits flush right in the column, its bottom on the last step card */
+.st-mock { grid-area: 1 / 1; position: relative; width: 100%; perspective: 1600px; visibility: hidden; } /* the phones share one spot and take turns */
+@media (max-width: 900px) {
+  #start { padding: 84px 0; }
+  .st-grid { grid-template-columns: minmax(0, 1fr); }
+  .st-mocks { order: -1; width: min(372px, 68vw); justify-self: center; margin: 0 0 64px; }
+  #start .sec-head { margin-bottom: 32px; }
+  #start .steps { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+}
+.st-phone { position: relative; transform-origin: 50% 85%; will-change: transform, opacity; }
 .st-phone img { display: block; width: 100%; height: auto; }
 /* the display area (screen inset in the export), darkened until the phone "wakes" */
-.st-screen { position: absolute; left: 9.7%; right: 9.7%; top: 5.3%; bottom: 5.3%; border-radius: 10% / 4.8%; background: #000; opacity: 0; will-change: opacity; }
 /* In-phone scrolling (the export is 465 x 908; the display sits at x45-420, y48-860; status bar to y92, home strip
    from y834). The long home screen (375 x 1471, 2x asset) scrolls in a window between the two strips; copies of the
    phone export, clipped to the status bar and the home-indicator strip, sit on top so they stay put like a real phone. */
