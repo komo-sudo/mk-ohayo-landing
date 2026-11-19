@@ -16,6 +16,8 @@
 <script type="module" src="https://unpkg.com/@splinetool/viewer@2.0.184/build/spline-viewer.js"></script>
 </head>
 <body>
+<!-- 2type is the default hero; set it before first paint so the 1type hero never flashes (?hero=1 opens 1type) -->
+<script>if (!/[?&]hero=1/.test(location.search)) document.body.classList.add('hero-2type');</script>
 
 <header class="top">
   <div class="wrap">
@@ -92,7 +94,7 @@
         <div class="pnl"><span class="led up">+38.2%</span><span class="muted">30D PnL</span></div>
       </div>
       <div class="creator">
-        <img class="creator-avatar" src="assets/img/avatars/men-75.jpg" width="48" height="48" alt="">
+        <img class="creator-avatar" src="assets/img/avatars/city-night.jpg" width="48" height="48" alt="">
         <div class="who"><b>Night Desk Jay</b><span class="muted">186K subscribers · TSLA, SOXL</span></div>
         <div class="pnl"><span class="led up">+21.7%</span><span class="muted">30D PnL</span></div>
       </div>
@@ -345,6 +347,11 @@
 </section>
 
 <section id="start">
+  <!-- App mockups (Figma 104:21331 home, 109:4637 order); landing.js brings them up out of the dark and scrolls their screens -->
+  <div class="st-mocks" aria-hidden="true">
+    <div class="st-mock" data-mock="home"><div class="st-phone"><img src="assets/img/mockup/app-home.png" width="465" height="908" alt=""><span class="st-feedwin"><img class="st-feed" src="assets/img/mockup/app-home-screen.png" width="375" height="1471" alt=""></span><img class="st-chrome st-chrome--top" src="assets/img/mockup/app-home.png" width="465" height="908" alt=""><img class="st-chrome st-chrome--bot" src="assets/img/mockup/app-home.png" width="465" height="908" alt=""><span class="st-screen"></span></div></div>
+    <div class="st-mock" data-mock="order"><div class="st-phone"><img src="assets/img/mockup/app-order.png" width="465" height="908" alt=""><span class="st-feedwin"><img class="st-feed" src="assets/img/mockup/app-order-screen.png" width="375" height="1256" alt=""></span><img class="st-chrome st-chrome--top" src="assets/img/mockup/app-order.png" width="465" height="908" alt=""><img class="st-chrome st-chrome--bot" src="assets/img/mockup/app-order.png" width="465" height="908" alt=""><span class="st-screen"></span></div></div>
+  </div>
   <div class="wrap">
     <div class="stack sec-head">
       <p class="eyebrow">Get started</p>

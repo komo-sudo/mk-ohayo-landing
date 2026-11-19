@@ -364,6 +364,7 @@ nav.main button:hover { color: var(--fg-base); }
 .tv-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
 .tv-svg { width: 100%; height: auto; display: block; background: var(--bg-base); border: 1px solid var(--bd-strong); border-radius: var(--radius-6); }
 .tv-svg .mk { cursor: pointer; }
+.tv-svg .mk:not(.on):hover path, .tv-svg .mk:not(.on):hover rect:last-of-type { filter: brightness(1.25); } /* execution markers: hover lifts them */
 .tv-fill { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
 .tv-fill .nav { display: flex; gap: 6px; }
 .tv-fill .nav button { min-width: 44px; min-height: 44px; border-radius: var(--radius-control); border: 1px solid var(--bd-control); background: var(--bg-raised); color: var(--fg-base); }
@@ -381,10 +382,11 @@ nav.main button:hover { color: var(--fg-base); }
 .lb-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 8px; border-top: 1px solid var(--bd-strong); }
 .lb-row .led { font-size: 16px; }
 .lb-row.you { background: var(--bg-primary-subtle); border-radius: var(--radius-6); border-top-color: transparent; }
-.lb-row.you.lit { box-shadow: 0 0 0 1px var(--bg-primary), 0 0 28px rgba(255, 90, 0, 0.35); }
+.lb-row.you.lit { box-shadow: 0 0 0 1px var(--bg-primary); } /* crisp ring, no glow (ohayo-motion) */
+.lb-row.you { will-change: transform; background: linear-gradient(var(--bg-primary-subtle), var(--bg-primary-subtle)), var(--bg-base); } /* opaque: it travels over the other rows */
 .lb-row .tagx { font-family: var(--font-led); font-weight: 900; font-size: 11px; color: var(--fg-primary); margin-left: 8px; }
 .sp-steps { display: grid; gap: 10px; }
-.sp-step { opacity: 0.38; transition: opacity 0.3s ease; }
+.sp-step { opacity: 0.38; transition: opacity 0.4s cubic-bezier(0.2, 0.7, 0.2, 1), border-color 0.4s cubic-bezier(0.2, 0.7, 0.2, 1); }
 .sp-step.on { opacity: 1; border-color: var(--bg-primary); }
 .sp-step .led { font-size: 26px; color: var(--fg-primary); }
 @media (max-width: 900px) { .tv-app, .sp-grid { grid-template-columns: minmax(0, 1fr); } }
@@ -439,11 +441,11 @@ nav.main button:hover { color: var(--fg-base); }
 /* 2type: creators ("They trade here") are moved out of .fold, right after it (landing.js), so the fold ends at the strip */
 .hero-2type .creators { padding: 120px 0; } /* Figma creators 74:9121: 120px above and below */
 .creators + section { border-top: 0; }
-#compare { border-top: 0; } /* no rule between Try it and What OHAYO is */ /* no rule between the creators row and the section after it */
+#compare, #tradeview, #spotlight, #start, #faq, .final { border-top: 0; } /* no rules between these sections */ /* no rule between the creators row and the section after it */
 .creator-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
 .creator { display: flex; align-items: center; gap: 14px; background: var(--bg-raised); border: 1px solid var(--bd-strong); border-radius: var(--radius-card); padding: 16px; }
 .creator svg { flex: none; }
-/* Placeholder portraits (randomuser.me) until the real creators are confirmed. */
+/* Sample avatars until real profiles exist: faces (randomuser.me), scenery (Unsplash via picsum), characters (DiceBear CC0), wallet blockies (generated). */
 .creator-avatar { flex: none; display: block; width: 48px; height: 48px; border-radius: var(--radius-avatar); object-fit: cover; background: var(--bg-selected); }
 .creator .who { flex: 1; min-width: 0; }
 .creator .who b { display: block; font-weight: 600; }
@@ -592,7 +594,7 @@ details p { color: var(--fg-subtle); line-height: 28px; letter-spacing: -0.19px;
 /* Final + footer */
 .final { text-align: left; }
 .final .row { gap: 12px; margin-top: 28px; }
-footer { border-top: 1px solid var(--bd-strong); padding: 32px 0 96px; }
+footer { padding: 32px 0 96px; }
 footer p { color: var(--fg-muted); font-size: 13px; max-width: 80ch; }
 
 /* Dialog */
@@ -666,3 +668,23 @@ label.check small { color: var(--fg-muted); margin-left: auto; font-family: var(
   .t-scene { height: 600px; }
   .t-fade { top: 140px; }
 }
+
+/* Get started (Figma 45:8985): the app mockup sits centred above the content; the eyebrow and heading start just
+   above the phone's bottom edge. The export includes the phone's shadow margin (465 x 908 for a 411 x 848 phone).
+   Content starts 91.2% of the way down the image (y858 in a 1236px frame), 60px below the cards. */
+#start { --mock-w: min(372px, 44vw); /* 80% of the Figma size (465px export); two phones side by side */ position: relative; overflow: clip; --mock-h: calc(var(--mock-w) * 908 / 465); padding: calc(160px + var(--mock-h) * 848 / 908 + 64px) 0 60px; } /* 160px above the phone body, 64px between the phone and the content */
+#start > .wrap { position: relative; z-index: 1; }
+.st-mocks { position: absolute; left: 0; right: 0; top: calc(160px - var(--mock-h) * 30 / 908); display: flex; justify-content: center; gap: clamp(16px, 4vw, 72px); pointer-events: none; z-index: 0; }
+.st-mock { position: relative; width: var(--mock-w); flex: none; perspective: 1600px; }
+.st-phone { position: relative; transform-origin: 50% 85%; will-change: transform, filter; }
+.st-phone img { display: block; width: 100%; height: auto; }
+/* the display area (screen inset in the export), darkened until the phone "wakes" */
+.st-screen { position: absolute; left: 9.7%; right: 9.7%; top: 5.3%; bottom: 5.3%; border-radius: 10% / 4.8%; background: #000; opacity: 0; will-change: opacity; }
+/* In-phone scrolling (the export is 465 x 908; the display sits at x45-420, y48-860; status bar to y92, home strip
+   from y834). The long home screen (375 x 1471, 2x asset) scrolls in a window between the two strips; copies of the
+   phone export, clipped to the status bar and the home-indicator strip, sit on top so they stay put like a real phone. */
+.st-feedwin { position: absolute; left: 9.677%; width: 80.645%; top: 10.132%; height: 81.718%; overflow: hidden; border-radius: 0 0 12.5% 12.5% / 0 0 6.3% 6.3%; background: #000; }
+.st-feed { display: block; width: 100%; height: auto; will-change: transform; }
+.st-chrome { position: absolute; left: 0; top: 0; width: 100%; height: auto; pointer-events: none; }
+.st-chrome--top { clip-path: inset(5.286% 9.677% 89.868% 9.677%); }
+.st-chrome--bot { clip-path: inset(91.85% 9.677% 5.286% 9.677%); }

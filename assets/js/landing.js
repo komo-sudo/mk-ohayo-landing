@@ -168,6 +168,10 @@
   }
 
   /* TradeView mock: pick someone, step through their trades on the chart, read why, react. Sample data. */
+  /* Sample avatars, varied the way real profiles are: a face (Semi Hunter, same image as in the creators row),
+     a generated wallet blockie, an illustrated character (DiceBear Notionists / Lorelei, CC0) and a scenery photo
+     (Unsplash via picsum). One image per person everywhere on the page. */
+  var TV_PHOTOS = { 'Semi Hunter': 'men-32.jpg', 'Chip Whale 0x7a…c41': 'chip-whale.svg', 'night_owl': 'night-owl.png', 'Macro Whale 0x91…e07': 'ocean-wave.jpg', 'mina_k': 'mina-k.png' };
   var tvData = [
     { name: 'Semi Hunter', tag: 'Creator', pos: 'NVDA · SHORT 20x', short: true, pnl: '+38.2%', fol: 41200, ini: 'SH',
       path: [0, 0.6, 1.3, 0.9, 0.2, -0.5, -0.2, -1.0, -1.7, -1.3, -2.1, -2.8, -2.4, -3.2, -3.7, -3.3, -3.0, -3.1],
@@ -212,24 +216,74 @@
       if (filter !== 'all' && t.tag !== filter) return;
       var b = document.createElement('button');
       b.type = 'button'; b.className = 'tv-row'; b.setAttribute('aria-pressed', idx === tvS.who ? 'true' : 'false');
-      b.innerHTML = '<span class="av">' + t.ini + '</span><span><b>' + t.name + '</b><small>' + t.tag + ' · ' + t.pos.split(' · ')[0] + ' · ' + t.fol.toLocaleString('en-US') + ' followers</small></span><span><span class="led up">' + t.pnl + '</span><small>30D</small></span>';
+      var ph = TV_PHOTOS[t.name];
+      b.innerHTML = (ph ? '<img class="av av-photo" src="assets/img/avatars/' + ph + '" width="40" height="40" alt="">' : '<span class="av">' + t.ini + '</span>') + '<span><b>' + t.name + '</b><small>' + t.tag + ' · ' + t.pos.split(' · ')[0] + ' · ' + t.fol.toLocaleString('en-US') + ' followers</small></span><span><span class="led up">' + t.pnl + '</span><small>30D</small></span>';
       b.addEventListener('click', function () { tvS.who = idx; tvS.fill = 0; tvRows(filter); tvPaint(); });
       box.appendChild(b);
     });
   }
   function tvPaint() {
-    var t = tvData[tvS.who], f = t.fills[tvS.fill], W = 560, H = 190, P = 22;
-    var lo = Math.min.apply(null, t.path) - 0.8, hi = Math.max.apply(null, t.path) + 0.8;
-    var X = function (i) { return P + i / (t.path.length - 1) * (W - 2 * P); }, Y = function (v) { return P + (hi - v) / (hi - lo) * (H - 2 * P); };
-    var line = t.path.map(function (v, i) { return X(i).toFixed(1) + ',' + Y(v).toFixed(1); }).join(' ');
-    var svg = '<line x1="0" x2="' + W + '" y1="' + Y(0) + '" y2="' + Y(0) + '" stroke="#404040" stroke-dasharray="4 4"/>' +
-      '<polyline points="' + line + '" fill="none" stroke="#b0b0b0" stroke-width="2" stroke-linejoin="round"/>';
-    t.fills.forEach(function (m, k) {
-      var buy = m.side === 'BUY', col = buy ? '#11ec8a' : '#ff4b4e', sel = k === tvS.fill;
-      svg += '<g class="mk" data-k="' + k + '" transform="translate(' + X(m.i).toFixed(1) + ',' + Y(t.path[m.i]).toFixed(1) + ')">' +
-        (sel ? '<circle r="17" fill="none" stroke="#fafafa" stroke-width="2"/>' : '') +
-        '<circle r="12" fill="' + col + '"/><text y="5" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" font-size="16" fill="#050505">' + (buy ? '+' : '−') + '</text></g>';
+    /* Exchange-style chart: candles built from the trader's price path (open = previous close, small deterministic
+       wicks), volume bars, a right-hand % axis with grid, the entry level dashed, a last-price tag, and execution
+       markers the way exchanges print fills: BUY = green ▲ under the candle, SELL = red ▼ over it. The selected
+       fill gets a crosshair and an expanded label. */
+    var t = tvData[tvS.who], f = t.fills[tvS.fill], W = 560, H = 236, AX = 54, PT = 36, PB = 60, VOL = 22;   /* headroom so markers clear the edges and the volume strip */
+    var n = t.path.length, UP = '#11ec8a', DN = '#ff4b4e', MUTED = '#909090', GRID = '#1c1c1c';
+    var wick = function (i) { return 0.12 + ((i * 37 + 11) % 13) / 13 * 0.32; };
+    var cdl = t.path.map(function (c, i) {
+      var o = i ? t.path[i - 1] : c - 0.25, w = wick(i);
+      return { o: o, c: c, h: Math.max(o, c) + w, l: Math.min(o, c) - w * 0.8, v: 0.35 + ((i * 53 + 7) % 17) / 17 * 0.65 };
     });
+    var lo = Math.min.apply(null, cdl.map(function (k) { return k.l; })) - 0.5, hi = Math.max.apply(null, cdl.map(function (k) { return k.h; })) + 0.9;
+    var PW = W - AX, step = (PW - 16) / n, cw = Math.max(4, step * 0.58);
+    var X = function (i) { return 8 + step * (i + 0.5); }, Y = function (v) { return PT + (hi - v) / (hi - lo) * (H - PT - PB); };
+    var font = 'font-family="Pretendard Variable, Pretendard, Inter, sans-serif" style="font-variant-numeric: tabular-nums"';
+    var pct = function (v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(Math.abs(v) < 10 && v % 1 ? 1 : 0) + '%'; };
+    var svg = '<rect x="0" y="0" width="' + PW + '" height="' + H + '" fill="#000"/>';
+    // grid + axis labels every 1% (2% when the range is wide)
+    var tick = hi - lo > 7 ? 2 : 1;
+    for (var g = Math.ceil(lo / tick) * tick; g <= hi; g += tick) {
+      var gy = Y(g).toFixed(1);
+      svg += '<line x1="0" x2="' + PW + '" y1="' + gy + '" y2="' + gy + '" stroke="' + GRID + '"/>' +
+        '<text x="' + (PW + 8) + '" y="' + (+gy + 3.5) + '" font-size="10" fill="' + MUTED + '" ' + font + '>' + pct(g) + '</text>';
+    }
+    for (var gv = 4; gv < n; gv += 4) svg += '<line x1="' + X(gv).toFixed(1) + '" x2="' + X(gv).toFixed(1) + '" y1="' + PT + '" y2="' + (H - PB) + '" stroke="' + GRID + '"/>';
+    svg += '<line x1="' + PW + '" x2="' + PW + '" y1="0" y2="' + H + '" stroke="#262626"/>';
+    // entry level (0%)
+    svg += '<line x1="0" x2="' + PW + '" y1="' + Y(0).toFixed(1) + '" y2="' + Y(0).toFixed(1) + '" stroke="#5a5a5a" stroke-dasharray="3 3"/>';
+    // selected fill: crosshair under everything else
+    var sx = X(f.i).toFixed(1);
+    svg += '<line x1="' + sx + '" x2="' + sx + '" y1="' + PT + '" y2="' + (H - PB + VOL) + '" stroke="#fafafa" stroke-opacity="0.35" stroke-dasharray="2 3"/>';
+    // volume
+    cdl.forEach(function (k, i) {
+      var vh = k.v * (VOL - 4), up = k.c >= k.o;
+      svg += '<rect x="' + (X(i) - cw / 2).toFixed(1) + '" y="' + (H - 2 - vh).toFixed(1) + '" width="' + cw.toFixed(1) + '" height="' + vh.toFixed(1) + '" fill="' + (up ? UP : DN) + '" fill-opacity="0.28"/>';
+    });
+    // candles
+    cdl.forEach(function (k, i) {
+      var up = k.c >= k.o, col = up ? UP : DN, x = X(i), top = Y(Math.max(k.o, k.c)), bot = Y(Math.min(k.o, k.c));
+      svg += '<line x1="' + x.toFixed(1) + '" x2="' + x.toFixed(1) + '" y1="' + Y(k.h).toFixed(1) + '" y2="' + Y(k.l).toFixed(1) + '" stroke="' + col + '"/>' +
+        '<rect x="' + (x - cw / 2).toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + cw.toFixed(1) + '" height="' + Math.max(1, bot - top).toFixed(1) + '" fill="' + col + '" rx="0.5"/>';
+    });
+    // last price: dotted line to the axis and a tag in the candle's colour
+    var last = cdl[n - 1], lc = last.c >= last.o ? UP : DN, ly = Y(last.c);
+    svg += '<line x1="' + X(n - 1).toFixed(1) + '" x2="' + PW + '" y1="' + ly.toFixed(1) + '" y2="' + ly.toFixed(1) + '" stroke="' + lc + '" stroke-dasharray="1 2"/>' +
+      '<rect x="' + (PW + 2) + '" y="' + (ly - 8).toFixed(1) + '" width="' + (AX - 4) + '" height="16" rx="2" fill="' + lc + '"/>' +
+      '<text x="' + (PW + AX / 2) + '" y="' + (ly + 3.5).toFixed(1) + '" text-anchor="middle" font-size="10" font-weight="700" fill="#050505" ' + font + '>' + pct(last.c) + '</text>';
+    // execution markers
+    t.fills.forEach(function (m, k) {
+      var buy = m.side === 'BUY', col = buy ? UP : DN, c = cdl[m.i], x = X(m.i), sel = k === tvS.fill;
+      var ay = buy ? Y(c.l) + 6 : Y(c.h) - 6, d = buy ? 1 : -1;            /* arrow tip sits just off the wick */
+      var tri = 'M' + x.toFixed(1) + ',' + ay.toFixed(1) + ' l' + (-6) + ',' + (9 * d) + ' l12,0 z';
+      var label = sel ? (buy ? 'BUY' : 'SELL') + ' #' + (k + 1) : (buy ? 'B' : 'S');
+      var lw = sel ? 50 : 16, ly2 = ay + d * 12 + (buy ? 0 : -16);
+      svg += '<g class="mk' + (sel ? ' on' : '') + '" data-k="' + k + '" role="button" aria-label="' + (buy ? 'Buy' : 'Sell') + ' ' + (k + 1) + '">' +
+        '<rect x="' + (x - 14).toFixed(1) + '" y="' + Math.min(ay, ly2).toFixed(1) + '" width="28" height="30" fill="transparent"/>' +
+        '<path d="' + tri + '" fill="' + col + '"' + (sel ? ' stroke="#fafafa" stroke-width="1.2"' : '') + '/>' +
+        '<rect x="' + (x - lw / 2).toFixed(1) + '" y="' + ly2.toFixed(1) + '" width="' + lw + '" height="16" rx="3" fill="' + (sel ? col : '#0d0d0d') + '" stroke="' + col + '"/>' +
+        '<text x="' + x.toFixed(1) + '" y="' + (ly2 + 11.5).toFixed(1) + '" text-anchor="middle" font-size="10" font-weight="700" fill="' + (sel ? '#050505' : col) + '" ' + font + '>' + label + '</text></g>';
+    });
+    $('tv-svg').setAttribute('viewBox', '0 0 ' + W + ' ' + H);
     $('tv-svg').innerHTML = svg;
     all('.mk', $('tv-svg')).forEach(function (g) { g.addEventListener('click', function () { tvS.fill = Number(g.getAttribute('data-k')); tvPaint(); }); });
     $('tv-name').textContent = t.name;
@@ -255,30 +309,127 @@
   whoBtns.forEach(function (b) { b.addEventListener('click', function () { press(whoBtns, b); tvRows(b.getAttribute('data-who')); }); });
   tvRows('all'); tvPaint();
 
-  /* Spotlight: a good day moves you up the board, people follow, OHAYO calls. Sample. */
-  var spOn = false, spTimer = null;
-  function lbPaint() {
-    var rows = spOn
-      ? [['#1', 'night_owl', '+212%'], ['#2', 'you', '+196%'], ['#3', 'Chip Whale', '+188%'], ['#4', 'mina_k', '+141%'], ['#5', 'soxl_sam', '+118%'], ['#6', 'dip_buyer', '+97%']]
-      : [['#1', 'night_owl', '+212%'], ['#2', 'Chip Whale', '+188%'], ['#3', 'mina_k', '+141%'], ['#4', 'soxl_sam', '+118%'], ['#5', 'dip_buyer', '+97%'], ['#14', 'you', '+12%']];
-    $('lb').innerHTML = rows.map(function (r) {
-      var me = r[1] === 'you';
-      return '<div class="lb-row' + (me ? ' you' + (spOn ? ' lit' : '') : '') + '"><span class="led">' + r[0] + '</span><span>' + (me ? 'You' + (spOn ? '<span class="tagx">SPOTLIGHT</span>' : '') : r[1]) + '</span><span class="led up">' + r[2] + '</span></div>';
+  /* Spotlight (ohayo-motion): a good day moves you up the board, people follow, OHAYO calls. Sample.
+     Plays once when the board scrolls into view; the button replays it. Time-driven render(t), 0.5s beats:
+       0-0.5s    your row (#14, +12%) is marked
+       0.5-1.5s  your return counts +12% -> +196% (trail while fast); from 0.75s your row slides up to #2 while
+                 the rows it passes shift down one slot (in-out, 40ms stagger), rank labels following
+       1.5s      lands: ring + SPOTLIGHT types in; card 2 lights; followers count 12 -> 1,284 (to 2.75s)
+       2.75s     card 3 lights. Reduced motion: the end state, still. */
+  (function () {
+    var lb = $('lb'), btn = $('sp-btn'), card2 = $('sp2'), card3 = $('sp3'), fol = $('sp-fol');
+    if (!lb || !btn) return;
+    var clamp = function (x) { return x < 0 ? 0 : x > 1 ? 1 : x; };
+    var out = function (x) { return 1 - Math.pow(1 - x, 3); };
+    var inOut = function (x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+    // [name, return %, slot before, slot after, rank before, rank after]
+    var ROWS = [['night_owl', 212, 0, 0, 1, 1], ['Chip Whale', 188, 1, 2, 2, 3], ['mina_k', 141, 2, 3, 3, 4],
+                ['soxl_sam', 118, 3, 4, 4, 5], ['dip_buyer', 97, 4, 5, 5, 6], ['you', 12, 5, 1, 14, 2]];
+    var els = [], rowH = 0, raf = null, t0 = 0, played = false, END = 3000;
+    lb.innerHTML = ROWS.map(function (r) {
+      var me = r[0] === 'you';
+      return '<div class="lb-row' + (me ? ' you' : '') + '"><span class="led lb-rank"></span><span>' + (me ? 'You<span class="tagx"></span>' : r[0]) + '</span><span class="led up lb-ret"></span></div>';
     }).join('');
-    $('sp-btn').textContent = spOn ? 'Start over' : 'Have a great trading day';
-  }
-  $('sp-btn').addEventListener('click', function () {
-    spOn = !spOn; lbPaint();
-    if (spTimer) { clearInterval(spTimer); spTimer = null; }
-    $('sp2').className = 'card sp-step' + (spOn ? ' on' : ''); $('sp3').className = 'card sp-step';
-    if (!spOn) { $('sp-fol').textContent = '12'; return; }
-    var n = 12;
-    spTimer = setInterval(function () {
-      n = Math.min(1284, n + 97); $('sp-fol').textContent = n.toLocaleString('en-US');
-      if (n >= 1284) { clearInterval(spTimer); spTimer = null; $('sp3').className = 'card sp-step on'; }
-    }, 90);
-  });
-  lbPaint();
+    els = [].slice.call(lb.children).map(function (el, k) { return { el: el, r: ROWS[k], rank: el.querySelector('.lb-rank'), ret: el.querySelector('.lb-ret'), tag: el.querySelector('.tagx') }; });
+    function layout() {                                                     /* rows sit on fixed slots so they can travel */
+      lb.style.position = 'relative'; els.forEach(function (e) { e.el.style.position = 'static'; e.el.style.transform = ''; });
+      rowH = els[0].el.offsetHeight; lb.style.height = (rowH * ROWS.length) + 'px';
+      els.forEach(function (e) { e.el.style.position = 'absolute'; e.el.style.left = '0'; e.el.style.right = '0'; e.el.style.top = '0'; });
+    }
+    function render(t) {
+      var count = out(clamp((t - 500) / 1000)), slide = inOut(clamp((t - 750) / 750));
+      var prev = out(clamp((t - 580) / 1000)), rate = (count - prev) / 0.08;    /* for the trail */
+      els.forEach(function (e, k) {
+        var r = e.r, me = r[0] === 'you', slot;
+        if (me) slot = r[2] + (r[3] - r[2]) * slide;
+        else slot = r[2] + (r[3] - r[2]) * inOut(clamp((t - 750 - (k - 1) * 40) / 700));
+        e.el.style.transform = 'translateY(' + (slot * rowH).toFixed(2) + 'px)' + (me && slide > 0 && slide < 1 ? ' scale(1.02)' : '');
+        e.el.style.zIndex = me ? 2 : 1;
+        if (me) {
+          var v = r[1] + (196 - r[1]) * count, rk = Math.round(r[4] + (r[5] - r[4]) * count);
+          e.ret.textContent = '+' + Math.round(v) + '%'; e.rank.textContent = '#' + rk;
+          var tr = clamp(rate / 2.2);
+          e.ret.style.textShadow = tr > 0.08 ? '0 ' + (5 * tr).toFixed(1) + 'px 0 color-mix(in srgb, currentColor 32%, transparent), 0 ' + (10 * tr).toFixed(1) + 'px 0 color-mix(in srgb, currentColor 12%, transparent)' : 'none';
+          e.el.classList.toggle('lit', t >= 1500);
+          e.tag.textContent = 'SPOTLIGHT'.slice(0, Math.round(clamp((t - 1500) / 250) * 9));
+        } else {
+          e.ret.textContent = '+' + r[1] + '%';
+          e.rank.textContent = '#' + (slide > 0.5 ? r[5] : r[4]);
+        }
+      });
+      card2.classList.toggle('on', t >= 1500); card3.classList.toggle('on', t >= 2750);
+      var f = out(clamp((t - 1500) / 1250)), fv = Math.round(12 + (1284 - 12) * f), fprev = out(clamp((t - 1580) / 1250));
+      fol.textContent = fv.toLocaleString('en-US');
+      var ft = clamp(((f - fprev) / 0.08) / 2.4);
+      fol.style.textShadow = t > 1500 && ft > 0.08 ? '0 ' + (5 * ft).toFixed(1) + 'px 0 color-mix(in srgb, currentColor 32%, transparent), 0 ' + (10 * ft).toFixed(1) + 'px 0 color-mix(in srgb, currentColor 12%, transparent)' : 'none';
+      btn.textContent = t >= END ? 'Replay the day' : 'Have a great trading day';
+    }
+    function loop(ts) { if (!t0) t0 = ts; var t = ts - t0; render(Math.min(t, END)); raf = t < END ? requestAnimationFrame(loop) : null; }
+    function play() {
+      if (raf) cancelAnimationFrame(raf);
+      played = true; layout();
+      if (noMotion) { render(END); return; }
+      t0 = 0; render(0); raf = requestAnimationFrame(loop);
+    }
+    layout(); render(0);
+    btn.addEventListener('click', play);
+    window.addEventListener('resize', function () { var tr = els.map(function (e) { return e.el.style.transform; }); layout(); els.forEach(function (e, k) { e.el.style.transform = tr[k]; }); });
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (es) { if (es[0].isIntersecting && !played) { play(); io.disconnect(); } }, { threshold: 0.55 });
+      io.observe(lb);
+    } else play();
+  })();
+
+  /* Get started: two app mockups (home, order) come up out of the dark, then their screens scroll by themselves
+     (ohayo-motion: time-driven, out / in-out, 0.5s beats).
+       0-1.5s   each phone rises from 120px below, tipped back ~38deg with a slight turn and roll (the right one
+                mirrored), and settles flat under perspective; its brightness ramps from black. Order phone +150ms.
+       1.0-1.5s the dark layer over each display lifts: the screen "wakes" after the body has emerged
+       then     a beat later each feed scrolls like a finger flick (in-out) through its own keyframes and repeats
+                every 12.5s; the order phone runs half a beat behind so the two never move in lockstep
+     Starts once the section scrolls in and only runs while it is on screen; reduced motion shows the tops, still. */
+  (function () {
+    var sec = document.getElementById('start');
+    if (!sec) return;
+    var clamp = function (x) { return x < 0 ? 0 : x > 1 ? 1 : x; };
+    var out = function (x) { return 1 - Math.pow(1 - x, 3); };
+    var inOut = function (x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+    var END = 1500, LEAD = 1000, CYCLE = 12500;
+    /* scroll keyframes per screen: [ms in cycle, 0..1 of the scrollable range] */
+    var KEYS = {
+      home: [[0, 0], [2500, 0.42], [4000, 0.42], [6500, 1], [8500, 1], [10500, 0], [12500, 0]],          /* Tournament, Markets */
+      order: [[0, 0], [2500, 0.62], [4000, 0.62], [6500, 1], [8500, 1], [10500, 0], [12500, 0]]          /* order form, balances */
+    };
+    var phones = [].map.call(sec.querySelectorAll('.st-mock'), function (m, k) {
+      return { body: m.querySelector('.st-phone'), scr: m.querySelector('.st-screen'), feed: m.querySelector('.st-feed'), win: m.querySelector('.st-feedwin'),
+        keys: KEYS[m.getAttribute('data-mock')] || KEYS.home, delay: k * 150, scrollDelay: k * 250, mirror: k % 2 ? -1 : 1 };
+    });
+    function scrollAt(keys, c) {
+      for (var k = 1; k < keys.length; k++) if (c <= keys[k][0]) {
+        var a = keys[k - 1], b = keys[k]; return a[1] + (b[1] - a[1]) * inOut((c - a[0]) / (b[0] - a[0]));
+      }
+      return 0;
+    }
+    function render(T) {
+      phones.forEach(function (p) {
+        var t = T - p.delay, m = inOut(clamp(t / 1500)), lit = out(clamp(t / 1250)), wake = out(clamp((t - 1000) / 500)), s = p.mirror;
+        p.body.style.transform = 'translateY(' + (120 * (1 - m)).toFixed(1) + 'px) rotateX(' + (38 * (1 - m)).toFixed(2) + 'deg) rotateY(' + (-14 * s * (1 - m)).toFixed(2) + 'deg) rotateZ(' + (5 * s * (1 - m)).toFixed(2) + 'deg) scale(' + (0.9 + 0.1 * m).toFixed(4) + ')';
+        p.body.style.filter = lit < 1 ? 'brightness(' + lit.toFixed(3) + ')' : 'none';
+        p.scr.style.opacity = (0.92 * (1 - wake)).toFixed(3);
+        var range = p.feed.offsetHeight - p.win.offsetHeight, ts = t - END - LEAD - p.scrollDelay;
+        p.feed.style.transform = 'translateY(' + (-(ts > 0 ? scrollAt(p.keys, ts % CYCLE) : 0) * range).toFixed(1) + 'px)';
+      });
+    }
+    if (noMotion || !('IntersectionObserver' in window)) { render(END + 400); return; }
+    render(0);
+    /* a pausable clock: it only advances while the section is on screen */
+    var raf = null, acc = 0, last = 0;
+    function loop(ts) { if (last) acc += ts - last; last = ts; render(acc); raf = requestAnimationFrame(loop); }
+    new IntersectionObserver(function (es) {
+      if (es[0].isIntersecting && !raf) { last = 0; raf = requestAnimationFrame(loop); }
+      else if (!es[0].isIntersecting && raf) { cancelAnimationFrame(raf); raf = null; }
+    }, { threshold: 0.3 }).observe(sec);
+  })();
 
   /* Header: slide up out of view while scrolling down, back in on scroll up, always shown near the top or when it has focus. */
   (function () {
@@ -970,5 +1121,8 @@
   });
   $('preview-x').addEventListener('click', function () { $('preview').hidden = true; });
   /* Preview controls (headline A-D, hero A/B) only show with ?preview=1 */
-  if (/[?&]preview=1/.test(location.search)) { $('preview').hidden = false; }
+  if (/[?&]preview=1/.test(location.search)) $('preview').hidden = false;
+  /* 2type is the default hero for every visitor (body already carries .hero-2type from the inline script, so nothing
+     flashes); this finishes the switch: headline C, creators row moved, intro and belt started. ?hero=1 opens 1type. */
+  if (!/[?&]hero=1/.test(location.search)) heroBtns.filter(function (x) { return x.getAttribute('data-hero') === 'x10'; })[0].click();
 })();
