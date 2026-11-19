@@ -380,47 +380,54 @@
     } else play();
   })();
 
-  /* Get started: two app mockups (home, order) come up out of the dark, then their screens scroll by themselves
-     (ohayo-motion: time-driven, out / in-out, 0.5s beats).
-       0-1.5s   each phone rises from 120px below, tipped back ~38deg with a slight turn and roll (the right one
-                mirrored), and settles flat under perspective; its brightness ramps from black. Order phone +150ms.
-       1.0-1.5s the dark layer over each display lifts: the screen "wakes" after the body has emerged
-       then     a beat later each feed scrolls like a finger flick (in-out) through its own keyframes and repeats
-                every 12.5s; the order phone runs half a beat behind so the two never move in lockstep
-     Starts once the section scrolls in and only runs while it is on screen; reduced motion shows the tops, still. */
+  /* Get started: two app mockups (home, order) take turns in one spot (ohayo-motion: time-driven, out / in-out).
+     Each phone's 12.5s turn:
+       0-1.5s    it rises out of the dark, tipped back ~38deg with a slight turn and roll, settling flat; the screen
+                 "wakes" over 1.0-1.5s
+       2.5-11s   its feed scrolls like a finger flick (in-out): down to the first stop, pause, down to the end, pause
+       11-12.5s  the entrance plays in reverse: the screen dims, the phone tips back and sinks into the dark
+     Then the other phone takes its turn (home -> order -> home ...), forever. The clock only runs while the section
+     is on screen; reduced motion shows the home phone, still. */
   (function () {
     var sec = document.getElementById('start');
     if (!sec) return;
     var clamp = function (x) { return x < 0 ? 0 : x > 1 ? 1 : x; };
     var out = function (x) { return 1 - Math.pow(1 - x, 3); };
     var inOut = function (x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
-    var END = 1500, LEAD = 1000, CYCLE = 12500;
-    /* scroll keyframes per screen: [ms in cycle, 0..1 of the scrollable range] */
+    var IN = 1500, SCROLL = 2500, EXIT = 11000, TURN = 12500;
+    /* scroll keyframes within a turn, from SCROLL: [ms, 0..1 of the scrollable range] */
     var KEYS = {
-      home: [[0, 0], [2500, 0.42], [4000, 0.42], [6500, 1], [8500, 1], [10500, 0], [12500, 0]],          /* Tournament, Markets */
-      order: [[0, 0], [2500, 0.62], [4000, 0.62], [6500, 1], [8500, 1], [10500, 0], [12500, 0]]          /* order form, balances */
+      home: [[0, 0], [2500, 0.42], [4000, 0.42], [6500, 1], [8500, 1]],      /* Tournament, then Markets */
+      order: [[0, 0], [2500, 0.62], [4000, 0.62], [6500, 1], [8500, 1]]     /* order form, then balances */
     };
     var phones = [].map.call(sec.querySelectorAll('.st-mock'), function (m, k) {
-      return { body: m.querySelector('.st-phone'), scr: m.querySelector('.st-screen'), feed: m.querySelector('.st-feed'), win: m.querySelector('.st-feedwin'),
-        keys: KEYS[m.getAttribute('data-mock')] || KEYS.home, delay: k * 150, scrollDelay: k * 250, mirror: k % 2 ? -1 : 1 };
+      return { el: m, body: m.querySelector('.st-phone'), scr: m.querySelector('.st-screen'), feed: m.querySelector('.st-feed'), win: m.querySelector('.st-feedwin'),
+        keys: KEYS[m.getAttribute('data-mock')] || KEYS.home, mirror: k % 2 ? -1 : 1 };
     });
     function scrollAt(keys, c) {
+      if (c <= 0) return 0;
       for (var k = 1; k < keys.length; k++) if (c <= keys[k][0]) {
         var a = keys[k - 1], b = keys[k]; return a[1] + (b[1] - a[1]) * inOut((c - a[0]) / (b[0] - a[0]));
       }
-      return 0;
+      return keys[keys.length - 1][1];
+    }
+    function pose(p, e) {                                                   /* e = entrance time 0..IN (exit = e reversed) */
+      var m = inOut(clamp(e / IN)), lit = out(clamp(e / 1250)), wake = out(clamp((e - 1000) / 500)), s = p.mirror;
+      p.body.style.transform = 'translateY(' + (120 * (1 - m)).toFixed(1) + 'px) rotateX(' + (38 * (1 - m)).toFixed(2) + 'deg) rotateY(' + (-14 * s * (1 - m)).toFixed(2) + 'deg) rotateZ(' + (5 * s * (1 - m)).toFixed(2) + 'deg) scale(' + (0.9 + 0.1 * m).toFixed(4) + ')';
+      p.body.style.filter = lit < 1 ? 'brightness(' + lit.toFixed(3) + ')' : 'none';
+      p.scr.style.opacity = (0.92 * (1 - wake)).toFixed(3);
     }
     function render(T) {
-      phones.forEach(function (p) {
-        var t = T - p.delay, m = inOut(clamp(t / 1500)), lit = out(clamp(t / 1250)), wake = out(clamp((t - 1000) / 500)), s = p.mirror;
-        p.body.style.transform = 'translateY(' + (120 * (1 - m)).toFixed(1) + 'px) rotateX(' + (38 * (1 - m)).toFixed(2) + 'deg) rotateY(' + (-14 * s * (1 - m)).toFixed(2) + 'deg) rotateZ(' + (5 * s * (1 - m)).toFixed(2) + 'deg) scale(' + (0.9 + 0.1 * m).toFixed(4) + ')';
-        p.body.style.filter = lit < 1 ? 'brightness(' + lit.toFixed(3) + ')' : 'none';
-        p.scr.style.opacity = (0.92 * (1 - wake)).toFixed(3);
-        var range = p.feed.offsetHeight - p.win.offsetHeight, ts = t - END - LEAD - p.scrollDelay;
-        p.feed.style.transform = 'translateY(' + (-(ts > 0 ? scrollAt(p.keys, ts % CYCLE) : 0) * range).toFixed(1) + 'px)';
+      var cyc = T % (TURN * phones.length), turn = Math.floor(cyc / TURN), t = cyc - turn * TURN;
+      phones.forEach(function (p, k) {
+        if (k !== turn) { p.el.style.visibility = 'hidden'; return; }
+        p.el.style.visibility = 'visible';
+        pose(p, t < EXIT ? Math.min(t, IN) : TURN - t);                    /* in, hold, then the same path backwards */
+        var range = p.feed.offsetHeight - p.win.offsetHeight;
+        p.feed.style.transform = 'translateY(' + (-scrollAt(p.keys, t - SCROLL) * range).toFixed(1) + 'px)';
       });
     }
-    if (noMotion || !('IntersectionObserver' in window)) { render(END + 400); return; }
+    if (noMotion || !('IntersectionObserver' in window)) { render(IN); return; }
     render(0);
     /* a pausable clock: it only advances while the section is on screen */
     var raf = null, acc = 0, last = 0;

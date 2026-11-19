@@ -672,10 +672,10 @@ label.check small { color: var(--fg-muted); margin-left: auto; font-family: var(
 /* Get started (Figma 45:8985): the app mockup sits centred above the content; the eyebrow and heading start just
    above the phone's bottom edge. The export includes the phone's shadow margin (465 x 908 for a 411 x 848 phone).
    Content starts 91.2% of the way down the image (y858 in a 1236px frame), 60px below the cards. */
-#start { --mock-w: min(372px, 44vw); /* 80% of the Figma size (465px export); two phones side by side */ position: relative; overflow: clip; --mock-h: calc(var(--mock-w) * 908 / 465); padding: calc(160px + var(--mock-h) * 848 / 908 + 64px) 0 60px; } /* 160px above the phone body, 64px between the phone and the content */
+#start { --mock-w: min(372px, 68vw); /* 80% of the Figma size (465px export) */ position: relative; overflow: clip; --mock-h: calc(var(--mock-w) * 908 / 465); padding: calc(160px + var(--mock-h) * 848 / 908 + 64px) 0 60px; } /* 160px above the phone body, 64px between the phone and the content */
 #start > .wrap { position: relative; z-index: 1; }
-.st-mocks { position: absolute; left: 0; right: 0; top: calc(160px - var(--mock-h) * 30 / 908); display: flex; justify-content: center; gap: clamp(16px, 4vw, 72px); pointer-events: none; z-index: 0; }
-.st-mock { position: relative; width: var(--mock-w); flex: none; perspective: 1600px; }
+.st-mocks { position: absolute; left: 0; right: 0; top: calc(160px - var(--mock-h) * 30 / 908); display: grid; justify-content: center; pointer-events: none; z-index: 0; } /* the phones share one spot and take turns */
+.st-mock { grid-area: 1 / 1; position: relative; width: var(--mock-w); perspective: 1600px; visibility: hidden; }
 .st-phone { position: relative; transform-origin: 50% 85%; will-change: transform, filter; }
 .st-phone img { display: block; width: 100%; height: auto; }
 /* the display area (screen inset in the export), darkened until the phone "wakes" */
