@@ -15,7 +15,8 @@
      21-25 a few top cubes breathe, then everything rests.
    - LED light: a cube lights up on impact (shares: grey-white, OHAYO: green) and fades over 450ms; the brightest
      few also spill their light onto neighbouring cubes and the floor. No bloom.
-   - camera: one fixed wide view on both piles; cubes are released above the top of the frame.
+   - camera: a wide view on both piles that slowly orbits left to right (about 12 deg over the run, smoothstep);
+     cubes are released above the top of the frame.
    - the physics engine (4MB) only loads when the 1type hero is shown; paused off screen, hidden with the 2type
      hero and on narrow screens, reduced motion shows the final state. Physical bouncing is an approved exception
      to the skill's "no bounce" rule. */
@@ -158,10 +159,14 @@ function init(root) {
   const valS = tagS.querySelector('.hc-val'), valU = tagU.querySelector('.hc-val');
   const x10 = root.querySelector('.hc-x');
 
-  /* ---------- camera: one fixed wide view on both piles from the first frame ---------- */
-  const AZ = -0.62, EL = 0.42, DIST = 59, tgt = new THREE.Vector3(-1.5, 2.0, 0);
-  camera.position.set(tgt.x + DIST * Math.cos(EL) * Math.sin(AZ), tgt.y + DIST * Math.sin(EL), tgt.z + DIST * Math.cos(EL) * Math.cos(AZ));
-  camera.lookAt(tgt);
+  /* ---------- camera: a wide view on both piles that slowly orbits left to right ---------- */
+  const AZ = -0.62, SWING = 0.1, EL = 0.42, DIST = 59, tgt = new THREE.Vector3(-1.5, 2.0, 0);
+  function cameraAt(t) {                             /* +-0.1 rad (about 12 deg in all) over the whole run, smoothstep: starts and ends at rest */
+    const k = clamp(t / END), az = AZ + SWING * (2 * k * k * (3 - 2 * k) - 1);
+    camera.position.set(tgt.x + DIST * Math.cos(EL) * Math.sin(az), tgt.y + DIST * Math.sin(EL), tgt.z + DIST * Math.cos(EL) * Math.cos(az));
+    camera.lookAt(tgt);
+  }
+  cameraAt(0);
 
   /* ---------- layout ---------- */
   let W = 0, Hh = 0;
@@ -189,6 +194,7 @@ function init(root) {
   /* ---------- render(t) ---------- */
   const m4 = new THREE.Matrix4(), qa = new THREE.Quaternion(), qb = new THREE.Quaternion(), pos = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), zero = new THREE.Vector3();
   function render(t) {
+    cameraAt(t);
     const ft = Math.min(END * HZ, t * HZ), f0 = Math.floor(ft), f1 = Math.min(f0 + 1, frames.length - 1), a = ft - f0;
     const A = frames[f0], Bf = frames[f1] || A;
     const topY = [0, 0]; hot.length = 0;
