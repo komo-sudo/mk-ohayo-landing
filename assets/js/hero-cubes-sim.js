@@ -17,7 +17,7 @@ onmessage = async (e) => {
   world.numSolverIterations = 8;
   world.createCollider(RAPIER.ColliderDesc.cuboid(200, 0.5, 200).setTranslation(0, -0.5, 0).setFriction(2).setRestitution(0));
 
-  const n = drops.length, HALF = 0.38, ROUND = 0.05;  /* collider = 0.86 cube with 0.05 rounded edges */
+  const n = drops.length, HALF = 0.28, ROUND = 0.15;  /* collider = 0.86 cube with well-rounded edges, like the mesh */
   const bodies = new Array(n).fill(null), vyPrev = new Float32Array(n), landT = new Float32Array(n).fill(Infinity);
   /* spawn slots: a golden-angle disc per site, so cubes released close together don't overlap */
   const slots = sites.map((s) => { const a = []; for (let k = 0; k < s.slots; k++) { const r = s.r * Math.sqrt((k + 0.5) / s.slots), th = k * 2.39996; a.push([s.x + r * Math.cos(th), r * Math.sin(th)]); } return a; });

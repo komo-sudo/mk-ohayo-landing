@@ -13,13 +13,15 @@
    - beats (0.5s, after a lead-in of one fall from above the frame): 1, 2 one cube each; 3 two cubes; 4-6 the
      shares trickle to $48; 8 the 10x slams in; 9-16 the pour (linear flow, short bend in); 17-19 it settles;
      21-25 a few top cubes breathe, then everything rests.
-   - LED light: a cube lights up on impact (shares: grey-white, OHAYO: green) and fades over 450ms. No bloom/glow.
+   - LED light: a cube lights up on impact (shares: grey-white, OHAYO: green) and fades over 450ms; the brightest
+     few also spill their light onto neighbouring cubes and the floor. No bloom.
    - camera: one fixed wide view on both piles; cubes are released above the top of the frame.
    - the physics engine (4MB) only loads when the 1type hero is shown; paused off screen, hidden with the 2type
      hero and on narrow screens, reduced motion shows the final state. Physical bouncing is an approved exception
      to the skill's "no bounce" rule. */
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const root = document.querySelector('.hero-cubes');
 if (root) init(root);
@@ -104,20 +106,34 @@ function init(root) {
   pool.shadow.radius = 10; pool.shadow.blurSamples = 20; pool.shadow.bias = -0.0004;   /* one light, one set of soft shadows */
   scene.add(pool, pool.target);
 
-  const geo = new RoundedBoxGeometry(0.86, 0.86, 0.86, 3, 0.07);   /* matches the physics collider */
+  const geo = new RoundedBoxGeometry(0.86, 0.86, 0.86, 5, 0.21);   /* matches the physics collider (rounded 0.21) */
   const glow = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3);
   geo.setAttribute('aGlow', glow);
-  const mat = new THREE.MeshStandardMaterial({ color: 0x5a5a5c, roughness: 0.85, metalness: 0 });
-  mat.onBeforeCompile = (sh) => {                     /* LED: per-cube emissive colour */
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 aGlow;\nvarying vec3 vGlow;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGlow = aGlow;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vGlow;')
-      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += vGlow;\ndiffuseColor.rgb = mix(diffuseColor.rgb, vGlow, clamp(max(vGlow.r, max(vGlow.g, vGlow.b)), 0.0, 1.0));');
+  /* near-black matte: a soft studio environment lights the faces apart (diffuse fill, no sheen).
+     Only the cubes use it (envMap on their material, not scene.environment), so the floor stays black. */
+  const envMap = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+  const mat = new THREE.MeshStandardMaterial({ color: 0x1c1c1e, roughness: 0.92, metalness: 0, envMap, envMapIntensity: 0.7 });
+  /* colour depth, per cube: each cube grades from near-black at its own bottom to dark grey at its own top,
+     measured from its centre along world up (so the light reads as coming from above, however it lies) */
+  const DEPTH_LOW = new THREE.Color(0x060606), DEPTH_HIGH = new THREE.Color(0x343437), DEPTH_Y = [-0.5, 0.5];
+  mat.onBeforeCompile = (sh) => {                     /* LED: per-cube emissive colour; height-graded base colour */
+    sh.uniforms.uDepthLow = { value: DEPTH_LOW }; sh.uniforms.uDepthHigh = { value: DEPTH_HIGH };
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 aGlow;\nvarying vec3 vGlow;\nvarying float vDepthY;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGlow = aGlow;\nvDepthY = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).y - (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).y;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vGlow;\nvarying float vDepthY;\nuniform vec3 uDepthLow;\nuniform vec3 uDepthHigh;')
+      .replace('#include <color_fragment>', `#include <color_fragment>\ndiffuseColor.rgb = mix(uDepthLow, uDepthHigh, smoothstep(${DEPTH_Y[0].toFixed(2)}, ${DEPTH_Y[1].toFixed(2)}, vDepthY));`)
+      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance += vGlow;\ndiffuseColor.rgb = mix(diffuseColor.rgb, vGlow, clamp(max(vGlow.r, max(vGlow.g, vGlow.b)), 0.0, 1.0));');
   };
   const mesh = new THREE.InstancedMesh(geo, mat, n);
   mesh.castShadow = true; mesh.receiveShadow = true; mesh.frustumCulled = false;
   scene.add(mesh);
   const LED = [new THREE.Color(css('--fg-subtle', '#b0b0b0')), new THREE.Color(css('--fg-positive', '#11ec8a'))];
+  /* light spill: the brightest just-landed cubes become small lights that tint their neighbours and the floor,
+     then go out with them. A fixed set of lights (always in the scene, intensity 0 when idle) so shaders never
+     recompile; no bloom, the light only lands on surfaces. */
+  const SPILL = 8, SPILL_I = 22, spills = [];
+  for (let i = 0; i < SPILL; i++) { const l = new THREE.PointLight(0xffffff, 0, 6, 2); scene.add(l); spills.push(l); }
+  const hot = [];                                    /* [glow, x, y, z, site] of cubes lit this frame */
 
   /* ---------- labels (DOM) ---------- */
   const tagS = root.querySelector('.hc-tag--them'), tagU = root.querySelector('.hc-tag--us');
@@ -156,7 +172,7 @@ function init(root) {
   function render(t) {
     const ft = Math.min(END * HZ, t * HZ), f0 = Math.floor(ft), f1 = Math.min(f0 + 1, frames.length - 1), a = ft - f0;
     const A = frames[f0], Bf = frames[f1] || A;
-    const topY = [0, 0];
+    const topY = [0, 0]; hot.length = 0;
     for (let k = 0; k < n; k++) {
       const o = k * 7;
       if (A[o + 1] < -50 || Bf[o + 1] < -50) { m4.compose(pos.set(0, -100, 0), qa.identity(), zero); mesh.setMatrixAt(k, m4); glow.setXYZ(k, 0, 0, 0); continue; }
@@ -168,8 +184,16 @@ function init(root) {
       let g = d >= 0 && d < 0.45 ? 1 - out(d / 0.45) : 0;                           /* lights on impact */
       if (tops.has(k) && t > BREATHE) g = Math.max(g, 0.45 * Math.sin(Math.PI * clamp((t - BREATHE) / (4 * B))) * (0.5 - 0.5 * Math.cos(2 * Math.PI * (t - BREATHE) / 1.6)));
       const col = LED[site[k]]; glow.setXYZ(k, col.r * g, col.g * g, col.b * g);
+      if (g > 0.05) hot.push([g, pos.x, pos.y, pos.z, site[k]]);
     }
     mesh.instanceMatrix.needsUpdate = true; glow.needsUpdate = true;
+    hot.sort((a, b) => b[0] - a[0]);
+    for (let i = 0; i < SPILL; i++) {
+      const h = hot[i], l = spills[i];
+      if (!h) { l.intensity = 0; continue; }
+      l.color.copy(LED[h[4]]); l.position.set(h[1], h[2] + 0.2, h[3]);
+      l.intensity = SPILL_I * h[0] * (h[4] ? 1 : 0.5);              /* shares glow dimmer than OHAYO's green */
+    }
     renderer.render(scene, camera);
 
     /* labels ride above each pile's current top */
