@@ -133,12 +133,6 @@ nav.main button:hover { color: var(--fg-base); }
 .hero-cubes canvas { display: block; width: 100%; height: 100%; -webkit-mask-image: linear-gradient(#000 78%, transparent); mask-image: linear-gradient(#000 78%, transparent); } /* the floor fades out at the bottom edge instead of stopping */
 .fold:has(.hero-cubes) .hero-cards { visibility: hidden; }
 .hero-2type .hero-cubes { display: none; }
-.hc-tag { position: absolute; left: 0; top: 0; margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; opacity: 0; transform-origin: 50% 100%; white-space: nowrap; }
-.hc-val { font-variant-numeric: tabular-nums; transform-origin: 50% 100%; }
-.hc-tag--them .hc-val { font-weight: 700; font-size: 26px; line-height: 30px; color: var(--fg-subtle); }
-.hc-tag--us .hc-val { font-weight: 900; font-size: 50px; line-height: 56px; color: var(--fg-positive); }
-.hc-cap { font-weight: 500; font-size: 12px; line-height: 18px; letter-spacing: 0.7px; text-transform: uppercase; color: var(--fg-muted); }
-.hc-tag--us .hc-cap { color: var(--fg-primary); }
 .hc-x { position: absolute; left: 0; top: 0; font-weight: 900; font-size: 40px; line-height: 44px; color: var(--fg-primary); white-space: nowrap; opacity: 0; transform-origin: 50% 100%; }
 /* 2type hero line art (Figma 75:9371): a 6px orange curve behind the copy. In Figma it sits at x -268 / y 157 of the
    1440 hero frame (top = 65px below the page top here) and is rotated 8.29deg.

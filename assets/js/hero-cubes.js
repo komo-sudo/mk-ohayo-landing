@@ -139,6 +139,47 @@ function init(root) {
   mesh.castShadow = true; mesh.receiveShadow = true; mesh.frustumCulled = false;
   { const c = new THREE.Color(); mesh_tones.forEach((v, k) => mesh.setColorAt(k, c.setRGB(v, v, v))); }
   scene.add(mesh);
+  /* floor typography: each pile's return, painted on the ground in front of it and facing the camera, so the floor
+     itself shows the contrast. Driven by the piles: each cube is $1 on $1,000 = +0.1%, so the shares read +4.8%
+     when their 48th cube lands and OHAYO reads +48.0% at its 480th. Lit like the floor (shadows and the LED spill
+     fall across them), faded by the same fog. */
+  const POS = css('--fg-positive', '#11ec8a'), PRI = css('--fg-primary', '#ff5a00');
+  const RIGHT = new THREE.Vector3(Math.cos(-0.62), 0, -Math.sin(-0.62));   /* screen-right along the floor */
+  function floorType(o) {
+    const cv = document.createElement('canvas'); cv.width = 2048; cv.height = 1024;
+    const cx = cv.getContext('2d'), tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const mat = new THREE.MeshStandardMaterial({ map: tex, transparent: true, depthWrite: false, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2 });
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(o.width, o.width * 1024 / 2048), mat);
+    plane.rotation.x = -Math.PI / 2; plane.receiveShadow = true;
+    const group = new THREE.Group(); group.add(plane);
+    group.position.copy(o.at); group.rotation.y = -0.62;                   /* square to the camera */
+    scene.add(group);
+    let shown = null;
+    return {
+      mat, group,
+      paint(usd, force) {                                                /* amount on $1,000; the return is amount / 10 % */
+        const txt = '+$' + usd, pct = '+' + (usd / 10).toFixed(1) + '%';
+        if (txt === shown && !force) return; shown = txt;
+        cx.clearRect(0, 0, 2048, 1024);
+        cx.textBaseline = 'alphabetic'; cx.textAlign = 'left';
+        const font = (w, px) => w + ' ' + px + 'px "Pretendard Variable", Pretendard, Inter, sans-serif';
+        cx.font = font(800, 470); const big = Math.min(470, Math.floor(470 * 2000 / cx.measureText(o.sample).width));   /* sized to the widest value */
+        cx.fillStyle = POS; cx.globalAlpha = o.alpha; cx.font = font(800, big);
+        cx.fillText(txt, 0, big * 0.98);                                 /* the amount, large */
+        cx.globalAlpha = o.alpha * 0.8; cx.font = font(700, Math.round(big * 0.46));
+        cx.fillText(pct, 10, big * 0.98 + big * 0.5);                    /* the return under it */
+        cx.globalAlpha = 1; cx.fillStyle = o.capColor; cx.font = '700 118px Doto, "Courier New", monospace';
+        cx.fillText(o.cap, 20, Math.min(1010, big * 1.48 + 150));       /* caption on the camera side, clear of the piles */
+        tex.needsUpdate = true;
+      }
+    };
+  }
+  const TOWARD = new THREE.Vector3(Math.sin(-0.62), 0, Math.cos(-0.62));  /* toward the camera along the floor */
+  const base = new THREE.Vector3(-1.5, 0.012, 10.5).addScaledVector(TOWARD, 2.5);
+  const floorS = floorType({ width: 9, at: base.clone().addScaledVector(RIGHT, -9.5), sample: '+$48', cap: 'SK HYNIX · SHARES', capColor: 'rgba(255,255,255,0.3)', alpha: 0.4 });
+  const floorU = floorType({ width: 13.5, at: base.clone().addScaledVector(RIGHT, 2.5), sample: '+$480', cap: 'OHAYO · LONG 10x', capColor: 'rgba(255,90,0,0.55)', alpha: 0.5 });
+  if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('800 100px "Pretendard Variable"'), document.fonts.load('600 40px Doto')]).then(() => { floorS.paint(0, true); floorU.paint(0, true); });
   /* contact shading: ground-truth ambient occlusion darkens the gaps between cubes and where they meet the floor */
   const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { samples: 4, type: THREE.HalfFloatType }));   /* MSAA, so edges stay clean through post-processing */
   composer.addPass(new RenderPass(scene, camera));
@@ -155,8 +196,6 @@ function init(root) {
   const hot = [];                                    /* [glow, x, y, z, site] of cubes lit this frame */
 
   /* ---------- labels (DOM) ---------- */
-  const tagS = root.querySelector('.hc-tag--them'), tagU = root.querySelector('.hc-tag--us');
-  const valS = tagS.querySelector('.hc-val'), valU = tagU.querySelector('.hc-val');
   const x10 = root.querySelector('.hc-x');
 
   /* ---------- camera: a wide view on both piles that slowly orbits left to right ---------- */
@@ -185,17 +224,15 @@ function init(root) {
   const v3 = new THREE.Vector3();
   function project(x, y, z) { v3.set(x, y, z).project(camera); return [(v3.x + 1) / 2 * W, (1 - v3.y) / 2 * Hh]; }
   const landedBy = (s, t) => { let c = 0; for (let k = 0; k < n; k++) if (site[k] === s && landT[k] <= t) c++; return c; };
-  function popAt(s, unit, t) {                        /* 1 just after the count crossed a multiple of unit, over 250ms */
-    const now = Math.floor(landedBy(s, t) / unit);
-    for (let j = 1; j <= 15; j++) if (Math.floor(landedBy(s, t - j / 60) / unit) !== now) return 1 - out(clamp((j - 1) / 60 / 0.25));
-    return 0;
-  }
-  const kick = (t, at0) => { const d = t - at0; return d >= 0 && d < 0.3 ? 1 - out(d / 0.3) : 0; };
 
   /* ---------- render(t) ---------- */
   const m4 = new THREE.Matrix4(), qa = new THREE.Quaternion(), qb = new THREE.Quaternion(), pos = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), zero = new THREE.Vector3();
   function render(t) {
     cameraAt(t);
+    /* floor type first, so its textures are current in this frame */
+    floorS.paint(landedBy(0, t)); floorU.paint(landedBy(1, t));          /* $1 per cube */
+    floorS.mat.opacity = out(clamp((t - (LEAD + B)) / 0.3));
+    floorU.mat.opacity = out(clamp((t - (SLAM + B)) / 0.3));
     const ft = Math.min(END * HZ, t * HZ), f0 = Math.floor(ft), f1 = Math.min(f0 + 1, frames.length - 1), a = ft - f0;
     const A = frames[f0], Bf = frames[f1] || A;
     const topY = [0, 0]; hot.length = 0;
@@ -222,19 +259,13 @@ function init(root) {
     }
     composer.render();
 
-    /* labels ride above each pile's current top */
-    const nS = landedBy(0, t), nU = landedBy(1, t);
-    const [sx, sy] = project(SITES[0].x, topY[0] + 1.3, 0), [ux, uy] = project(SITES[1].x, topY[1] + 1.3, 0);
-    const inS = out(clamp((t - (LEAD + B)) / 0.3)), inU = out(clamp((t - (SLAM + B)) / 0.3));
-    tagS.style.opacity = inS; tagS.style.transform = `translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px) translate(-50%, -100%) translateX(${(-14 * (1 - inS)).toFixed(1)}px) scale(${(1 + 0.3 * kick(t, LEAD + B)).toFixed(3)})`;
-    tagU.style.opacity = inU; tagU.style.transform = `translate(${ux.toFixed(1)}px, ${uy.toFixed(1)}px) translate(-50%, -100%) translateX(${(-14 * (1 - inU)).toFixed(1)}px) scale(${(1 + 0.3 * kick(t, SLAM + B)).toFixed(3)})`;
-    valS.textContent = '+$' + nS; valU.textContent = '+$' + nU;
-    valS.style.transform = `scale(${(1 + 0.08 * popAt(0, 5, t)).toFixed(3)})`;
-    valU.style.transform = `scale(${(1 + 0.08 * popAt(1, 50, t)).toFixed(3)})`;
-    /* the 10x slams in on beat 8 above where the OHAYO pile will grow, then rides on its tag */
+    /* the amounts live on the floor plates now; only the 10x hangs over the OHAYO pile. It slams in on beat 8
+       above where the pile will grow, then rides on the pile's top */
+    const [ux, uy] = project(SITES[1].x, topY[1] + 1.3, 0);
+    root.dataset.count = landedBy(0, t) + ',' + landedBy(1, t);              /* for checks: landed shares, OHAYO */
     const p5 = clamp((t - SLAM) / 0.4), e5 = out(p5);
     x10.style.opacity = out(clamp((t - SLAM) / 0.15));
-    x10.style.transform = `translate(${ux.toFixed(1)}px, ${(uy - (tagU.offsetHeight || 80) - 6).toFixed(1)}px) translate(-50%, -100%) scale(${(1 + 0.8 * (1 - e5)).toFixed(3)})`;
+    x10.style.transform = `translate(${ux.toFixed(1)}px, ${uy.toFixed(1)}px) translate(-50%, -100%) scale(${(1 + 0.8 * (1 - e5)).toFixed(3)})`;
     x10.style.filter = p5 > 0 && p5 < 1 ? `blur(${(6 * (1 - e5)).toFixed(2)}px)` : 'none';
   }
 
