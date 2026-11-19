@@ -1076,19 +1076,30 @@
       var e = ts - t0, r = Math.floor(e / LOOP);
       while (run < r) { bx += wx[n - 1]; by += R.dir * wy[n - 1]; run++; setRun(run); } /* carry the grid over, switch long <-> short */
       var tr = e - r * LOOP; draw(tr);
-      var rc = function (i) { return getComputedStyle(document.documentElement).getPropertyValue(RUNS[(i + RUNS.length) % RUNS.length].color).trim(); };
+      var rc = function (i) { var k = RUNS[(i + RUNS.length) % RUNS.length].color; return runCol[k] || (runCol[k] = getComputedStyle(document.documentElement).getPropertyValue(k).trim()); };
       drawFx(tr, rc(tr < WIPE ? run - 1 : run), rc(tr < WIPE ? run : run + 1));   /* reveal uses the new run's colour */
       raf = requestAnimationFrame(loop);
     }
+    var runCol = {};                                  /* run colours, read from the tokens once */
+    /* Pause while the hero is off screen: two full-stage canvases redrawn every frame are the page's heaviest work.
+       The clock resumes where it stopped (t0 shifts by the time away), so the run picks up mid-move. */
+    var onScreen = true, pausedAt = 0;
+    if ('IntersectionObserver' in window) new IntersectionObserver(function (es) {
+      onScreen = es[0].isIntersecting;
+      if (!onScreen && raf) { cancelAnimationFrame(raf); raf = null; pausedAt = performance.now(); }
+      else if (onScreen && pausedAt) { if (t0) t0 += performance.now() - pausedAt; pausedAt = 0; raf = requestAnimationFrame(loop); }
+    }).observe(belt);
     function sync() {
       var on = document.body.classList.contains('hero-2type');
       if (raf) { cancelAnimationFrame(raf); raf = null; }
+      pausedAt = 0;
       fctx.setTransform(1, 0, 0, 1, 0, 0); fctx.clearRect(0, 0, fx.width, fx.height);   /* no LED dots left behind */
       if (on) {
         layout();
         if (noMotion) { draw(END + STOP); return; }
         if (document.body.classList.contains('hero-intro-on')) { ctx.clearRect(0, 0, cv.width, cv.height); [label].concat(cols.map(function (c) { return c.el; }), [x10]).forEach(function (el) { el.style.opacity = 0; }); return; } /* wait for the page intro */
-        t0 = 0; run = 0; bx = by = 0; setRun(0); raf = requestAnimationFrame(loop);
+        t0 = 0; run = 0; bx = by = 0; setRun(0);
+        if (onScreen) raf = requestAnimationFrame(loop); else pausedAt = performance.now();   /* starts once it scrolls into view */
       }
     }
     document.addEventListener('herochange', sync);
