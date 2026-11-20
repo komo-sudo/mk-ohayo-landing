@@ -381,11 +381,11 @@
   })();
 
   /* Get started: two app mockups (home, order) take turns in one spot (ohayo-motion: time-driven, out / in-out).
-     Each phone's 12.5s turn:
-       0-1.5s    it fades up from opacity 0 while rising, tipped back ~38deg with a slight turn and roll, settling flat; screen and
+     Each phone's 4s turn, on the 0.5s beat grid:
+       0-0.5s    it fades up from opacity 0 while rising, tipped back ~38deg with a slight turn and roll, settling flat; screen and
                  frame fade as one
-       2.5-11s   its feed scrolls like a finger flick (in-out): down to the first stop, pause, down to the end, pause
-       11-12.5s  the entrance plays in reverse: the whole phone (screen and frame together) tips back, sinks and fades out to opacity 0
+       0.5-3.5s  its feed scrolls like a finger flick (in-out): 1s down to the first stop, 0.5s pause, 1s down to the end, 0.5s pause
+       3.5-4s    the entrance plays in reverse: the whole phone (screen and frame together) tips back, sinks and fades out to opacity 0
      Then the other phone takes its turn (home -> order -> home ...), forever. The clock only runs while the section
      is on screen; reduced motion shows the home phone, still. */
   (function () {
@@ -394,11 +394,11 @@
     var clamp = function (x) { return x < 0 ? 0 : x > 1 ? 1 : x; };
     var out = function (x) { return 1 - Math.pow(1 - x, 3); };
     var inOut = function (x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
-    var IN = 1500, SCROLL = 2500, EXIT = 11000, TURN = 12500;
+    var IN = 500, SCROLL = 500, EXIT = 3500, TURN = 4000;
     /* scroll keyframes within a turn, from SCROLL: [ms, 0..1 of the scrollable range] */
     var KEYS = {
-      home: [[0, 0], [2500, 0.42], [4000, 0.42], [6500, 1], [8500, 1]],      /* Tournament, then Markets */
-      order: [[0, 0], [2500, 0.62], [4000, 0.62], [6500, 1], [8500, 1]]     /* order form, then balances */
+      home: [[0, 0], [1000, 0.42], [1500, 0.42], [2500, 1], [3000, 1]],      /* Tournament, then Markets */
+      order: [[0, 0], [1000, 0.62], [1500, 0.62], [2500, 1], [3000, 1]]     /* order form, then balances */
     };
     var phones = [].map.call(sec.querySelectorAll('.st-mock'), function (m, k) {
       return { el: m, body: m.querySelector('.st-phone'), feed: m.querySelector('.st-feed'), win: m.querySelector('.st-feedwin'),
@@ -414,7 +414,7 @@
     function pose(p, e) {                                                   /* e = entrance time 0..IN (exit = e reversed) */
       /* motion eases out (fastest at the start) and opacity rises from 0 with it, so the phone is never seen
          half-lit and standing still; the exit runs the same path backwards, down to opacity 0 */
-      var m = out(clamp(e / IN)), a = clamp(e / 1000), op = a * a * (3 - 2 * a), s = p.mirror;
+      var m = out(clamp(e / IN)), a = clamp(e / (IN * 0.67)), op = a * a * (3 - 2 * a), s = p.mirror;
       p.body.style.transform = 'translateY(' + (120 * (1 - m)).toFixed(1) + 'px) rotateX(' + (38 * (1 - m)).toFixed(2) + 'deg) rotateY(' + (-14 * s * (1 - m)).toFixed(2) + 'deg) rotateZ(' + (5 * s * (1 - m)).toFixed(2) + 'deg) scale(' + (0.9 + 0.1 * m).toFixed(4) + ')';
       p.body.style.opacity = op.toFixed(3);
     }
@@ -437,6 +437,238 @@
       if (es[0].isIntersecting && !raf) { last = 0; raf = requestAnimationFrame(loop); }
       else if (!es[0].isIntersecting && raf) { cancelAnimationFrame(raf); raf = null; }
     }, { threshold: 0.3 }).observe(sec);
+  })();
+
+  /* Dot-wave backgrounds (.dot-wave canvases): a field of dark grey dots (24px pitch) with a slow wave rolling across it.
+     data-dir="right" rolls left to right (creators + Try it), "up" rolls bottom to top (Spotlight). Each dot's level
+     follows a travelling sine bent gently along the other axis, so the crests read as soft, uneven ripples rather than
+     straight bars. Levels stay between #141414 and #2c2c2c on black, so it never competes with the cards.
+     data-through="id" stretches the field down to the foot of that later section. Draws at 30fps, only while the
+     field is on screen; reduced motion draws one still frame. */
+  [].forEach.call(document.querySelectorAll('.dot-wave'), function (cv) {
+    var sec = cv.parentNode, end = document.getElementById(cv.getAttribute('data-through') || ''), up = cv.getAttribute('data-dir') === 'up';
+    var g = cv.getContext('2d'), P = 24, W = 0, H = 0, dpr = 1, raf = null, last = 0, t0 = 0;
+    var LO = 20, HI = 44, V = 60, K = 2 * Math.PI / 520;   /* wavelength 520px drifting at 60px/s: a crest every ~8.7s */
+    function size() {
+      dpr = Math.min(2, window.devicePixelRatio || 1); W = sec.clientWidth;
+      H = Math.round(end ? end.getBoundingClientRect().bottom - sec.getBoundingClientRect().top : sec.clientHeight);
+      cv.style.height = H + 'px';
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    }
+    function draw(t) {
+      g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+      var ox = (W % P) / 2 + P / 2, oy = (H % P) / 2 + P / 2;
+      for (var y = oy; y < H; y += P) {
+        for (var x = ox; x < W; x += P) {
+          var across = up ? x : y, along = up ? -y : x;               /* "up": travel toward smaller y */
+          var bend = Math.sin(across / 170) * 1.1 + Math.sin(across / 61) * 0.35;
+          var w = 0.5 + 0.5 * Math.sin((along - t * V) * K + bend);
+          w = w * w * w;                                              /* narrow crests, long calm troughs */
+          var v = Math.round(LO + (HI - LO) * w);
+          g.fillStyle = 'rgb(' + v + ',' + v + ',' + v + ')';
+          g.beginPath(); g.arc(x, y, 1.6 + 0.5 * w, 0, 6.2832); g.fill();
+        }
+      }
+    }
+    function loop(ts) {
+      raf = requestAnimationFrame(loop);
+      if (ts - last < 33) return; last = ts;
+      draw((ts - t0) / 1000);
+    }
+    size();
+    window.addEventListener('resize', function () { size(); draw((performance.now() - t0) / 1000); });
+    if (noMotion || !('IntersectionObserver' in window)) { draw(0); return; }
+    t0 = performance.now(); draw(0);
+    if ('ResizeObserver' in window) new ResizeObserver(function () { var h = H; size(); if (H !== h) draw((performance.now() - t0) / 1000); }).observe(end || sec);
+    new IntersectionObserver(function (es) {
+      if (es[0].isIntersecting && !raf) raf = requestAnimationFrame(loop);
+      else if (!es[0].isIntersecting && raf) { cancelAnimationFrame(raf); raf = null; }
+    }).observe(cv);
+  });
+
+  /* Final CTA candidate 2 (Figma 120:7090, "iPhone mockup - Trading chart - Perspective"): the same phone posed in 3D,
+     rebuilt from the Figma layers. A 550 x 980 scene with perspective 2000px; every layer carries the device's pose
+     (rotateX 9deg, rotateY -18deg, rotateZ -6deg) and is pushed back along Z to fake the body's thickness: 47 titanium
+     sidewall/bevel slices, the rear seam and glass, the power button and two antenna bands. The front device is the
+     flat phone PNG plus the live chart canvas, so the screen animates exactly like candidate 1. */
+  (function () {
+    var scene = document.querySelector('.fp2-scene');
+    if (!scene) return;
+    var POSE = ' rotateX(9deg) rotateY(-18deg) rotateZ(-6deg)', DZ = 0.93935, DX = 0.30902, DY = 0.14878;
+    var SIDE = ['797c82', '72757b', '6b6e74', '51545a', '53565c', '54575d', '56595f', '575a60', '585b61', '5a5d63', '5b5e64', '5c5f65',
+      '5d6066', '5e6167', '5f6268', '606369', '61646a', '61646a', '62656b', '62656b', '63666c', '63666c', '63666c', '63666c', '63666c',
+      '63666c', '63666c', '62656b', '62656b', '61646a', '61646a', '606369', '5f6268', '5e6167', '5d6066', '5c5f65', '5b5e64', '5a5d63',
+      '585b61', '575a60', '56595f', '54575d', '53565c', '82858b', '797c82', '707379', '676a70'];
+    var html = '';
+    function layer(x, y, w, h, z, css, origin) {
+      html += '<i style="left:' + x.toFixed(2) + 'px;top:' + y.toFixed(2) + 'px;width:' + w + 'px;height:' + h + 'px;' +
+        'transform:translateZ(' + z.toFixed(2) + 'px)' + POSE + ';' + (origin ? 'transform-origin:' + origin + ';' : '') + css + '"></i>';
+    }
+    /* back to front: rear glass, seam, bevels and sidewalls, then the buttons and bands that sit on the side */
+    layer(89.33, 75.14, 401, 844, -45.09, 'background:#25272b;border-radius:57px;box-shadow:inset 0 0 0 1.2px #767b86,5px 14px 28px rgba(0,0,0,.28)');
+    layer(86.87, 72.92, 405, 848, -43.68, 'border-radius:59px;box-shadow:inset 0 0 0 .9px #878c95');
+    for (var k = SIDE.length; k >= 1; k--) layer(72.81 + DX * (k - 1), 66.15 + DY * (k - 1), 405, 848, -DZ * k, 'background:#' + SIDE[k - 1] + ';border-radius:59px');
+    for (k = 34; k >= 16; k--) layer(480.44 + DX * (k - 16), 292.38 + DY * (k - 16), 5, 88, -DZ * k, 'background:#' + (k === 16 ? '959aa5' : '595e69') + ';border-radius:2px', '-200.5px 200px');
+    for (k = 39; k >= 8; k--) {
+      layer(477.97 + DX * (k - 8), 165.19 + DY * (k - 8), 2.4, 5, -DZ * k, 'background:#292b30', '-200.5px 326px');
+      layer(477.97 + DX * (k - 8), 811.19 + DY * (k - 8), 2.4, 5, -DZ * k, 'background:#292b30', '-200.5px -320px');
+    }
+    scene.insertAdjacentHTML('afterbegin', html);
+  })();
+
+  /* Final CTA phone (Figma 117:5169): the BTC chart screen runs live. A seeded random walk ticks the price every 200ms;
+     the last 15m candle grows with it and a new candle opens every 2.5s, when the chart (candles, volumes, time grid)
+     slides one slot left (300ms, out easing). The header price, change, mark price, the chart's ticker line, the
+     dotted last-price line and its tag all follow the same number. The scale and every position match the PNG
+     (465 x 908 px space): 500 USD per 51px with 76,000 at y 392, candle slots 5.58px (12 per 3h grid column of 67px).
+     Runs only while the phone is on screen; reduced motion draws the opening frame, still.
+     Every .fin-live canvas gets its own copy: candidate 1 (flat phone) and candidate 2 (the tilted phone, Figma 120:7090,
+     where the canvas sits inside the 3D-posed device). */
+  [].forEach.call(document.querySelectorAll('.fin-live'), function (cv) {
+    var g = cv.getContext('2d'), X0 = 45, Y0 = 168, SW = 375, SH = 632;
+    var GREEN = 'rgb(17,236,138)', RED = 'rgb(255,75,78)', GRID = 'rgb(26,26,26)', MUTED = 'rgb(144,144,144)';
+    var FONT = getComputedStyle(document.body).fontFamily;
+    var S = 5.58, XL = 297, BODY = 3, TOP = 76000, PX = 51 / 500, YT = 392, VB = 776, OPEN24 = 74827;
+    var TICK = 200, BAR = 2500, SLIDE = 300;
+    var seed = 7;
+    var rnd = function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    var yOf = function (p) { return YT + (TOP - p) * PX; };
+    var fmt = function (n) { return Math.round(n).toLocaleString('en-US'); };
+    /* opening history (the picture's shape): calm near 75,850, a sharp sell-off to ~73,450, then a climb back to 74,928 */
+    var bars = [], N = 46, t0min = 13 * 60 - (N - 1) * 15, p = 75880;
+    for (var i = 0; i < N; i++) {
+      /* after the drop the climb is choppy: a slow drift up with swings of a few hundred dollars */
+      var target = i < 17 ? 75880 - i * 12 : i === 17 ? 73700 : 74050 + (i - 18) * 32 + Math.sin(i * 1.3) * 260 + Math.sin(i * 0.47) * 180;
+      var o = p, c = target + (rnd() - 0.5) * (i < 17 ? 140 : 320);
+      if (i === 45) c = 74928;
+      var h = Math.max(o, c) + rnd() * 60, l = Math.min(o, c) - rnd() * 60;
+      if (i === 17) { o = 75620; l = 73420; }
+      bars.push({ t: t0min + i * 15, o: o, h: h, l: l, c: c, v: i === 17 ? 6800 : i === 18 ? 2600 : 300 + rnd() * 900 });
+      p = c;
+    }
+    var price = 74928, vel = 0, mark = 74930, slideFrom = 0, slideT = -1e9, lastTick = 0, lastBar = 0, raf = null, clock = 0, prevTs = 0;
+
+    function tick() {
+      /* mean-reverting walk around 74,900 with a little momentum, so it drifts and pulls back like a real tape */
+      vel = vel * 0.6 + (rnd() - 0.5) * 26 + (74900 - price) * 0.004;
+      price = Math.max(73600, Math.min(75900, price + vel));
+      var b = bars[bars.length - 1];
+      b.c = price; b.h = Math.max(b.h, price); b.l = Math.min(b.l, price); b.v += 20 + rnd() * 70;
+      mark = price + (rnd() - 0.5) * 6;
+    }
+    function newBar() {
+      var b = bars[bars.length - 1];
+      bars.push({ t: b.t + 15, o: b.c, h: b.c, l: b.c, c: b.c, v: 40 + rnd() * 120 });
+      if (bars.length > 70) bars.shift();
+      slideFrom = S; slideT = clock;
+    }
+    function text(str, x, y, size, weight, color, align) {
+      g.font = weight + ' ' + size + 'px ' + FONT; g.fillStyle = color; g.textAlign = align || 'left'; g.textBaseline = 'alphabetic';
+      g.fillText(str, x, y);
+    }
+    function draw() {
+      var k = cv.width / SW;
+      g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cv.width, cv.height);
+      g.setTransform(k, 0, 0, k, -X0 * k, -Y0 * k);
+      var up = price >= OPEN24, col = up ? GREEN : RED, chg = price - OPEN24, pct = chg / OPEN24 * 100;
+      var sgn = function (n) { return (n >= 0 ? '+' : '−'); };
+
+      /* header: price, change, mark price, stats */
+      g.fillStyle = '#000'; g.fillRect(X0, 172, SW, 92);
+      text(fmt(price), 65, 207, 30.5, 700, col);
+      text(sgn(pct) + Math.abs(pct).toFixed(2) + '%', 65, 230, 12, 500, col);
+      text('Mark Price', 66, 255, 11.5, 400, MUTED);
+      g.font = '400 11.5px ' + FONT; var mw = g.measureText('Mark Price ').width;
+      text(fmt(mark), 66 + mw, 255, 11.5, 500, '#fafafa');
+      text('24H Volume', 233, 187, 12.5, 400, MUTED); text('$2.2B', 399, 189, 14.5, 600, '#fafafa', 'right');
+      text('Open Interest', 233, 211, 12.5, 400, MUTED); text('$3.1B', 399, 213, 14.5, 600, '#fafafa', 'right');
+      text('Funding', 233, 235, 12.5, 400, MUTED); text('0.0013%', 399, 237, 14.5, 600, '#fafafa', 'right');
+
+      /* chart panel */
+      g.fillStyle = '#000'; g.fillRect(X0, 312, SW, 488);
+      var e = clock - slideT, sh = e < SLIDE ? slideFrom * (1 - (1 - Math.pow(1 - e / SLIDE, 3))) : 0;  /* slide-in offset */
+      var last = bars[bars.length - 1], xOf = function (t) { return XL + (t - last.t) / 15 * S + sh; };
+      g.save(); g.beginPath(); g.rect(X0, 312, SW, 488); g.clip();
+      g.strokeStyle = GRID; g.lineWidth = 1;
+      for (var y = YT; y < 660; y += 51) { g.beginPath(); g.moveTo(X0, Math.round(y) + 0.5); g.lineTo(X0 + SW, Math.round(y) + 0.5); g.stroke(); }
+      var first3h = Math.floor((last.t - 600) / 180) * 180;
+      for (var tm = first3h; tm < last.t + 400; tm += 180) {
+        var gx = Math.round(xOf(tm)) + 0.5;
+        if (gx < X0 || gx > 352) continue;
+        g.beginPath(); g.moveTo(gx, 312); g.lineTo(gx, 776); g.stroke();
+        var hh = ((tm / 60) % 24 + 24) % 24;
+        text((hh < 10 ? '0' : '') + hh + ':00', gx, 790, 11.5, 400, MUTED, 'center');
+      }
+      g.restore();
+      g.save(); g.beginPath(); g.rect(X0, 312, 352 - X0, 488); g.clip();
+      bars.forEach(function (b) {
+        var x = xOf(b.t), bc = b.c >= b.o ? GREEN : RED;
+        if (x < X0 - 4) return;
+        g.fillStyle = bc;
+        g.fillRect(Math.round(x) , yOf(b.h), 1, Math.max(1, yOf(b.l) - yOf(b.h)));
+        var yt = yOf(Math.max(b.o, b.c)), hb = Math.max(1, Math.abs(yOf(b.o) - yOf(b.c)));
+        g.fillRect(Math.round(x) - 1, yt, BODY, hb);
+        var vh = Math.min(68, b.v / 4000 * 36);
+        g.fillRect(Math.round(x) - 1, VB - vh, BODY, vh);
+      });
+      g.restore();
+      /* price scale, last-price line and tag */
+      for (var q = 0; q < 6; q++) text(fmt(TOP - q * 500), 406, YT + q * 51 + 5, 12, 400, MUTED, 'right');
+      text('4 K', 406, 745, 12, 400, MUTED, 'right');
+      var ly = Math.round(yOf(price)) + 0.5;
+      g.strokeStyle = col; g.globalAlpha = 0.7; g.setLineDash([1.5, 2.5]); g.beginPath(); g.moveTo(X0, ly); g.lineTo(358, ly); g.stroke();
+      g.setLineDash([]); g.globalAlpha = 1;
+      g.fillStyle = col; g.fillRect(359, ly - 10, 48, 20);
+      text(fmt(price), 383, ly + 4.5, 12, 700, '#000', 'center');
+      /* ticker line, volume SMA label and the collapse caret */
+      var line = fmt(price) + ' ' + sgn(chg) + fmt(Math.abs(chg)) + ' (' + sgn(pct) + Math.abs(pct).toFixed(2) + '%)';
+      text(line, 53, 330, 12, 500, col);
+      text('Volume SMA', 53, 354, 12, 500, MUTED);
+      g.fillStyle = 'rgb(28,28,28)'; g.beginPath(); g.roundRect ? g.roundRect(53, 363, 22, 14, 4) : g.rect(53, 363, 22, 14); g.fill();
+      g.strokeStyle = '#d0d0d0'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(60, 372); g.lineTo(64, 368); g.lineTo(68, 372); g.stroke();
+    }
+    function size() {
+      /* layout size (not the projected box), so the tilted copy keeps full resolution */
+      var w = cv.offsetWidth, h = cv.offsetHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+      if (!w || !h) return;
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+      draw();
+    }
+    function loop(ts) {
+      raf = requestAnimationFrame(loop);
+      if (prevTs) clock += Math.min(100, ts - prevTs); prevTs = ts;
+      while (clock - lastTick >= TICK) { lastTick += TICK; tick(); }
+      if (clock - lastBar >= BAR) { lastBar += BAR; newBar(); }
+      draw();
+    }
+    window.addEventListener('resize', size);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(size);
+    size();
+    if (noMotion || !('IntersectionObserver' in window)) return;
+    new IntersectionObserver(function (es) {
+      if (es[0].isIntersecting && !raf) { prevTs = 0; raf = requestAnimationFrame(loop); }
+      else if (!es[0].isIntersecting && raf) { cancelAnimationFrame(raf); raf = null; }
+    }).observe(cv);
+  });
+
+  /* Today's board strip: once scrolling carries it into the top 20% of the viewport it fades out, opacity 1 -> 0 as its top
+     edge goes from 20% of the viewport height up to the top edge (smoothstep, tied to scroll position, so it reverses on
+     the way back down). At 0 it stops taking clicks. */
+  (function () {
+    var strip = document.querySelector('.fold > .strip'), ticking = false;
+    if (!strip) return;
+    function update() {
+      var zone = window.innerHeight * 0.2, x = strip.getBoundingClientRect().top / zone;
+      x = x < 0 ? 0 : x > 1 ? 1 : x;
+      var op = x * x * (3 - 2 * x);
+      strip.style.opacity = op === 1 ? '' : op.toFixed(3);
+      strip.style.visibility = op === 0 ? 'hidden' : '';
+      ticking = false;
+    }
+    function req() { if (!ticking) { ticking = true; requestAnimationFrame(update); } }
+    window.addEventListener('scroll', req, { passive: true });
+    window.addEventListener('resize', req);
+    update();
   })();
 
   /* Header: slide up out of view while scrolling down, back in on scroll up, always shown near the top or when it has focus. */
@@ -1221,10 +1453,7 @@
       var isB = b.getAttribute('data-hero') === 'x10', h = isB ? 'C' : 'A';
       press(heroBtns, b);
       $('hero-a').hidden = isB; /* 2type: empty slot for the next hero concept, no 3D scene */
-      /* 2type: the first screen (.fold) ends at the ticker strip; the creators row moves out to sit right after it.
-         1type: it goes back inside the fold, above the strip. */
-      var fold = document.querySelector('.fold'), crs = document.querySelector('section.creators'), strip = fold && fold.querySelector('.strip');
-      if (fold && crs && strip) { if (isB) fold.after(crs); else fold.insertBefore(crs, strip); }
+      /* both types: the first screen (.fold) ends at the ticker strip and the creators row follows it (index.html) */
       document.body.classList.toggle('hero-2type', isB); document.dispatchEvent(new Event('herochange'));
       var line = document.querySelector('.hero-line');
       if (line) { line.classList.remove('is-drawn'); if (isB) requestAnimationFrame(function () { requestAnimationFrame(function () { line.classList.add('is-drawn'); }); }); }
@@ -1236,6 +1465,6 @@
   /* Preview controls (headline A-D, hero A/B) only show with ?preview=1 */
   if (/[?&]preview=1/.test(location.search)) $('preview').hidden = false;
   /* 2type is the default hero for every visitor (body already carries .hero-2type from the inline script, so nothing
-     flashes); this finishes the switch: headline C, creators row moved, intro and belt started. ?hero=1 opens 1type. */
+     flashes); this finishes the switch: headline C, intro and belt started. ?hero=1 opens 1type. */
   if (!/[?&]hero=1/.test(location.search)) heroBtns.filter(function (x) { return x.getAttribute('data-hero') === 'x10'; })[0].click();
 })();

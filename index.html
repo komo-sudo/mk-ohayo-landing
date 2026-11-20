@@ -36,7 +36,7 @@
 
 <main id="top">
 
-<!-- First screen: hero, creators and today's strip share the viewport height on wide screens. -->
+<!-- First screen: the hero and today's strip share the viewport height on wide screens; the creators row follows. -->
 <div class="fold">
   <!-- 1type hero: one cube per dollar (assets/js/hero-cubes.js). Shares $48 trickle into a small pile, OHAYO 10x $480 pours into a big one. -->
   <div class="hero-cubes" aria-hidden="true"><canvas></canvas>
@@ -88,9 +88,21 @@
   </div>
 </section>
 
+
+<button type="button" class="strip" data-scroll="tournament" aria-label="See today's tournaments">
+  <span class="strip-label">Today's board</span>
+  <span class="strip-view"><span class="strip-run" id="strip-run"></span></span>
+</button>
+</div>
+
 <section class="creators">
+  <canvas class="dot-wave" data-dir="right" data-through="simulate" aria-hidden="true"></canvas>
   <div class="wrap">
-    <p class="eyebrow">They trade here</p>
+    <div class="stack sec-head">
+      <p class="eyebrow">Creators</p>
+      <h2>They trade here. So can you.</h2>
+      <p class="lede">The traders you already follow place their own trades on OHAYO. Start yours on the same board.</p>
+    </div>
     <div class="creator-grid">
       <div class="creator">
         <img class="creator-avatar" src="assets/img/avatars/men-32.jpg" width="48" height="48" alt="">
@@ -107,16 +119,40 @@
         <div class="who"><b>Chart Mina</b><span class="muted">94K subscribers · KORU, AMD</span></div>
         <div class="pnl"><span class="led down">−6.4%</span><span class="muted">30D PnL</span></div>
       </div>
+      <div class="creator">
+        <img class="creator-avatar" src="assets/img/avatars/chip-whale.svg" width="48" height="48" alt="">
+        <div class="who"><b>Chip Whale</b><span class="muted">61K followers · SK hynix, Samsung</span></div>
+        <div class="pnl"><span class="led up">+27.9%</span><span class="muted">30D PnL</span></div>
+      </div>
+      <div class="creator">
+        <img class="creator-avatar" src="assets/img/avatars/ocean-wave.jpg" width="48" height="48" alt="">
+        <div class="who"><b>Macro Wave</b><span class="muted">233K subscribers · NVDA, GOOGL</span></div>
+        <div class="pnl"><span class="led up">+9.8%</span><span class="muted">30D PnL</span></div>
+      </div>
+      <div class="creator">
+        <img class="creator-avatar" src="assets/img/avatars/night-owl.png" width="48" height="48" alt="">
+        <div class="who"><b>night_owl</b><span class="muted">48K followers · SOXL, NVDA</span></div>
+        <div class="pnl"><span class="led up">+14.3%</span><span class="muted">30D PnL</span></div>
+      </div>
+      <div class="creator">
+        <span class="creator-avatar creator-ini">DK</span>
+        <div class="who"><b>Daejeon Dip Kim</b><span class="muted">127K subscribers · Samsung, KORU</span></div>
+        <div class="pnl"><span class="led down">−11.2%</span><span class="muted">30D PnL</span></div>
+      </div>
+      <div class="creator">
+        <img class="creator-avatar" src="assets/img/avatars/mina-k.png" width="48" height="48" alt="">
+        <div class="who"><b>Gap Fill Yuna</b><span class="muted">39K followers · SK hynix, MU</span></div>
+        <div class="pnl"><span class="led up">+52.6%</span><span class="muted">30D PnL</span></div>
+      </div>
+      <div class="creator">
+        <span class="creator-avatar creator-ini">SB</span>
+        <div class="who"><b>Semis Breakfast</b><span class="muted">305K subscribers · NVDA, TSLA</span></div>
+        <div class="pnl"><span class="led up">+4.1%</span><span class="muted">30D PnL</span></div>
+      </div>
     </div>
     <p class="muted" style="margin-top:12px">Sample profiles and numbers for layout. Live PnL will come from each creator's own account, losses included.</p>
   </div>
 </section>
-
-<button type="button" class="strip" data-scroll="tournament" aria-label="See today's tournaments">
-  <span class="strip-label">Today's board</span>
-  <span class="strip-view"><span class="strip-run" id="strip-run"></span></span>
-</button>
-</div>
 
 <section id="simulate">
   <div class="wrap">
@@ -329,6 +365,7 @@
 </section>
 
 <section id="spotlight">
+  <canvas class="dot-wave" data-dir="up" data-through="start" aria-hidden="true"></canvas>
   <div class="wrap">
     <div class="stack sec-head">
       <p class="eyebrow">Anyone can be the one people follow</p>
@@ -407,11 +444,36 @@
 </section>
 
 <section class="final">
-  <div class="wrap">
-    <h2>Same move. Your leverage.</h2>
-    <div class="row">
-      <a class="btn btn-primary" href="https://app.ohayo.global" target="_blank" rel="noopener">Get the app</a>
-      <button type="button" class="btn btn-ghost" data-open="both">Get launch updates</button>
+  <canvas class="dot-wave" data-dir="up" aria-hidden="true"></canvas>
+  <div class="wrap fin-grid">
+    <div class="fin-copy">
+      <h2>Same move. Your leverage.</h2>
+      <div class="row">
+        <a class="btn btn-primary" href="https://app.ohayo.global" target="_blank" rel="noopener">Get the app</a>
+        <button type="button" class="btn btn-ghost" data-open="both">Get launch updates</button>
+      </div>
+    </div>
+    <!-- Candidate 1 (Figma 117:5169): flat iPhone mockup, live BTC chart. Hidden for now; remove `hidden` to bring it back. -->
+    <div class="fin-phone" hidden>
+      <img src="assets/img/mockup/app-chart.png" width="465" height="908" alt="The OHAYO app showing a live BTC 40x chart">
+      <canvas class="fin-live" aria-hidden="true"></canvas>
+    </div>
+    <!-- Candidate 3 (Figma 118:22947): the screen alone, no device frame, on a soft black halo -->
+    <div class="fin-phone3" role="img" aria-label="The OHAYO app showing a live BTC 40x chart">
+      <div class="fp3-halo"></div>
+      <div class="fp3-screen">
+        <img src="assets/img/mockup/app-chart-screen.png" width="375" height="812" alt="">
+        <canvas class="fin-live" aria-hidden="true"></canvas>
+      </div>
+    </div>
+    <!-- Candidate 2 (Figma 120:7090): the same phone tilted in 3D; its body layers are built by landing.js. Hidden for now. -->
+    <div class="fin-phone2" hidden role="img" aria-label="The OHAYO app showing a live BTC 40x chart">
+      <div class="fp2-scene">
+        <div class="fp2-device">
+          <img src="assets/img/mockup/app-chart.png" width="465" height="908" alt="">
+          <canvas class="fin-live" aria-hidden="true"></canvas>
+        </div>
+      </div>
     </div>
   </div>
 </section>

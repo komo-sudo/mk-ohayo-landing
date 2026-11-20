@@ -357,6 +357,7 @@ nav.main button:hover { color: var(--fg-base); }
 @media (max-width: 900px) { .soon { grid-template-columns: minmax(0, 1fr); } }
 
 /* v6: TradeView mock, spotlight */
+#tradeview { padding: 216px 0; } /* twice the default section padding (108px) above and below */
 .tv-app { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr); gap: 12px; margin-top: 8px; }
 .tv-list { display: flex; flex-direction: column; gap: 8px; }
 .tv-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
@@ -401,7 +402,7 @@ nav.main button:hover { color: var(--fg-base); }
 .sim { max-width: none; } /* the sample-trade board spans the full 1080px content column */
 /* Simulate section (Figma ohayo00001 · 78:76): plain black section; the board stays black with its dot grid.
    Replay sits at the right of the board's foot note, icon (DS Icon/retry) + label. */
-#simulate { position: relative; overflow: clip; }
+#simulate { position: relative; overflow-x: clip; }
 #simulate > .wrap { position: relative; }
 .board-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
 .replay { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0; background: none; border: 0; color: var(--fg-subtle); font-size: 14px; line-height: 21.7px; white-space: nowrap; }
@@ -419,40 +420,48 @@ nav.main button:hover { color: var(--fg-base); }
 .sp-steps { grid-template-rows: repeat(3, minmax(0, 1fr)); }
 .sp-step { display: flex; flex-direction: column; justify-content: center; }
 
-/* Creators */
-.creators { padding: 40px 0; }
-/* First screen (Figma hero 45:8137): on wide screens the hero grows to fill what the viewport leaves after the floating header (76px), the creators row and the strip. */
+/* Creators ("They trade here", Figma 74:9121): one design for both hero types, right after the first screen's ticker strip, 120px above and below */
+.creators { position: relative; padding: 120px 0; }
+.creators > .wrap { position: relative; z-index: 1; }
+#simulate > .wrap { z-index: 1; }
+#spotlight { position: relative; }
+#spotlight > .wrap, #start > .wrap { position: relative; z-index: 1; }
+/* Background dot fields (landing.js): dark grey dots on a 24px pitch, a slow wave of slightly brighter dots drifting
+   across. Creators: left to right, running on to the foot of Try it (#simulate), JS sets its height. Spotlight:
+   bottom to top, running on to the foot of Get started (#start). Each sinks into the page: faded out toward the sides and toward its top and bottom ends. */
+.dot-wave { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent), linear-gradient(transparent, #000 14%, #000 86%, transparent);
+  -webkit-mask-composite: source-in;
+          mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent), linear-gradient(transparent, #000 14%, #000 86%, transparent);
+          mask-composite: intersect; }
+/* First screen (Figma hero 45:8137): on wide screens the hero grows to fill what the viewport leaves after the floating header (76px) and the strip. */
 .fold { position: relative; display: flex; flex-direction: column; padding-top: 76px; overflow-x: clip; } /* clip: the text shadows and the wide 3D canvas must not widen the page */
-.fold > .creators, .fold > .strip { position: relative; }
+.fold > .strip { position: relative; }
 /* The Spline scene reacts to the pointer on its own canvas (cube field, card look-at, reset when the pointer leaves), so the layers
    painted over it let the pointer through and only their controls take it. */
-.fold > .hero, .fold > .creators { pointer-events: none; }
-/* Soft black shadow (40%) behind the hero copy and the creators block so the text reads over the cube field. */
-.hero-copy, .fold > .creators > .wrap { position: relative; isolation: isolate; }
+.fold > .hero { pointer-events: none; }
+/* Soft black shadow (40%) behind the hero copy so the text reads over the cube field. */
+.hero-copy { position: relative; isolation: isolate; }
 .hero-copy { width: fit-content; }
-.hero-copy::before, .fold > .creators > .wrap::before {
+.hero-copy::before {
   content: ""; position: absolute; z-index: -1; inset: -40px -56px; pointer-events: none;
   background: rgba(0, 0, 0, 0.4); border-radius: 64px; filter: blur(32px);
 }
-/* Keep the creators shadow off the bottom of the 3D cards above it. */
-.fold > .creators > .wrap::before { top: -8px; }
 .fold > .hero :is(a, button, input, label, select, textarea) { pointer-events: auto; }
-.fold > .creators, .fold + section { border-top: 0; }
+.fold + section { border-top: 0; }
 @media (min-width: 1081px) {
   .fold { min-height: 100vh; min-height: 100svh; }
-  .fold > .hero { flex: 1 0 auto; min-height: 440px; }
-  /* 2type: the first screen is hero + ticker strip; the hero fills the viewport above the strip */
-  .hero-2type .fold > .hero { min-height: calc(100svh - 76px - var(--strip-h, 50px)); }
+  /* the first screen is hero + ticker strip; the hero fills the viewport above the strip */
+  .fold > .hero { flex: 1 0 auto; min-height: calc(100svh - 76px - var(--strip-h, 50px)); }
 }
-/* 2type: creators ("They trade here") are moved out of .fold, right after it (landing.js), so the fold ends at the strip */
-.hero-2type .creators { padding: 120px 0; } /* Figma creators 74:9121: 120px above and below */
 .creators + section { border-top: 0; }
 #compare, #tradeview, #spotlight, #start, #faq, .final { border-top: 0; } /* no rules between these sections */ /* no rule between the creators row and the section after it */
-.creator-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.creator-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .creator { display: flex; align-items: center; gap: 14px; background: var(--bg-raised); border: 1px solid var(--bd-strong); border-radius: var(--radius-card); padding: 16px; }
 .creator svg { flex: none; }
 /* Sample avatars until real profiles exist: faces (randomuser.me), scenery (Unsplash via picsum), characters (DiceBear CC0), wallet blockies (generated). */
 .creator-avatar { flex: none; display: block; width: 48px; height: 48px; border-radius: var(--radius-avatar); object-fit: cover; background: var(--bg-selected); }
+.creator-ini { display: grid; place-items: center; color: var(--fg-primary); font-family: var(--font-led); font-weight: 900; font-size: 15px; } /* no picture yet: initials, like the tournament hosts */
 .creator .who { flex: 1; min-width: 0; }
 .creator .who b { display: block; font-weight: 600; }
 .creator .pnl { text-align: right; }
@@ -598,8 +607,46 @@ details[open] summary::after { content: "–"; }
 details p { color: var(--fg-subtle); line-height: 28px; letter-spacing: -0.19px; padding: 0 0 20px; max-width: 65ch; }
 
 /* Final + footer */
-.final { text-align: left; }
+.final { position: relative; text-align: left; }
+.final > .wrap { position: relative; z-index: 1; } /* above its dot-wave background (bottom to top, as in Spotlight / Get started) */
 .final .row { gap: 12px; margin-top: 28px; }
+/* Final CTA: copy on the left, the trading-chart phone (Figma 117:5169) on the right at the Get started phones' size,
+   vertically centred on the copy. The PNG carries 10px of transparency above the phone and 50px below. */
+.fin-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 40px; }
+.fin-phone { position: relative; width: 418.5px; margin: -9px -24.3px -45px 0; }
+.fin-phone img { display: block; width: 100%; height: auto; }
+/* live layer over the screen (landing.js): price header + chart, drawn in the PNG's 465 x 908 pixel space; it covers
+   x 45-420 and y 168-800 there (the screen below the BTC row), leaving the 15m / Indicators row to the picture */
+.fin-live { position: absolute; left: 9.677%; top: 18.502%; width: 80.645%; height: 69.604%; pointer-events: none; }
+.fin-phone[hidden] { display: none; }
+/* Candidate 2 (Figma 120:7090): a 550 x 980 3D scene drawn at --s scale. Perspective 2000px from the scene centre; the
+   body slices (landing.js) and the device all carry the same pose, and preserve-3d lets the browser sort them by depth. */
+.fin-phone2 { --s: 0.9; position: relative; width: calc(550px * var(--s)); height: calc(980px * var(--s)); margin: -60px -60px -60px 0; }
+.fp2-scene { position: absolute; left: 0; top: 0; width: 550px; height: 980px; transform: scale(var(--s)); transform-origin: 0 0;
+  perspective: 2000px; transform-style: preserve-3d; }
+.fp2-scene > i { position: absolute; display: block; }
+.fp2-device { position: absolute; left: 69.5px; top: 66px; width: 411px; height: 848px; transform: rotateX(9deg) rotateY(-18deg) rotateZ(-6deg); }
+.fp2-device img { position: absolute; left: -27px; top: -10px; width: 465px; height: 908px; max-width: none; }
+/* the live layer in device space: PNG x 45 / y 168 minus the frame's 27 / 10 offset */
+.fp2-device .fin-live { position: absolute; left: 18px; top: 158px; width: 375px; height: 632px; }
+.fin-phone2[hidden] { display: none; }
+/* Candidate 3 (Figma 118:22947): the bare app screen on a soft black halo (a black block, radius 50, blurred 50px), no
+   device frame. Trimmed to the app itself: the status bar (time, island, signal) and the home indicator are cut away,
+   leaving a 375 x 716 card from just above the BTC row to just below the time axis (screen y 64-780), radius 36.
+   The halo keeps Figma's margins around it (32px left/right, 48px top/bottom). Drawn at --s scale. */
+.fin-phone3 { --s: 0.9; position: relative; width: calc(439px * var(--s)); height: calc(812px * var(--s)); }
+.fin-phone3 > * { position: absolute; transform: scale(var(--s)); transform-origin: 0 0; }
+.fp3-halo { left: 0; top: 0; width: 439px; height: 812px; border-radius: 50px; background: #000; filter: blur(50px); }
+.fp3-screen { left: calc(32px * var(--s)); top: calc(48px * var(--s)); width: 375px; height: 716px; border-radius: 36px; overflow: hidden; background: #000; }
+.fp3-screen img { position: absolute; left: 0; top: -64px; display: block; width: 375px; height: 812px; max-width: none; }
+/* the live layer: PNG y 168 is screen y 140, i.e. 76px into the trimmed card */
+.fp3-screen .fin-live { position: absolute; left: 0; top: 76px; width: 375px; height: 632px; }
+@media (max-width: 900px) {
+  .fin-phone3 { --s: 0.6; margin: 0 auto; }
+  .fin-phone2 { --s: 0.6; margin: -40px auto -40px; }
+  .fin-grid { grid-template-columns: minmax(0, 1fr); }
+  .fin-phone { width: min(320px, 80vw); margin: 0 auto -36px; }
+}
 footer { padding: 32px 0 96px; }
 footer p { color: var(--fg-muted); font-size: 13px; max-width: 80ch; }
 
@@ -633,6 +680,7 @@ label.check small { color: var(--fg-muted); margin-left: auto; font-family: var(
 
 @media (max-width: 900px) {
   section { padding: 84px 0; }
+  #tradeview { padding: 168px 0; }
   .tour-grid, .tv-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; }
   .creator-grid, .steps { grid-template-columns: minmax(0, 1fr); }
   nav.main { display: none; }
@@ -664,11 +712,12 @@ label.check small { color: var(--fg-muted); margin-left: auto; font-family: var(
   .fold:has(.hero-cubes) .hero-cards { visibility: visible; }
 }
 
-/* Daily Tournaments (Figma 45:8529): 170px above, ~238px below; a Spline scene sits behind the section head
-   and a transparent-to-black gradient (from 191px down to 793px) lets it sink into the page under the cards. */
+/* Daily Tournaments (Figma 45:8529): 170px above, ~238px below. The Spline scene sits at the foot of the section,
+   behind the info cards and the CTA, turned 180deg (as in Figma); its black-to-transparent gradient (602px) now
+   runs downward from its top edge, so the field rises out of the page and fills the bottom. */
 #tournament { position: relative; overflow: clip; padding: 225px 0 238px; border-top: 0; } /* no rule above: the 3D scene runs up to the section before */
 #tournament > .wrap { position: relative; z-index: 1; }
-.t-scene { position: absolute; left: 0; right: 0; top: 0; height: 793px; z-index: 0; pointer-events: none; }
+.t-scene { position: absolute; left: 0; right: 0; bottom: 0; height: 793px; z-index: 0; pointer-events: none; transform: rotate(180deg); }
 .t-scene spline-viewer { display: block; width: 100%; height: 100%; }
 .t-fade { position: absolute; left: 0; right: 0; top: 191px; bottom: 0; background: linear-gradient(to bottom, rgba(0, 0, 0, 0), #000); }
 @media (max-width: 900px) {
