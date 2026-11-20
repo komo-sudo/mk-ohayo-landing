@@ -271,7 +271,7 @@ function init(root) {
 
   /* ---------- clock: plays once when shown, pauses off screen, waits for the simulation ---------- */
   let raf = null, acc = 0, last = 0, visible = false, waiting = false, pendingSeek = null, slow = 0, avg = 0;
-  const hidden = () => document.body.classList.contains('hero-2type') || !root.clientWidth;
+  const hidden = () => document.body.classList.contains('hero-2type') || document.body.classList.contains('hero-3type') || !root.clientWidth;
   function loop(ts) {
     const step = last ? (ts - last) / 1000 : 0; last = ts;
     /* adaptive resolution: when the running average frame time stays above 17ms (under 60fps), step the render

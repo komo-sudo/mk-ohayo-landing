@@ -146,9 +146,18 @@ nav.main button:hover { color: var(--fg-base); }
    bottom row up (full rows + a partial row) while the numbers count up. Dot counts follow the money: broker 58 dots
    ($48), OHAYO 576 dots ($482), so the area is 10x. */
 .hero-seq { display: none; position: relative; z-index: 1; width: min(1080px, 100%); height: 200px; margin: 0 auto; } /* narrower screens: landing.js scales the stage down */
-.hero-2type .hero { display: flex; flex-direction: column; }
-.hero-2type .hero-grid { flex: 1 0 auto; display: flex; flex-direction: column; width: 100%; } /* auto side margins would otherwise shrink the .wrap to its content in a flex column */
-.hero-2type .hero-visual { flex: 1 0 auto; display: flex; align-items: center; justify-content: center; padding: 24px 0; }
+.hero-2type .hero, .hero-3type .hero { display: flex; flex-direction: column; }
+.hero-2type .hero-grid, .hero-3type .hero-grid { flex: 1 0 auto; display: flex; flex-direction: column; width: 100%; } /* auto side margins would otherwise shrink the .wrap to its content in a flex column */
+.hero-2type .hero-visual, .hero-3type .hero-visual { flex: 1 0 auto; display: flex; align-items: center; justify-content: center; padding: 24px 0; }
+/* 3type: 1type's visual is emptied (no cube piles, no result cards); the Spline scene (.hero-s3) fills the first screen */
+.hero-3type .hero-cubes, .hero-3type .hero-a { display: none; }
+/* 3type: the Spline scene fills the first screen behind the copy, like 1type's scene did; it takes the pointer
+   (the copy layer lets it through, only its controls take clicks) */
+.fold > .dot-wave { display: none; }
+.hero-3type .fold > .dot-wave { display: block; }
+.hero-s3 { display: none; position: absolute; left: 0; top: 0; width: 100%; height: 100vh; height: 100svh; }
+.hero-3type .hero-s3 { display: block; }
+.hero-s3 spline-viewer { display: block; width: 100%; height: 100%; }
 /* The storyboard sequence (.hero-seq) is parked; to bring it back: .hero-2type .hero-seq { display: block; } */
 .hero-belt { display: none; position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; }
 .hero-2type .hero-belt { display: block; }

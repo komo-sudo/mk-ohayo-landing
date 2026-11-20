@@ -473,6 +473,7 @@
     function loop(ts) {
       raf = requestAnimationFrame(loop);
       if (ts - last < 33) return; last = ts;
+      if (W !== sec.clientWidth || !cv.width) size();                 /* shown after being hidden (3type hero) */
       draw((ts - t0) / 1000);
     }
     size();
@@ -845,6 +846,38 @@
       if (es[0].isIntersecting && !raf) { prevTs = 0; raf = requestAnimationFrame(loop); }
       else if (!es[0].isIntersecting && raf) { cancelAnimationFrame(raf); raf = null; }
     }).observe(box);
+  })();
+
+  /* 3type hero: the Spline scene. The viewer is created the first time 3type is shown (so 1type and 2type never load
+     it), with the same cache-busting URL as the other scenes. It renders only while 3type is on and the scene is on
+     screen: a hidden canvas has zero size and the renderer errors on every frame, so it stops while hidden and resumes
+     once its canvas has its size back. Wheel events go to the page, not the Spline camera. */
+  (function () {
+    var box = document.querySelector('.hero-s3');
+    if (!box) return;
+    var v = null, app = null, visible = true, stopped = false;
+    function on() { return document.body.classList.contains('hero-3type') && box.clientWidth > 0; }
+    function create() {
+      v = document.createElement('spline-viewer');
+      v.setAttribute('url', box.getAttribute('data-url') + '?v=' + Date.now() + '#.splinecode');
+      v.addEventListener('wheel', function (e) { e.stopPropagation(); }, { capture: true, passive: true });
+      box.appendChild(v);
+      var t = setInterval(function () { if (v._loaded && v._spline) { app = v._spline; clearInterval(t); sync(); } }, 200);
+    }
+    function resume() {
+      if (!on() || !visible || !stopped) return;
+      var c = v.shadowRoot && v.shadowRoot.querySelector('canvas');
+      if (c && c.width > 0 && c.height > 0) { app.play(); stopped = false; } else requestAnimationFrame(resume);
+    }
+    function sync() {
+      if (on() && !v) create();
+      if (!app) return;
+      if (on() && visible) { if (stopped) requestAnimationFrame(resume); }
+      else if (!stopped) { app.stop(); stopped = true; }
+    }
+    new IntersectionObserver(function (es) { visible = es[0].isIntersecting; sync(); }).observe(box);
+    document.addEventListener('herochange', function () { requestAnimationFrame(sync); });
+    sync();
   })();
 
   /* Today's board strip: once scrolling carries it into the top 20% of the viewport it fades out, opacity 1 -> 0 as its top
@@ -1646,10 +1679,12 @@
   var heroBtns = all('[data-hero]');
   heroBtns.forEach(function (b) {
     b.addEventListener('click', function () {
-      var isB = b.getAttribute('data-hero') === 'x10', h = isB ? 'C' : 'A';
+      var isB = b.getAttribute('data-hero') === 'x10', is3 = b.getAttribute('data-hero') === 'card3', h = isB || is3 ? 'C' : 'A';
       press(heroBtns, b);
       $('hero-a').hidden = isB; /* 2type: empty slot for the next hero concept, no 3D scene */
       /* both types: the first screen (.fold) ends at the ticker strip and the creators row follows it (index.html) */
+      /* 3type is 1type plus body.hero-3type: everything 1type does runs as is; 3type-only changes hang off that class */
+      document.body.classList.toggle('hero-3type', is3);
       document.body.classList.toggle('hero-2type', isB); document.dispatchEvent(new Event('herochange'));
       var line = document.querySelector('.hero-line');
       if (line) { line.classList.remove('is-drawn'); if (isB) requestAnimationFrame(function () { requestAnimationFrame(function () { line.classList.add('is-drawn'); }); }); }
@@ -1661,6 +1696,7 @@
   /* Preview controls (headline A-D, hero A/B) only show with ?preview=1 */
   if (/[?&]preview=1/.test(location.search)) $('preview').hidden = false;
   /* 2type is the default hero for every visitor (body already carries .hero-2type from the inline script, so nothing
-     flashes); this finishes the switch: headline C, intro and belt started. ?hero=1 opens 1type. */
-  if (!/[?&]hero=1/.test(location.search)) heroBtns.filter(function (x) { return x.getAttribute('data-hero') === 'x10'; })[0].click();
+     flashes); this finishes the switch: headline C, intro and belt started. ?hero=1 opens 1type, ?hero=3 opens 3type. */
+  var startHero = /[?&]hero=3/.test(location.search) ? 'card3' : /[?&]hero=1/.test(location.search) ? null : 'x10';
+  if (startHero) heroBtns.filter(function (x) { return x.getAttribute('data-hero') === startHero; })[0].click();
 })();
