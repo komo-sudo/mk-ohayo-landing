@@ -651,6 +651,202 @@
     }).observe(cv);
   });
 
+  /* Final CTA candidate 4 (Figma 118:24391): the desktop trading screen runs live. One canvas over the 1920 x 1128
+     picture repaints, in the picture's own pixel space, everything that moves on a real terminal:
+       - the ticker row (each name drifts; BTC follows the live price), the market header (mark, oracle, 24h change,
+         24h volume, open interest, funding countdown), the chart's footer clock (UTC+9, ticking each second)
+       - the weekly BTC chart: candles, volume, OHLC legend, dotted last-price line and tag, date labels and grid,
+         on the picture's scale (130,000 at y 315, 40.3px per 10,000; one week per 5.32px, a half-year per grid column);
+         the chart runs fast-forward like candidate 1: the live candle builds a full week's swing over 2.5s, then a
+         new week opens and the chart (candles, volume, grid, date labels) slides one slot left (300ms, out easing)
+       - the order book: ten asks and nine bids around the price with flickering sizes, cumulative totals and depth
+         bars, the mid price (green or red with the last tick) and the mark price
+     A seeded walk ticks every 200ms. Runs only while it is on screen; reduced motion draws the opening frame. */
+  (function () {
+    var box = document.querySelector('.fin-web');
+    if (!box) return;
+    var cv = box.querySelector('.fw-live'), g = cv.getContext('2d'), W = 1920, H = 1128;
+    var GREEN = 'rgb(17,236,138)', RED = 'rgb(255,75,78)', GREY = 'rgb(144,144,144)', LIGHT = 'rgb(176,176,176)', WHITE = 'rgb(250,250,250)';
+    var GRID = 'rgb(22,22,22)', ASKBG = 'rgb(46,14,14)', BIDBG = 'rgb(2,28,17)', VUP = 'rgb(8,118,69)', VDN = 'rgb(128,38,39)';
+    var FONT = getComputedStyle(document.body).fontFamily;
+    var seed = 11, rnd = function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    var fmt = function (n, d) { return n.toLocaleString('en-US', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }); };
+    var sgn = function (n) { return n >= 0 ? '+' : '-'; };
+    function text(str, x, y, size, weight, color, align) {
+      g.font = (weight || 400) + ' ' + size + 'px ' + FONT; g.fillStyle = color; g.textAlign = align || 'left'; g.textBaseline = 'middle';
+      g.fillText(str, x, y); return g.measureText(str).width;
+    }
+    /* chart geometry (picture pixels) */
+    var PX0 = 110, PX1 = 1228, PY0 = 296, PY1 = 712, S = 138.4 / 26, X2023 = 160.5, VB = 703;
+    var yOf = function (p) { return 315 + (130000 - p) / 10000 * 40.3; };
+    /* weekly history traced from the picture: [week, close] key points (week 0 = first week of 2023) */
+    var KEY = [[-9, 43400], [0, 45000], [13, 50800], [26, 51500], [36, 49800], [42, 57800], [49, 61500], [53, 65200], [57, 83800],
+      [67, 82600], [77, 75100], [83, 77500], [90, 99800], [95, 107500], [100, 113600], [105, 97500], [113, 102400], [119, 114700],
+      [127, 122200], [131, 118500], [135, 124700], [139, 108800], [142, 97500], [148, 102400], [151, 87500], [154, 80100],
+      [158, 84400], [164, 91900], [170, 78400], [178, 80900], [181, 91200], [185, 93500], [189, 81886]];
+    var bars = [], WK0 = -9, WKL = 189, prev = 43000;
+    for (var w = WK0; w <= WKL; w++) {
+      var k = 1; while (KEY[k][0] < w) k++;
+      var a = KEY[k - 1], b = KEY[k], f = (w - a[0]) / Math.max(1, b[0] - a[0]);
+      var c = a[1] + (b[1] - a[1]) * f + (w === WKL ? 0 : (rnd() - 0.5) * a[1] * 0.045);
+      var o = prev, hi = Math.max(o, c) * (1 + rnd() * 0.018), lo = Math.min(o, c) * (1 - rnd() * 0.018);
+      var big = Math.abs(c - o) / o;
+      bars.push({ w: w, o: o, h: hi, l: lo, c: c, v: 15 + rnd() * 25 + big * 900 + (w > 120 ? 20 : 0) });
+      prev = c;
+    }
+    var last = bars[bars.length - 1]; last.o = 86500; last.h = 88900; last.l = 79800; last.c = 81886; last.v = 70;
+    /* market state */
+    var price = 81886, vel = 0, dir = -1, OPEN24 = 82484, vol24 = 2981386093.89, oi = 3575752134.93;
+    var tick = [ ['BTC', 0, 0, 1], ['ETH', -107.2, 1939.8, 1], ['HYPE', 0.80, 71.98, 2], ['ZEC', -35.13, 949.2, 1], ['XYZ100', 155.0, 28221, 0],
+      ['NVDA', 5.16, 188.40, 2], ['SOL', -6.21, 148.27, 2], ['AAPL', 1.02, 262.55, 2], ['TSLA', -8.44, 365.10, 2] ];
+    var TX = [97, 316, 519, 729, 922, 1147, 1350, 1544, 1751];
+    tick.forEach(function (t) { t.push(t[2] - t[1]); });                        /* [name, chg, last, decimals, prevClose] */
+    var asks = [], bids = [];
+    for (var i = 0; i < 10; i++) asks.push(0.2 + rnd() * 6); for (i = 0; i < 9; i++) bids.push(0.1 + rnd() * 2);
+    var TICK = 200, BAR = 2500, SLIDE = 300, clock = 0, lastTick = 0, lastBar = 0, slideT = -1e9, raf = null, prevTs = 0, target = 81900;
+    function newBar() {
+      target = Math.max(68000, Math.min(104000, target + (rnd() - 0.5) * 9000));
+      bars.push({ w: last.w + 1, o: last.c, h: last.c, l: last.c, c: last.c, v: 12 + rnd() * 20 });
+      last = bars[bars.length - 1]; if (bars.length > 260) bars.shift();
+      OPEN24 = OPEN24 * 0.85 + last.o * 0.15;                                  /* the 24h reference follows the market */
+      slideT = clock;
+    }
+    var T0 = 11 * 3600 + 41 * 60 + 40, FUND = 58 * 60 + 14;
+
+    function step() {
+      /* weekly scale: swings of a few hundred dollars a tick, drifting toward a target that wanders week to week */
+      vel = vel * 0.7 + (rnd() - 0.5) * 380 + (target - price) * 0.012;
+      var np = Math.max(62000, Math.min(112000, price + vel));
+      dir = np > price ? 1 : np < price ? -1 : dir; price = np;
+      last.c = price; last.h = Math.max(last.h, price); last.l = Math.min(last.l, price); last.v = Math.min(79, last.v + rnd() * 4);
+      vol24 += 5000 + rnd() * 90000; oi += (rnd() - 0.5) * 400000;
+      for (var j = 1; j < tick.length; j++) if (rnd() < 0.35) { var t = tick[j]; t[2] *= 1 + (rnd() - 0.5) * 0.0012; t[1] = t[2] - t[4]; }
+      for (j = 0; j < 4; j++) { asks[Math.floor(rnd() * 10)] = 0.05 + rnd() * (rnd() < 0.15 ? 12 : 5); bids[Math.floor(rnd() * 9)] = 0.05 + rnd() * (rnd() < 0.15 ? 6 : 2); }
+    }
+    function hms(t) { t = ((t % 86400) + 86400) % 86400; var h = Math.floor(t / 3600), m = Math.floor(t / 60) % 60, s2 = Math.floor(t) % 60;
+      return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s2 < 10 ? '0' : '') + s2; }
+
+    function draw() {
+      var k = cv.width / W;
+      g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cv.width, cv.height); g.setTransform(k, 0, 0, k, 0, 0);
+      var chg = price - OPEN24, pct = chg / OPEN24 * 100, col = chg >= 0 ? GREEN : RED, sec = clock / 1000;
+
+      /* ticker row */
+      g.fillStyle = '#000'; g.fillRect(88, 58, W - 88, 28);
+      var bt = tick[0]; bt[2] = price; bt[4] = 86527; bt[1] = price - bt[4];
+      tick.forEach(function (t, j) {
+        var x = TX[j], c2 = t[1] >= 0 ? GREEN : RED, d = t[3];
+        x += text(t[0], x, 73, 12.5, 400, LIGHT) + 14;
+        x += text(sgn(t[1]) + fmt(Math.abs(t[1]), d === 0 ? 1 : d) + ' / ' + sgn(t[1]) + Math.abs(t[1] / t[4] * 100).toFixed(2) + '%', x, 73, 12.5, 500, c2) + 10;
+        text(fmt(t[2], d), x, 73, 12.5, 400, LIGHT);
+      });
+
+      /* market header */
+      g.fillStyle = '#000'; g.fillRect(228, 126, 740, 26);
+      text(fmt(price), 235, 138, 15, 500, dir >= 0 ? GREEN : RED);
+      text(fmt(price - 2), 311, 138, 15, 500, WHITE);
+      var cx = 387 + text(sgn(chg) + fmt(Math.abs(chg)), 387, 138, 15, 500, col);
+      cx += text(' / ', cx, 138, 15, 500, GREY);
+      text(sgn(chg) + Math.abs(pct).toFixed(2) + '%', cx, 138, 15, 500, col);
+      text('$' + fmt(vol24, 2), 512, 138, 15, 500, WHITE);
+      text('$' + fmt(oi, 2), 670, 138, 15, 500, WHITE);
+      var fund = hms(FUND - sec);
+      cx = 825 + text('0.0013%', 825, 138, 15, 500, GREEN); cx += text(' / ', cx, 138, 15, 500, GREY); text(fund, cx, 138, 15, 500, WHITE);
+
+      /* chart */
+      g.fillStyle = '#000'; g.fillRect(PX0, PY0, PX1 - PX0, PY1 - PY0); g.fillRect(PX1 + 1, PY0, 64, 440); g.fillRect(PX0, PY1, PX1 - PX0, 24);
+      var e = clock - slideT, sh = e < SLIDE ? S * Math.pow(1 - e / SLIDE, 3) : 0;
+      var xOf = function (wk) { return X2023 + (wk - (last.w - WKL)) * S + sh; };   /* the live week always sits at x 1166 */
+      g.save(); g.beginPath(); g.rect(PX0, PY0, PX1 - PX0, PY1 - PY0 + 24); g.clip();
+      g.fillStyle = GRID;
+      for (var y = 311.5; y < 705; y += 32.65) g.fillRect(PX0, Math.round(y), PX1 - PX0, 1);
+      var firstHalf = Math.floor((last.w - 230) / 26) * 26;
+      for (var hw = firstHalf; hw <= last.w + 26; hw += 26) {
+        var gx = Math.round(xOf(hw));
+        if (gx < PX0 || gx > PX1) continue;
+        g.fillStyle = GRID; g.fillRect(gx, PY0, 1, PY1 - PY0);
+        var yr = 2023 + Math.floor(hw / 52), lbl = (((hw % 52) + 52) % 52) === 0 ? String(yr) : 'Jul';
+        text(lbl, gx, 724, 12.5, 400, GREY, 'center');
+      }
+      g.restore();
+      g.save(); g.beginPath(); g.rect(PX0, PY0, PX1 - PX0, PY1 - PY0); g.clip();
+      bars.forEach(function (b) {
+        var x = Math.round(xOf(b.w)); if (x < PX0 - 6 || x > PX1) return;
+        var up = b.c >= b.o, vh = Math.min(80, b.v);
+        g.fillStyle = up ? VUP : VDN; g.fillRect(x - 1, VB - vh, 3, vh);
+        g.fillStyle = up ? GREEN : RED;
+        g.fillRect(x, yOf(b.h), 1, Math.max(1, yOf(b.l) - yOf(b.h)));
+        g.fillRect(x - 1, yOf(Math.max(b.o, b.c)), 3, Math.max(1, Math.abs(yOf(b.o) - yOf(b.c))));
+      });
+      var lc = last.c >= last.o ? GREEN : RED;                                  /* the tag follows the weekly candle's colour */
+      var ly = Math.round(yOf(price)) + 0.5;
+      g.strokeStyle = lc; g.globalAlpha = 0.6; g.setLineDash([2, 2]); g.beginPath(); g.moveTo(PX0, ly); g.lineTo(PX1, ly); g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+      g.restore();
+      for (var q = 0; q <= 10; q++) text(fmt(130000 - q * 10000), 1236, 315 + q * 40.3, 12.5, 400, GREY);
+      g.fillStyle = lc; g.fillRect(1232, ly - 9.5, 48, 19); text(fmt(price), 1256, ly, 12.5, 500, '#fff', 'center');
+      /* OHLC legend */
+      var lx = 122, vc = last.c >= last.o ? GREEN : RED, d2 = last.c - last.o;
+      [['O', last.o], ['H', last.h], ['L', last.l], ['C', last.c]].forEach(function (it) {
+        lx += text(it[0], lx, 312, 12.5, 400, GREY) + 4; lx += text(fmt(it[1]), lx, 312, 12.5, 400, vc) + 8;
+      });
+      lx += text(sgn(d2) + fmt(Math.abs(d2)) + ' (' + sgn(d2) + Math.abs(d2 / last.o * 100).toFixed(2) + '%)', lx, 312, 12.5, 400, vc) + 8;
+      lx += text('Vol', lx, 312, 12.5, 400, GREY) + 4; text(fmt(last.v * 1.87, 3) + ' K', lx, 312, 12.5, 400, vc);
+      lx = 122 + text('Volume SMA', 122, 336, 12.5, 400, GREY) + 4; text('130.913 K', lx, 336, 12.5, 400, RED);
+      g.fillStyle = 'rgb(28,28,28)'; g.fillRect(122, 350, 23, 15);
+      g.strokeStyle = '#bbb'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(129, 360); g.lineTo(133.5, 355.5); g.lineTo(138, 360); g.stroke();
+      /* footer clock */
+      g.fillStyle = '#000'; g.fillRect(1040, 744, 116, 22); text(hms(T0 + sec) + ' (UTC+9)', 1150, 754, 13.5, 400, GREY, 'right');
+
+      /* order book */
+      g.fillStyle = '#000'; g.fillRect(1302, 368, 264, 22); g.fillRect(1302, 425, 264, 655);
+      cx = 1310 + text('0.0013%', 1310, 380, 12.5, 500, WHITE); cx += text(' / ', cx, 380, 12.5, 500, GREY); text(fund, cx, 380, 12.5, 500, WHITE);
+      var base = Math.round(price), tot = [], run = 0, ROW = 31.7, MAXW = 264, maxT;
+      for (i = 9; i >= 0; i--) { run += asks[i]; tot[i] = run; }
+      var btot = [], brun = 0; for (i = 0; i < 9; i++) { brun += bids[i]; btot[i] = brun; }
+      maxT = Math.max(tot[0], btot[8]);
+      for (i = 0; i < 10; i++) {
+        var ry = 442 + i * ROW;
+        g.fillStyle = ASKBG; g.fillRect(1302, ry - ROW / 2, Math.max(2, tot[i] / maxT * MAXW), ROW);
+        text(fmt(base + 10 - i), 1311, ry, 12.5, 400, RED);
+        text(fmt(asks[i], 5), 1474, ry, 12.5, 400, GREY, 'right');
+        text(fmt(tot[i], 5), 1557, ry, 12.5, 400, GREY, 'right');
+      }
+      text(fmt(base), 1310, 764, 16, 500, dir >= 0 ? GREEN : RED);
+      cx = 1311 + text('Mark Price ', 1311, 786, 12.5, 400, GREY); text(fmt(price + 1), cx, 786, 13.5, 600, WHITE);
+      g.save(); g.beginPath(); g.rect(1302, 803, 264, 277); g.clip();
+      for (i = 0; i < 9; i++) {
+        ry = 819 + i * ROW;
+        g.fillStyle = BIDBG; g.fillRect(1302, ry - ROW / 2, Math.max(2, btot[i] / maxT * MAXW), ROW);
+        text(fmt(base - 1 - i), 1311, ry, 12.5, 400, GREEN);
+        text(fmt(bids[i], 5), 1474, ry, 12.5, 400, GREY, 'right');
+        text(fmt(btot[i], 5), 1557, ry, 12.5, 400, GREY, 'right');
+      }
+      g.restore();
+    }
+    function size() {
+      var w = box.clientWidth; if (!w) return;
+      box.style.setProperty('--s', (w / W).toFixed(5));
+      var dpr = Math.min(2, window.devicePixelRatio || 1), r = Math.min(1.5, w / W * dpr * 1.1);
+      cv.width = Math.round(W * r); cv.height = Math.round(H * r);
+      draw();
+    }
+    function loop(ts) {
+      raf = requestAnimationFrame(loop);
+      if (prevTs) clock += Math.min(100, ts - prevTs); prevTs = ts;
+      while (clock - lastTick >= TICK) { lastTick += TICK; step(); }
+      if (clock - lastBar >= BAR) { lastBar += BAR; newBar(); }
+      draw();
+    }
+    window.addEventListener('resize', size);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(size);
+    size();
+    if (noMotion || !('IntersectionObserver' in window)) return;
+    new IntersectionObserver(function (es) {
+      if (es[0].isIntersecting && !raf) { prevTs = 0; raf = requestAnimationFrame(loop); }
+      else if (!es[0].isIntersecting && raf) { cancelAnimationFrame(raf); raf = null; }
+    }).observe(box);
+  })();
+
   /* Today's board strip: once scrolling carries it into the top 20% of the viewport it fades out, opacity 1 -> 0 as its top
      edge goes from 20% of the viewport height up to the top edge (smoothstep, tied to scroll position, so it reverses on
      the way back down). At 0 it stops taking clicks. */
