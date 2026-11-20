@@ -1693,8 +1693,8 @@
     });
   });
   $('preview-x').addEventListener('click', function () { $('preview').hidden = true; });
-  /* Preview controls (headline A-D, hero A/B) only show with ?preview=1 */
-  if (/[?&]preview=1/.test(location.search)) $('preview').hidden = false;
+  /* Preview controls (headline A-D, hero 1/2/3type) show by default; ?preview=0 hides them */
+  if (!/[?&]preview=0/.test(location.search)) $('preview').hidden = false;
   /* 2type is the default hero for every visitor (body already carries .hero-2type from the inline script, so nothing
      flashes); this finishes the switch: headline C, intro and belt started. ?hero=1 opens 1type, ?hero=3 opens 3type. */
   var startHero = /[?&]hero=3/.test(location.search) ? 'card3' : /[?&]hero=1/.test(location.search) ? null : 'x10';
