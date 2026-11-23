@@ -652,23 +652,27 @@ details p { color: var(--fg-subtle); line-height: 28px; letter-spacing: -0.19px;
 .fp3-screen .fin-live { position: absolute; left: 0; top: 76px; width: 375px; height: 632px; }
 .fin-phone3[hidden], .fin-web[hidden] { display: none; }
 /* Candidate 4 (Figma 118:24391): the 1920 x 1128 desktop trading screen, scaled to the box width (landing.js sets --s).
-   It sits to the right of the copy and runs under it: a black fade over its left 757px (the copy reads on top) and
-   one over its right 501px melt it into the page, and a black block blurred 100px (Figma's 2108 x 1307 halo,
-   93 / 84 around the screen) sits behind it. */
+   It sits to the right of the copy and runs under it: a radial black vignette sinks its edges into the page (the copy
+   reads on top), and a black block blurred 100px (Figma's 2108 x 1307 halo, 93 / 84 around the screen) sits behind it. */
 /* Layout (Figma final 45:9040, 1440 x 900): the section is 900px tall with the copy centred vertically at the column's
-   left edge; the screen is drawn at 0.405 (778 x 457), its left edge 381px into the 1080 column and its centre 10.5px
-   below the copy's, so it runs 79px past the column on the right. */
+   left edge; the screen was drawn at 0.405 (778 x 457) with its left edge 381px into the 1080 column, then grown 20%
+   about its own centre: 0.486 (934 x 548), left edge 303px in; its centre 10.5px
+   below the copy's, so it runs 157px past the column on the right. */
 .final:has(.fin-web:not([hidden])) { overflow-x: clip; padding: 0; }
 .final:has(.fin-web:not([hidden])) .fin-grid { min-height: 900px; }
 .final:has(.fin-web:not([hidden])) .fin-copy { position: relative; z-index: 2; }
-.fin-web { --s: 0.405; position: absolute; z-index: 1; top: calc(50% + 10.5px); left: calc(20px + 380.7px); width: 778px; aspect-ratio: 1920 / 1128; transform: translateY(-50%); }
+.fin-web { --s: 0.486; position: absolute; z-index: 1; top: calc(50% + 10.5px); left: calc(20px + 302.9px); width: 933.6px; aspect-ratio: 1920 / 1128; transform: translateY(-50%); }
 .fw-halo { position: absolute; left: calc(-93px * var(--s)); top: calc(-84px * var(--s)); width: calc(2108px * var(--s)); height: calc(1307px * var(--s));
   border-radius: calc(50px * var(--s)); background: #000; filter: blur(calc(100px * var(--s))); }
 .fw-scene { position: absolute; left: 0; top: 0; width: 1920px; height: 1128px; transform: scale(var(--s)); transform-origin: 0 0; }
 .fw-scene img, .fw-live { position: absolute; left: 0; top: 0; width: 1920px; height: 1128px; max-width: none; }
-.fw-fade { position: absolute; top: 0; height: 1128px; pointer-events: none; }
-.fw-fade--l { left: 0; width: 757px; background: linear-gradient(90deg, #000 1%, rgba(0, 0, 0, 0)); }
-.fw-fade--r { right: 0; width: 501px; background: linear-gradient(270deg, #000 1%, rgba(0, 0, 0, 0)); }
+/* Vignette (Figma Rectangle 5, a radial fill over the whole screen): clear at its centre, black from 81.2% of its
+   radius out. Solved from Figma's gradient transform into screen pixels: centre (1223, 445), radii 1257 x 810, the
+   ellipse tilted -7.7deg. A 3000px square carries it, rotated about that centre, so the black runs past every edge
+   (checked against Figma's render: about 0.97 of the screen shows through at the centre, 0.4 at the sides, 0.05 at the corners). */
+.fw-vignette { position: absolute; left: 0; top: 0; width: 1920px; height: 1128px; overflow: hidden; pointer-events: none; }
+.fw-vignette i { position: absolute; left: calc(1223px - 1500px); top: calc(445px - 1500px); width: 3000px; height: 3000px; transform: rotate(-7.7deg);
+  background: radial-gradient(1257px 810px at 50% 50%, rgba(0, 0, 0, 0) 0%, #000 81.2%); }
 @media (max-width: 900px) {
   .fin-web { position: relative; top: auto; left: auto; transform: none; width: 100%; margin-top: 24px; }
   .final:has(.fin-web:not([hidden])) { padding: 84px 0; }
