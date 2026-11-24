@@ -473,7 +473,7 @@
     function loop(ts) {
       raf = requestAnimationFrame(loop);
       if (ts - last < 33) return; last = ts;
-      if (W !== sec.clientWidth || !cv.width) size();                 /* shown after being hidden (3type hero) */
+      if (W !== sec.clientWidth || !cv.width) size();                 /* shown after being hidden */
       draw((ts - t0) / 1000);
     }
     size();
@@ -848,46 +848,100 @@
     }).observe(box);
   })();
 
-  /* 3type hero: the Spline scene. The viewer is created the first time 3type is shown (so 1type and 2type never load
-     it), with the same cache-busting URL as the other scenes. It renders only while 3type is on and the scene is on
-     screen: a hidden canvas has zero size and the renderer errors on every frame, so it stops while hidden and resumes
-     once its canvas has its size back. Wheel events go to the page, not the Spline camera. */
+  /* Section reveal (Creators, Compare): once half the section is on screen (or as much as a short screen can show),
+     the items appear one after another (scale and opacity 0 -> 1, out easing, a beat shared among them), then on the
+     next beat the title block plays the same, its lines 80ms apart, with any note under the items. Once. */
+  function reveal(sec, items, heads, extra, titleFirst) {
+    if (!sec || noMotion || !('IntersectionObserver' in window)) return;
+    /* default: items first, title on the next beat (1s). titleFirst: title first, the items a beat later (0.5s) */
+    var gap = Math.round(500 / Math.max(1, items.length)), tItems = titleFirst ? 500 : 0, tHead = titleFirst ? 0 : 1000;
+    items.forEach(function (el, k) { el.classList.add('rv-item'); el.style.setProperty('--d', (tItems + k * gap) + 'ms'); });
+    heads.forEach(function (el, k) { el.classList.add('rv-head'); el.style.setProperty('--d', (tHead + k * 80) + 'ms'); });
+    extra.forEach(function (el) { el.classList.add('rv-head'); el.style.setProperty('--d', tHead + 'ms'); });
+    sec.classList.add('rv-pre');
+    var need = function () { return Math.min(0.5, 0.9 * window.innerHeight / Math.max(1, sec.offsetHeight)); };
+    var io = new IntersectionObserver(function (es) {
+      if (!es[0].isIntersecting || es[0].intersectionRatio < need()) return;
+      io.disconnect(); requestAnimationFrame(function () { sec.classList.add('rv-in'); });
+    }, { threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5] });
+    io.observe(sec);
+  }
+  var cr = document.querySelector('section.creators'), cmp = document.getElementById('compare'), arr = function (l) { return [].slice.call(l || []); };
+  if (cr) reveal(cr, arr(cr.querySelectorAll('.creator')), arr(cr.querySelectorAll('.sec-head > *')), arr(cr.querySelectorAll('.cr-note')));
+  if (cmp) reveal(cmp, arr(cmp.querySelectorAll('.table-wrap tr')), arr(cmp.querySelectorAll('.sec-head > *')), [], true);   /* title, then the table */
+
+  /* TradeView assembly (ohayo-motion: 0.5s beats, out easing, 400ms pieces): the title reveals, then a beat later the
+     mock builds itself like UI components snapping together (times below are from the mock's start). Once.
+       Every piece also comes in from a random depth: bigger and slightly blurred (settling down) or smaller (growing up).
+       0-0.5s    the two panel shells rise 16px into place from a little further back (the detail panel 100ms later)
+       0.5s      the filter chips pop in one by one (0.6 -> 1, 60ms apart); the header's name slides in from the left
+                 and the Follow button from the right
+       1-2s      the trader rows slot in from the left, 80ms apart; the chart draws left to right (1s, in-out)
+       2s        the trade markers pop on the chart (0 -> 1, 80ms apart); trade step, title and arrows rise in
+       2.5s      the two notes wipe in from the left, rule first, sliding 20px into place
+       3-3.5s    the vote row and the comments rise in, 80ms apart; the sample note under the list fades in */
   (function () {
-    var box = document.querySelector('.hero-s3');
-    if (!box) return;
-    var v = null, app = null, visible = true, stopped = false;
-    function on() { return document.body.classList.contains('hero-3type') && box.clientWidth > 0; }
-    function create() {
-      v = document.createElement('spline-viewer');
-      v.setAttribute('url', box.getAttribute('data-url') + '?v=' + Date.now() + '#.splinecode');
-      v.addEventListener('wheel', function (e) { e.stopPropagation(); }, { capture: true, passive: true });
-      box.appendChild(v);
-      var t = setInterval(function () { if (v._loaded && v._spline) { app = v._spline; clearInterval(t); sync(); } }, 200);
+    var sec = document.getElementById('tradeview'), app = sec && sec.querySelector('.tv-app');
+    if (!app || noMotion || !('IntersectionObserver' in window) || !app.animate) return;
+    sec.classList.add('tv-pre');
+    var O = 'cubic-bezier(0.2, 0.7, 0.2, 1)', IO2 = 'cubic-bezier(0.45, 0, 0.55, 1)';
+    var anims = [], UI = 500, OFF = 0;                                  /* the title plays first; the mock starts a beat later */
+    function play(el, kf, at, dur, ease) { if (el) anims.push(el.animate(kf, { duration: dur || 400, delay: OFF + at, easing: ease || O, fill: 'backwards' })); }
+    /* depth: each piece starts either closer to the camera (scale 1.16, a little blurred, settling down onto the panel)
+       or further back (scale 0.84, growing up into place), picked at random per piece from a fixed seed, so the
+       assembly reads in 3D and plays the same every time */
+    var seed = 7, rnd = function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    var depth = function () { return rnd() < 0.5 ? { s: 1.16, b: 4 } : { s: 0.84, b: 0 }; };
+    var moveK = function (tr) {
+      var d = depth();
+      return [{ opacity: 0, transform: tr + ' scale(' + d.s + ')', filter: 'blur(' + d.b + 'px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }];
+    };
+    var rise = function (d) { return moveK('translateY(' + d + 'px)'); };
+    var slide = function (d) { return moveK('translateX(' + d + 'px)'); };
+    var popK = function (s0) { return [{ opacity: 0, transform: 'scale(' + s0 + ')' }, { opacity: 1, transform: 'none' }]; };
+    var q = function (sel) { return [].slice.call(app.querySelectorAll(sel)); };
+    var heads = [].slice.call(sec.querySelectorAll('.sec-head > *'));
+    function build() {
+      anims = []; seed = 7;                                             /* a fixed seed: the same depth mix every visit */
+      /* title first, the same reveal as the other sections: scale and opacity 0 -> 1 from the left edge, 80ms apart */
+      OFF = 0; heads.forEach(function (h, k) { h.style.transformOrigin = '0 50%'; play(h, [{ opacity: 0, transform: 'scale(0)' }, { opacity: 1, transform: 'none' }], k * 80); });
+      OFF = UI;                                                          /* then the mock */
+      play(app.querySelector('.tv-side'), [{ opacity: 0, transform: 'translateY(16px) scale(0.94)' }, { opacity: 1, transform: 'none' }], 0);   /* shells: from further back */
+      play(app.querySelector('.tv-detail'), [{ opacity: 0, transform: 'translateY(16px) scale(0.94)' }, { opacity: 1, transform: 'none' }], 100);
+      q('.tv-filter .chip').forEach(function (c, k) {                    /* chips: a stronger pop, from 1.3 down or 0.6 up */
+        var big = rnd() < 0.5; play(c, [{ opacity: 0, transform: 'scale(' + (big ? 1.3 : 0.6) + ')', filter: 'blur(' + (big ? 4 : 0) + 'px)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)' }], 500 + k * 60);
+      });
+      var top = q('.tv-top > *'); play(top[0], slide(-24), 500); play(top[1], slide(24), 560);
+      q('#tv-rows .tv-row').forEach(function (r, k) { play(r, slide(-32), 1000 + k * 80); });
+      play(app.querySelector('.tv-svg'), [{ opacity: 1, clipPath: 'inset(0 100% 0 0)' }, { opacity: 1, clipPath: 'inset(0 0 0 0)' }], 1000, 1000, IO2);
+      q('.tv-svg .mk').forEach(function (m, k) { play(m, popK(0), 2000 + k * 80); });
+      q('.tv-fill > *').forEach(function (f, k) { play(f, rise(12), 2000 + k * 80); });
+      q('.tv-detail .why').forEach(function (w, k) {
+        var d = depth();
+        play(w, [{ opacity: 0, transform: 'translateX(-20px) scale(' + d.s + ')', filter: 'blur(' + d.b + 'px)', clipPath: 'inset(0 100% 0 0)' }, { opacity: 1, transform: 'none', filter: 'blur(0px)', clipPath: 'inset(0 0 0 0)' }], 2500 + k * 80);
+      });
+      q('.talk > *').forEach(function (t, k) { play(t, rise(12), 3000 + k * 80); });
+      play(app.querySelector('.tv-side > .muted'), [{ opacity: 0 }, { opacity: 1 }], 3000);
+      sec.classList.remove('tv-pre');                                   /* the animations hold the start state from here */
     }
-    function resume() {
-      if (!on() || !visible || !stopped) return;
-      var c = v.shadowRoot && v.shadowRoot.querySelector('canvas');
-      if (c && c.width > 0 && c.height > 0) { app.play(); stopped = false; } else requestAnimationFrame(resume);
-    }
-    function sync() {
-      if (on() && !v) create();
-      if (!app) return;
-      if (on() && visible) { if (stopped) requestAnimationFrame(resume); }
-      else if (!stopped) { app.stop(); stopped = true; }
-    }
-    new IntersectionObserver(function (es) { visible = es[0].isIntersecting; sync(); }).observe(box);
-    document.addEventListener('herochange', function () { requestAnimationFrame(sync); });
-    sync();
+    /* Plays once, when 50% of the section is on screen (or as much as a short screen can show): title + assembly ~4.4s */
+    var started = false;
+    var need = function () { return Math.min(0.5, 0.9 * window.innerHeight / Math.max(1, sec.offsetHeight)); };
+    var io = new IntersectionObserver(function (es) {
+      if (started || !es[0].isIntersecting || es[0].intersectionRatio < need()) return;
+      started = true; io.disconnect(); build();
+    }, { threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5] });
+    io.observe(sec);
   })();
 
-  /* Today's board strip: once scrolling carries it into the top 20% of the viewport it fades out, opacity 1 -> 0 as its top
-     edge goes from 20% of the viewport height up to the top edge (smoothstep, tied to scroll position, so it reverses on
+  /* Today's board strip: once scrolling carries it into the top 60% of the viewport it fades out, opacity 1 -> 0 as its top
+     edge goes from 60% of the viewport height up to the top edge (smoothstep, tied to scroll position, so it reverses on
      the way back down). At 0 it stops taking clicks. */
   (function () {
     var strip = document.querySelector('.fold > .strip'), ticking = false;
     if (!strip) return;
     function update() {
-      var zone = window.innerHeight * 0.2, x = strip.getBoundingClientRect().top / zone;
+      var zone = window.innerHeight * 0.6, x = strip.getBoundingClientRect().top / zone;
       x = x < 0 ? 0 : x > 1 ? 1 : x;
       var op = x * x * (3 - 2 * x);
       strip.style.opacity = op === 1 ? '' : op.toFixed(3);
@@ -1003,11 +1057,22 @@
   $('live-cards').innerHTML = liveHtml; $('soon-cards').innerHTML = soonHtml;
   $('live-n').textContent = liveN; $('soon-n').textContent = soonN;
 
-  var tabBtns = all('.t-tab');
+  /* Tabs (the usual pattern for in-page tabs whose panels differ in height): switch the panel, then keep the reader
+     at the top of the new content. If the tab row is not already near the top of the screen (just under the floating
+     header, or within the top third), scroll so it sits there, smoothly (instant with reduced motion). The new panel
+     fades in over 200ms so the swap reads as one step. */
+  var tabBtns = all('.t-tab'), tabRow = document.querySelector('.t-tabs');
   tabBtns.forEach(function (b) {
     b.addEventListener('click', function () {
       tabBtns.forEach(function (o) { o.setAttribute('aria-selected', o === b ? 'true' : 'false'); });
-      ['find', 'joined', 'results'].forEach(function (k) { $('tp-' + k).hidden = k !== b.getAttribute('data-tab'); });
+      var shown = null;
+      ['find', 'joined', 'results'].forEach(function (k) { var pn = $('tp-' + k); pn.hidden = k !== b.getAttribute('data-tab'); if (!pn.hidden) shown = pn; });
+      if (shown && !noMotion && shown.animate) shown.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' });
+      if (!tabRow) return;
+      var top = tabRow.getBoundingClientRect().top, want = 88;           /* 76px floating header + 12px */
+      if (top < want - 4 || top > window.innerHeight * 0.34) {
+        window.scrollTo({ top: window.pageYOffset + top - want, behavior: noMotion ? 'auto' : 'smooth' });
+      }
     });
   });
 
@@ -1052,97 +1117,6 @@
   }
   $('g-btn').addEventListener('click', function () { gi = gi === gSteps.length - 1 ? 0 : gi + 1; paintGoal(); });
 
-  /* Hero A: the short card comes forward on its own so "profit on a drop" is seen without a tap. First tap takes over. */
-  /* Hero 3D scene: the canvas fills the hero; zoom the Spline camera by data-zoom once the scene has loaded.
-     The viewer has no public zoom attribute, so this reaches its runtime (_spline.setZoom); the viewer version is pinned in index.html.
-     At zoom 1 the cards' right edge sits about 540px right of the canvas centre (measured, with some margin), so narrower windows get less zoom to keep them on screen. */
-  (function () {
-    var v = document.querySelector('spline-viewer.hero-scene'), max = v && parseFloat(v.getAttribute('data-zoom')), tries = 0, app = null;
-    if (!v) return;
-    /* data-zoom is optional; without it the camera keeps the zoom set in Spline */
-    function apply() { if (app && max > 0) app.setZoom(Math.max(1, Math.min(max, (v.clientWidth / 2 - 24) / 540))); }
-    var t = setInterval(function () {
-      if (v._loaded && v._spline && typeof v._spline.setZoom === 'function') { app = v._spline; apply(); clearInterval(t); }
-      else if (++tries > 150) clearInterval(t);
-    }, 200);
-    window.addEventListener('resize', apply);
-    /* At 1080px and below the CSS hides the scene (display: none). A hidden canvas has zero size and the WebGPU renderer then
-       errors on every frame, so stop the render loop while hidden and resume it when the scene is shown again. */
-    var hiddenMq = window.matchMedia('(max-width: 1080px)');
-    /* hidden on narrow screens, and in the preview's 2type hero (body.hero-2type) */
-    function isHidden() { return hiddenMq.matches || document.body.classList.contains('hero-2type'); }
-    var stopped = false;
-    /* resume only once the viewer's canvas has its size back, otherwise the first frames still render at zero size */
-    function resume() {
-      if (isHidden() || !stopped) return;
-      var c = v.shadowRoot && v.shadowRoot.querySelector('canvas');
-      if (v.clientWidth > 0 && c && c.width > 0 && c.height > 0) { app.play(); stopped = false; apply(); }
-      else requestAnimationFrame(resume);
-    }
-    function syncRun() { if (!app) return; if (isHidden()) { if (!stopped) { app.stop(); stopped = true; } } else if (stopped) requestAnimationFrame(resume); }
-    if (hiddenMq.addEventListener) hiddenMq.addEventListener('change', syncRun); else hiddenMq.addListener(syncRun);
-    var waitApp = setInterval(function () { if (app) { clearInterval(waitApp); syncRun(); } }, 200);
-    document.addEventListener('herochange', syncRun);
-    /* Wheel over the scene scrolls the page only: stop the event at the viewer host (capture) so Spline's camera never sees it.
-       No preventDefault, so the page still scrolls. */
-    v.addEventListener('wheel', function (e) { e.stopPropagation(); }, { capture: true, passive: true });
-  })();
-
-  /* Hero 3D scene: the cube drops in from above the frame and bounces to rest under real gravity.
-     A deliberate exception to ohayo-motion's "no bounce" (the designer asked for a physical drop): the bounce comes
-     from gravity and a coefficient of restitution, not from a bounce easing, and every height and time is computed
-     from t (pure render(t)). Tuned to the beat: first impact at 0.5s, the first rebound lands at 1.0s, then quicker,
-     smaller bounces settle by ~1.5s. Each impact squashes the cube briefly, in proportion to its speed; a tumble
-     set at the drop decays to the rest pose. Plays when the scene first shows and each time the 1type hero returns. */
-  (function () {
-    var v = document.querySelector('spline-viewer.hero-scene');
-    if (!v) return;
-    var DROP = 180, T1 = 0.5, E = 0.5, G = 2 * DROP / (T1 * T1), V0 = G * T1;   /* scene units, seconds */
-    var cube = null, rest = null, raf = null, t0 = 0;
-    var impacts = [], tt = T1, vb = V0 * E;                                     /* [time, speed] of each impact */
-    impacts.push([T1, V0]);
-    while (vb > V0 * 0.02) { tt += 2 * vb / G; impacts.push([tt, vb]); vb *= E; }
-    var END = tt + 0.25;
-    function height(t) {                                                        /* height above rest, from t in s */
-      if (t < T1) return DROP - 0.5 * G * t * t;
-      for (var k = 0; k < impacts.length - 1; k++) {
-        var a = impacts[k], b = impacts[k + 1];
-        if (t < b[0]) { var u = t - a[0], vu = a[1] * E; return Math.max(0, vu * u - 0.5 * G * u * u); }
-      }
-      return 0;
-    }
-    function squash(t) {                                                         /* 0..1, a 120ms dip after each impact */
-      var q = 0;
-      impacts.forEach(function (im) { var d = t - im[0]; if (d >= 0 && d < 0.12) q = Math.max(q, (im[1] / V0) * Math.sin(Math.PI * d / 0.12)); });
-      return q;
-    }
-    function render(t) {
-      if (!cube) return;
-      var h = height(t), q = squash(t), spin = Math.pow(1 - Math.min(1, t / END), 2);
-      cube.position.y = rest.y + h;
-      cube.rotation.x = rest.rx - 0.9 * spin; cube.rotation.y = rest.ry + 1.4 * spin; cube.rotation.z = rest.rz + 0.35 * spin;
-      cube.scale.x = rest.sx * (1 + 0.1 * q); cube.scale.y = rest.sy * (1 - 0.18 * q); cube.scale.z = rest.sz * (1 + 0.1 * q);
-    }
-    function loop(ts) { if (!t0) t0 = ts; var t = (ts - t0) / 1000; render(t); raf = t < END ? requestAnimationFrame(loop) : null; if (!raf) render(END + 1); }
-    function play() {
-      if (!cube || document.body.classList.contains('hero-2type')) return;
-      if (raf) cancelAnimationFrame(raf);
-      if (noMotion) { render(END + 1); return; }
-      render(0); t0 = 0; raf = requestAnimationFrame(loop);
-    }
-    window.ohayoSeek = window.ohayoSeek || {};
-    window.ohayoSeek.cubeDrop = function (t) { if (raf) { cancelAnimationFrame(raf); raf = null; } render(t); };   /* skill: seek hook */
-    /* grab the cube on the first frame the scene is ready, before it can be seen at rest */
-    (function grab() {
-      var app = v._loaded && v._spline, c = app && app.findObjectByName && app.findObjectByName('Cube');
-      if (!c) { requestAnimationFrame(grab); return; }
-      cube = c;
-      rest = { y: c.position.y, rx: c.rotation.x, ry: c.rotation.y, rz: c.rotation.z, sx: c.scale.x, sy: c.scale.y, sz: c.scale.z };
-      render(0); play();
-    })();
-    document.addEventListener('herochange', function () { requestAnimationFrame(play); });
-  })();
-
   /* Tournament 3D scene: render only while the section is on screen (two live WebGPU scenes would otherwise run at once). */
   (function () {
     var v = document.querySelector('.t-scene spline-viewer');
@@ -1165,9 +1139,6 @@
     new IntersectionObserver(function (es) { visible = es[0].isIntersecting; sync(); }, { rootMargin: '200px 0px' }).observe(v);
   })();
 
-  var pcards = $('pcards'), flipT = null;
-  if (pcards) pcards.addEventListener('click', function () { if (flipT) { clearInterval(flipT); flipT = null; } this.classList.toggle('swap'); });
-  if (pcards && !noMotion) flipT = setInterval(function () { if (!document.hidden && !$('hero-a').hidden && !pcards.matches(':hover')) pcards.classList.toggle('swap'); }, 5000);
 
 
   /* 2type hero vector sequence (Figma storyboard 75:10785, cuts 1-6), 8s then a 2s hold, looping.
@@ -1416,15 +1387,18 @@
       box.style.height = Math.ceil(k / 12) * 6 + 'px'; /* the amount rides along with the stack */
     }
     var R = RUNS[0], col = '#11ec8a', rgb = '17,236,138', orange = '#ff5a00';
-    var bx = 0, by = 0, W = 0, H = 0, dpr = 1, DX = 0, DY = 0, sc = 1, room = 1, raf = null, t0 = 0, run = 0;
+    var bx = 0, by = 0, W = 0, H = 0, dpr = 1, DX = 0, DY = 0, sc = 1, room = 1, raf = null, t0 = 0, run = 0, HX = 0, CL = 0, cw0 = 0;
 
+    var V2 = function () { return document.body.classList.contains('hero-v2'); };
+    var runAt = function (r) { return RUNS[(((r + (V2() ? 1 : 0)) % RUNS.length) + RUNS.length) % RUNS.length]; };   /* 2type: short first */
     function setRun(r) {
-      R = RUNS[r % RUNS.length];
+      R = runAt(r);
       belt.classList.toggle('is-short', R.dir < 0);
       name.textContent = R.name; cols[1].txt = R.cap; x10.textContent = R.x;
       col = getComputedStyle(document.documentElement).getPropertyValue(R.color).trim() || col;
       orange = getComputedStyle(document.documentElement).getPropertyValue('--fg-primary').trim() || orange;
       var h = col.replace('#', ''); if (h.length === 6) rgb = [0, 2, 4].map(function (o) { return parseInt(h.substr(o, 2), 16); }).join(',');
+      cache = {};
       place();
     }
     function place() {
@@ -1462,6 +1436,15 @@
       label.style.left = (DX + 20 * sc) + 'px'; label.style.top = DY + 'px';
       room = Math.min(1, Math.max(0.5, (W - 24 - DX - 170 * sc) / 747)); /* squeeze the columns in on narrow screens */
       x10.style.left = (DX + 604 * sc * room) + 'px'; x10.style.top = (DY - 121.5 * sc) + 'px'; /* between the two graphs */
+      if (V2()) {
+        /* 2type (Figma 141:47868): the chart's head sits 390px right of the copy's left edge; the profit graph stays put:
+           STOCKS 367px and OHAYO 547px right of the head, the 10x between them */
+        HX = (cr.left - fr.left) + 390 * sc; CL = cr.left - fr.left;
+        room = Math.min(1, Math.max(0.5, (W - 24 - HX - 170 * sc) / 547));
+        cols[0].dx = 367; cols[1].dx = 547; DX = HX;
+        x10.style.left = (HX + 420 * sc * room) + 'px';
+        label.style.left = (HX + 14 * sc) + 'px';
+      } else { cols[0].dx = 423; cols[1].dx = 747; }
       place();
     }
     /* Ignition orbit, drawn around the dot. Arcs: radius (x the dot radius), width, share of the circle, spin in
@@ -1502,13 +1485,85 @@
       for (var j = 0; j < 25 && i - j > 0; j++) if (v(i - j) !== v(i - j - 1)) return 1 - out(clamp(j * STEP / 250));
       return 0;
     }
+    /* 2type background: a candle chart instead of the dot, tail and grid. The camera scrolls with the belt (the chart
+       flows right to left at one steady speed, like a live chart) but never moves vertically: the head
+       candle climbs (long) or falls (short) on screen, and the ticker + % label rides beside it. 15px candle slots,
+       built from the same move as the counters (0..1 of the move), with a small deterministic wiggle so up and down
+       candles mix; history before the run idles around the start level. The profit graph to the right stays fixed. */
+    var CP = 15, CHIST = 160, cache = {};
+    /* the chart flows like a live chart: one steady speed for the whole run (no run-up, no braking), 130px/s */
+    var lx = []; for (var li = 0; li < n; li++) lx.push(VX * (li * STEP - PRE) / 1000);
+    var wig = function (k) { return 0.08 * Math.sin(k * 1.7) + 0.06 * Math.sin(k * 0.61 + 1.3) + 0.05 * Math.sin(k * 3.1 + 0.4); };
+    function val(i) { return clamp(wy[i] / yTop) + wig(i * 0.09) * (0.6 + 0.4 * Math.sin(i * 0.013)); }
+    function candles() {                                                 /* per run: finished candles + running state per sample */
+      if (cache.c) return cache;
+      var bars = {}, run2 = [];
+      for (var q = 0; q < n; q++) {
+        var k = Math.floor((lx[q] + 1e4 * CP) / CP) - 1e4, v2 = val(q), b = bars[k];
+        if (!b) { var pv = bars[k - 1] ? bars[k - 1].c : v2; b = bars[k] = { o: pv, h: Math.max(pv, v2), l: Math.min(pv, v2), c: v2 }; }
+        b.c = v2; b.h = Math.max(b.h, v2); b.l = Math.min(b.l, v2);
+        run2.push({ k: k, o: b.o, h: b.h, l: b.l, c: b.c });
+      }
+      var k0 = run2[0].k, prev = run2[0].o;
+      for (var hk = k0 - 1; hk >= k0 - CHIST; hk--) {                  /* history: idles around 0 with a slow swell */
+        var c2 = prev, o2 = 0.1 * Math.sin(hk * 0.23) + 0.07 * Math.sin(hk * 0.71) + wig(hk);
+        bars[hk] = { o: o2, c: c2, h: Math.max(o2, c2) + 0.03 + 0.05 * Math.abs(Math.sin(hk * 2.3)), l: Math.min(o2, c2) - 0.03 - 0.05 * Math.abs(Math.cos(hk * 1.9)) };
+        prev = o2;
+      }
+      cache = { c: bars, r: run2, k0: k0 - CHIST };
+      return cache;
+    }
+    function drawChart(t, i, a) {
+      var C = candles(), s = R.dir, RANGE = 190 * sc, y0 = DY + (s > 0 ? 70 : -110) * sc, ySpan = s > 0 ? -RANGE : RANGE;
+      var yOf = function (v) { return y0 + ySpan * v; };
+      var wNow = lx[i], head = C.r[i], fadeL = CL - 40 * sc;
+      var alphaX = function (x) { return clamp((x - fadeL) / (260 * sc)); };
+      // faint panel: horizontal rules fixed, vertical rules + date labels flowing with the chart (138px a half-year)
+      ctx.globalAlpha = a; ctx.lineWidth = 1;
+      for (var hy = DY - 220 * sc, hj = 0; hy < DY + 170 * sc; hy += 52 * sc, hj++) {
+        var hg = ctx.createLinearGradient(fadeL, 0, W, 0), ha = 0.05 * Math.min(1, hj / 1.5, (DY + 170 * sc - hy) / (78 * sc));
+        hg.addColorStop(0, 'rgba(255,255,255,0)'); hg.addColorStop(0.25, 'rgba(255,255,255,' + ha.toFixed(3) + ')'); hg.addColorStop(1, 'rgba(255,255,255,' + (ha * 0.6).toFixed(3) + ')');
+        ctx.strokeStyle = hg; ctx.beginPath(); ctx.moveTo(fadeL, Math.round(hy) + 0.5); ctx.lineTo(W, Math.round(hy) + 0.5); ctx.stroke();
+      }
+      var G = 138 * sc, gw = wNow;                                     /* each run starts its own calendar (the LED wipe hides the seam) */
+      ctx.font = '500 ' + (12 * sc).toFixed(1) + 'px ' + getComputedStyle(document.body).fontFamily; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (var gk = Math.floor((gw * sc - HX) / G) - 1; ; gk++) {
+        var gx = HX + gk * G - gw * sc; if (gx > W) break; if (gx < -G) continue;
+        var ga = a * alphaX(gx);
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.05 * ga / Math.max(a, 1e-3)).toFixed(3) + ')';
+        ctx.beginPath(); ctx.moveTo(Math.round(gx) + 0.5, DY - 220 * sc); ctx.lineTo(Math.round(gx) + 0.5, DY + 170 * sc); ctx.stroke();
+        ctx.fillStyle = 'rgba(144,144,144,' + (0.45 * ga).toFixed(3) + ')';
+        var gE = Math.floor(lx[n - 1] * sc / G / 2) * 2;                     /* calendar pinned so the run ends in 2026 */
+        ctx.fillText(gk % 2 ? 'Jul' : String(2026 + Math.floor((gk - gE) / 2)), gx, DY + 186 * sc);
+      }
+      // candles: finished ones from the cache, the head one as it stands at this sample
+      var bw = Math.max(3, 7 * sc), up, red = getComputedStyle(document.documentElement).getPropertyValue('--fg-negative').trim() || '#ff4b4e';
+      var grn = getComputedStyle(document.documentElement).getPropertyValue('--fg-positive').trim() || '#11ec8a';
+      for (var k = head.k; k >= C.k0; k--) {
+        var b = k === head.k ? head : C.c[k]; if (!b) continue;
+        var x = HX + ((k + 0.5) * CP - wNow) * sc - CP * 0.5 * sc; if (x < -20) break;
+        var ax = alphaX(x); if (ax <= 0) continue;
+        up = (b.c >= b.o) === (s > 0);                                    /* the price rises: long up, short down */
+        ctx.globalAlpha = a * ax * 0.92; ctx.fillStyle = up ? grn : red;
+        var yh = yOf(b.h), yl = yOf(b.l), yo = yOf(b.o), yc = yOf(b.c);
+        ctx.fillRect(Math.round(x) - 0.5, Math.min(yh, yl), Math.max(1, sc), Math.max(1, Math.abs(yl - yh)));
+        ctx.fillRect(x - bw / 2, Math.min(yo, yc), bw, Math.max(1.5, Math.abs(yc - yo)));
+      }
+      ctx.globalAlpha = 1;
+      /* the label rides the price, not the candle: x stays just right of the head slot (no hop when a new candle opens),
+         y follows the average of the last 400ms of price (a moving average, still a pure function of t), so it glides
+         with the move instead of shaking with every tick */
+      var acc2 = 0, cnt = 0; for (var q = Math.max(0, i - 40); q <= i; q++) { acc2 += val(q); cnt++; }
+      return { x: HX + CP * 0.5 * sc, y: yOf(acc2 / cnt) };
+    }
     function draw(t) {
       var i = at(t), s = R.dir, cx = bx + wx[i], cy = by + s * wy[i];
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
       // grid: 1px white lines at 10%, shown only while the belt moves and once the % has left 0 (it fades in from
       // the moment the OHAYO amount first reads non-zero, and out again as the belt brakes)
-      var ga = 0.1 * Math.min(clamp(sp[i] / VX), clamp((t - zeroUntil(R)) / 800));
+      var v2 = V2();
+      var ga = v2 ? 0 : 0.1 * Math.min(clamp(sp[i] / VX), clamp((t - zeroUntil(R)) / 800));
       ctx.strokeStyle = 'rgba(255,255,255,' + ga.toFixed(3) + ')'; ctx.lineWidth = 1; ctx.beginPath();
       for (var gx = mod(DX + OX - cx, GX); gx < W; gx += GX) { ctx.moveTo(Math.round(gx) + 0.5, 0); ctx.lineTo(Math.round(gx) + 0.5, H); }
       for (var gy = mod(DY + OY + cy, GY); gy < H; gy += GY) { ctx.moveTo(0, Math.round(gy) + 0.5); ctx.lineTo(W, Math.round(gy) + 0.5); }
@@ -1521,8 +1576,10 @@
       var grow = 0.32 * out(clamp(t / 250)) + 0.68 * eOut;                 /* core 1/3 size, swelling to full on collapse */
       // it ignites at centre stage and glides left into the dot's place while the orbit collapses (0.8-1.5s)
       var ox = DX + (W / 2 - DX) * (1 - inOut(clamp((t - 800) / 700)));
+      var hd = null;
+      if (v2) { hd = drawChart(t, i, Math.min(clamp(t / 400), 1 - clamp((t - (LOOP - WIPE)) / 150))); label.style.top = hd.y + 'px'; label.style.left = (hd.x + 14 * sc) + 'px'; }
       ctx.globalAlpha = a;
-      if (t < INTRO + 50) ignite(t, eIn, eOut, a, ox);
+      if (!v2 && t < INTRO + 50) ignite(t, eIn, eOut, a, ox);
       // tail: the dot's recent path; 85px at cruise, ~3x at full speed, gone when stopped
       // no tail while OHAYO reads +$0: just the dot; the tail grows out from the moment its amount turns non-zero
       var L = 85 * sp[i] / VX * sc * clamp((t - zeroUntil(R)) / 700), len = 0, j = i, px = DX, py = DY, pts = [[DX, DY]];
@@ -1530,7 +1587,7 @@
         j--; var qx = DX + (wx[j] - wx[i]) * sc, qy = DY - s * (wy[j] - wy[i]) * sc;
         len += Math.hypot(qx - px, qy - py); px = qx; py = qy; pts.push([qx, qy]);
       }
-      if (pts.length > 1) {
+      if (pts.length > 1 && !v2) {
         var g = ctx.createLinearGradient(px, py, DX, DY);
         g.addColorStop(0, 'rgba(' + rgb + ',0)'); g.addColorStop(0.65, col); g.addColorStop(1, col);
         ctx.strokeStyle = g; ctx.lineWidth = 21 * sc; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -1541,7 +1598,7 @@
       // run-up beat kicks (beats 3-7): each beat lands one entrance, and the dot pulses with it
       var kick = function (at0) { var d = t - at0; return d >= 0 && d < 300 ? 1 - out(d / 300) : 0; };
       var pulse = Math.max(kick(INTRO), kick(INTRO + B), kick(INTRO + 2 * B), kick(INTRO + 3 * B), kick(LEAD), kick(END));   /* and on the 10x / 20x landing */
-      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(ox, DY, 10.5 * sc * Math.max(0.001, grow) * (1 + 0.35 * pulse), 0, Math.PI * 2); ctx.fill();
+      if (!v2) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(ox, DY, 10.5 * sc * Math.max(0.001, grow) * (1 + 0.35 * pulse), 0, Math.PI * 2); ctx.fill(); }
       ctx.globalAlpha = 1;
       // the label slides out of the dot as it lands (beat 3)
       var lIn = out(clamp((t - INTRO) / 300));
@@ -1629,9 +1686,9 @@
     function loop(ts) {
       if (!t0) t0 = ts;
       var e = ts - t0, r = Math.floor(e / LOOP);
-      while (run < r) { bx += wx[n - 1]; by += R.dir * wy[n - 1]; run++; setRun(run); } /* carry the grid over, switch long <-> short */
+      while (run < r) { bx += wx[n - 1]; by += R.dir * wy[n - 1]; cw0 += wx[n - 1]; run++; setRun(run); } /* carry the grid over, switch long <-> short */
       var tr = e - r * LOOP; draw(tr);
-      var rc = function (i) { var k = RUNS[(i + RUNS.length) % RUNS.length].color; return runCol[k] || (runCol[k] = getComputedStyle(document.documentElement).getPropertyValue(k).trim()); };
+      var rc = function (i) { var k = runAt(i).color; return runCol[k] || (runCol[k] = getComputedStyle(document.documentElement).getPropertyValue(k).trim()); };
       drawFx(tr, rc(tr < WIPE ? run - 1 : run), rc(tr < WIPE ? run : run + 1));   /* reveal uses the new run's colour */
       raf = requestAnimationFrame(loop);
     }
@@ -1653,7 +1710,7 @@
         layout();
         if (noMotion) { draw(END + STOP); return; }
         if (document.body.classList.contains('hero-intro-on')) { ctx.clearRect(0, 0, cv.width, cv.height); [label].concat(cols.map(function (c) { return c.el; }), [x10]).forEach(function (el) { el.style.opacity = 0; }); return; } /* wait for the page intro */
-        t0 = 0; run = 0; bx = by = 0; setRun(0);
+        t0 = 0; run = 0; bx = by = 0; cw0 = 0; setRun(0);
         if (onScreen) raf = requestAnimationFrame(loop); else pausedAt = performance.now();   /* starts once it scrolls into view */
       }
     }
@@ -1665,38 +1722,20 @@
     sync();
   })();
 
-  /* Preview controls */
-  var heads = {
-    A: 'SK hynix. 10x. Here.',
-    B: 'Long SK hynix at 10x. Short NVDA at 20x.',
-    C: 'Same move. Ten times.',
-    D: 'A new prize pool every day. Same tickers you trade.'
-  };
-  var hBtns = all('[data-h]');
-  hBtns.forEach(function (b) {
-    b.addEventListener('click', function () { press(hBtns, b); $('headline').textContent = heads[b.getAttribute('data-h')]; });
-  });
+  /* Preview bar: shows by default (?preview=0 hides it). Hero 1type / 2type: 2type is a copy of 1type, marked by
+     body.hero-v2 (?hero=2 opens it); everything 1type does runs as is, 2type-only changes hang off that class.
+     Switching replays the page intro and the belt. */
   var heroBtns = all('[data-hero]');
   heroBtns.forEach(function (b) {
     b.addEventListener('click', function () {
-      var isB = b.getAttribute('data-hero') === 'x10', is3 = b.getAttribute('data-hero') === 'card3', h = isB || is3 ? 'C' : 'A';
       press(heroBtns, b);
-      $('hero-a').hidden = isB; /* 2type: empty slot for the next hero concept, no 3D scene */
-      /* both types: the first screen (.fold) ends at the ticker strip and the creators row follows it (index.html) */
-      /* 3type is 1type plus body.hero-3type: everything 1type does runs as is; 3type-only changes hang off that class */
-      document.body.classList.toggle('hero-3type', is3);
-      document.body.classList.toggle('hero-2type', isB); document.dispatchEvent(new Event('herochange'));
-      var line = document.querySelector('.hero-line');
-      if (line) { line.classList.remove('is-drawn'); if (isB) requestAnimationFrame(function () { requestAnimationFrame(function () { line.classList.add('is-drawn'); }); }); }
-      $('headline').textContent = heads[h];
-      press(hBtns, hBtns.filter(function (x) { return x.getAttribute('data-h') === h; })[0]);
+      document.body.classList.toggle('hero-v2', b.getAttribute('data-hero') === '2');
+      document.dispatchEvent(new Event('herochange'));
     });
   });
+  press(heroBtns, heroBtns.filter(function (x) { return x.getAttribute('data-hero') === (document.body.classList.contains('hero-v2') ? '2' : '1'); })[0]);
   $('preview-x').addEventListener('click', function () { $('preview').hidden = true; });
-  /* Preview controls (headline A-D, hero 1/2/3type) show by default; ?preview=0 hides them */
   if (!/[?&]preview=0/.test(location.search)) $('preview').hidden = false;
-  /* 2type is the default hero for every visitor (body already carries .hero-2type from the inline script, so nothing
-     flashes); this finishes the switch: headline C, intro and belt started. ?hero=1 opens 1type, ?hero=3 opens 3type. */
-  var startHero = /[?&]hero=3/.test(location.search) ? 'card3' : /[?&]hero=1/.test(location.search) ? null : 'x10';
-  if (startHero) heroBtns.filter(function (x) { return x.getAttribute('data-hero') === startHero; })[0].click();
+  /* The hero (body.hero-2type, set by the inline script before first paint): 'herochange' starts the page intro and the belt */
+  document.dispatchEvent(new Event('herochange'));
 })();

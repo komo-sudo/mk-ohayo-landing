@@ -13,13 +13,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Doto:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="assets/css/landing.css">
-<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }</script>
 <script type="module" src="https://unpkg.com/@splinetool/viewer@2.0.203/build/spline-viewer.js"></script>
 </head>
 <body>
-<!-- 2type is the default hero; set it before first paint so the 1type hero never flashes (?hero=1 opens 1type,
-     ?hero=3 opens 3type: a copy of 1type, told apart by body.hero-3type so it can change without touching 1type) -->
-<script>if (/[?&]hero=3/.test(location.search)) document.body.classList.add('hero-3type'); else if (!/[?&]hero=1/.test(location.search)) document.body.classList.add('hero-2type');</script>
+<!-- The hero: body.hero-2type (the belt-scroll hero; the class name predates the current naming) is set before first paint
+     so the page intro runs from a clean first frame. Preview 2type (?hero=2) is a copy of it, told apart by body.hero-v2,
+     so it can change without touching 1type. -->
+<script>document.body.classList.add('hero-2type'); if (/[?&]hero=2/.test(location.search)) document.body.classList.add('hero-v2');</script>
 
 <header class="top">
   <div class="wrap">
@@ -39,14 +39,6 @@
 
 <!-- First screen: the hero and today's strip share the viewport height on wide screens; the creators row follows. -->
 <div class="fold">
-  <!-- 1type hero: one cube per dollar (assets/js/hero-cubes.js). Shares $48 trickle into a small pile, OHAYO 10x $480 pours into a big one. -->
-  <div class="hero-cubes" aria-hidden="true"><canvas></canvas>
-    <b class="hc-x">10x</b>
-  </div>
-  <!-- 3type hero background: the dot wave used down the page (bottom to top), under the Spline scene -->
-  <canvas class="dot-wave" data-dir="up" aria-hidden="true"></canvas>
-  <!-- 3type hero: Spline scene (DVfG5mA1Kp08mDLR) behind the copy; landing.js adds the viewer only when 3type is shown -->
-  <div class="hero-s3" aria-hidden="true" data-url="https://prod.spline.design/DVfG5mA1Kp08mDLR/scene.splinecode"></div>
   <!-- 2type hero: line art (Figma ohayo00001 · 75:9371) -->
   <div class="hero-line" aria-hidden="true"><svg width="1730" height="970" viewBox="0 0 1729.07 969.618" fill="none"><defs><path id="hl-path" pathLength="1" d="M1726.11 14.6012C1667.77 366.96 1344.63 679.535 974.793 629.671C778.499 607.392 596.39 447.988 571.903 254.105C560.262 174.668 577.122 101.332 610.172 56.1098C650.313 -0.384362 712.265 -12.7176 756.823 23.4864C803.922 59.823 830.015 147.217 812.754 253.972C745.717 608.983 351.792 917.181 0.418208 966.647"/></defs><g class="hl-trail"><use href="#hl-path" style="--d:0.0333"/><use href="#hl-path" style="--d:0.0667"/><use href="#hl-path" style="--d:0.1000"/><use href="#hl-path" style="--d:0.1333"/><use href="#hl-path" style="--d:0.1667"/><use href="#hl-path" style="--d:0.2000"/><use href="#hl-path" style="--d:0.2333"/><use href="#hl-path" style="--d:0.2667"/><use href="#hl-path" style="--d:0.3000"/><use href="#hl-path" style="--d:0.3333"/><use href="#hl-path" style="--d:0.3667"/><use href="#hl-path" style="--d:0.4000"/><use href="#hl-path" style="--d:0.4333"/><use href="#hl-path" style="--d:0.4667"/><use href="#hl-path" style="--d:0.5000"/><use href="#hl-path" style="--d:0.5333"/><use href="#hl-path" style="--d:0.5667"/><use href="#hl-path" style="--d:0.6000"/><use href="#hl-path" style="--d:0.6333"/><use href="#hl-path" style="--d:0.6667"/><use href="#hl-path" style="--d:0.7000"/><use href="#hl-path" style="--d:0.7333"/><use href="#hl-path" style="--d:0.7667"/><use href="#hl-path" style="--d:0.8000"/><use class="hl-head" href="#hl-path" style="--d:0.012"/></g></svg></div>
   <!-- 2type hero: belt-scroll chart (Figma ohayo00001 · 90:13145). The grid scrolls left and down so the fixed dot reads as SK hynix climbing. -->
@@ -59,7 +51,7 @@
   <div class="wrap hero-grid">
     <div class="stack hero-copy">
       <p class="eyebrow">For stock traders who want more than 3x</p>
-      <h1 id="headline">SK hynix. 10x. Here.</h1>
+      <h1 id="headline">Same move. Ten times.</h1>
       <p class="lede">The stocks you already watch. Long when they run, short when they drop.</p>
       <div class="row hero-cta">
         <a class="btn btn-primary" href="https://app.ohayo.global" target="_blank" rel="noopener">Get the app</a>
@@ -69,10 +61,6 @@
     </div>
 
     <div class="hero-visual">
-      <div class="hero-a" id="hero-a">
-        <img class="hero-cards" src="assets/img/hero-cards.png" width="2920" height="2012" alt="Two sample result cards. NVDA short 20x: the stock fell 3.1%, the position is up 62.0%. SK hynix long 10x: the stock rose 4.8%, the position is up 48.2%.">
-      </div>
-
       <!-- 2type hero: vector sequence (Figma ohayo00001 · 75:9419). landing.js runs the 4s sequence + 2s hold on a loop. -->
       <div class="hero-seq" role="img" aria-label="SK hynix up 4.8%. $1,000 invested, returns compared. Shares at your broker: plus $48. OHAYO long 10x: plus $482. 10x.">
         <div class="hs-stage" aria-hidden="true">
@@ -155,7 +143,7 @@
         <div class="pnl"><span class="led up">+4.1%</span><span class="muted">30D PnL</span></div>
       </div>
     </div>
-    <p class="muted" style="margin-top:12px">Sample profiles and numbers for layout. Live PnL will come from each creator's own account, losses included.</p>
+    <p class="muted cr-note" style="margin-top:12px">Sample profiles and numbers for layout. Live PnL will come from each creator's own account, losses included.</p>
   </div>
 </section>
 
@@ -538,15 +526,9 @@
 </dialog>
 
 <div class="preview" id="preview" role="region" aria-label="Preview controls" hidden>
-  <span>Preview · headline</span>
-  <button type="button" class="chip" data-h="A" aria-pressed="true">A</button>
-  <button type="button" class="chip" data-h="B" aria-pressed="false">B</button>
-  <button type="button" class="chip" data-h="C" aria-pressed="false">C</button>
-  <button type="button" class="chip" data-h="D" aria-pressed="false">D</button>
-  <span>hero</span>
-  <button type="button" class="chip" data-hero="card" aria-pressed="true">1type</button>
-  <button type="button" class="chip" data-hero="x10" aria-pressed="false">2type</button>
-  <button type="button" class="chip" data-hero="card3" aria-pressed="false">3type</button>
+  <span>Preview · hero</span>
+  <button type="button" class="chip" data-hero="1" aria-pressed="true">1type</button>
+  <button type="button" class="chip" data-hero="2" aria-pressed="false">2type</button>
   <span>Samples · sign-ups not saved</span>
   <button type="button" class="x" id="preview-x" aria-label="Hide preview controls">×</button>
 </div>
@@ -556,6 +538,5 @@
      The #.splinecode fragment is never sent; it keeps the URL ending the viewer checks for. -->
 <script>document.querySelectorAll('spline-viewer[url]').forEach(function (v) { v.setAttribute('url', v.getAttribute('url') + '?v=' + Date.now() + '#.splinecode'); });</script>
 <script src="assets/js/landing.js"></script>
-<script type="module" src="assets/js/hero-cubes.js"></script>
 </body>
 </html>

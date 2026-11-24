@@ -113,27 +113,11 @@ nav.main button { background: none; border: 0; min-height: 44px; padding: 0 12px
 nav.main button:hover { color: var(--fg-base); }
 
 /* Hero */
-/* Hero (Figma ohayo00001 · hero 45:8137): copy top-left, the two result cards as one image bleeding off to the right. Offsets are the design's, measured from the 1080px content column. */
+/* Hero (Figma ohayo00001 · hero 45:8137): copy top, the belt-scroll chart (2type) under it. */
 .hero { position: relative; overflow: hidden; border-top: 0; padding: 66px 0 0; }
 .hero-grid { min-height: 0; }
 .hero-copy { position: relative; z-index: 1; gap: 20px; max-width: 715px; }
 .hero-copy .lede { max-width: none; }
-.hero-a { position: absolute; inset: 0; pointer-events: none; }
-.hero-cards { position: absolute; left: calc(max(20px, 50% - 540px) + 373px); top: -4%; display: block; height: 132%; width: auto; max-width: none; }
-/* 3D scene (Spline) fills the same slot as the card image; the image stays as the fallback until the viewer is defined. */
-/* The scene canvas spans the whole hero (full viewport width); zoom is applied to the Spline camera in landing.js (data-zoom). */
-/* The 3D scene sits behind the whole first screen (.fold): full page width, exactly one viewport tall, from the top of the page (behind the header).
-   No offset or zoom of our own, so it frames the same way as the Spline editor. */
-.hero-scene { position: absolute; left: 0; top: 0; display: block; width: 100%; height: 100vh; height: 100svh; pointer-events: auto; }
-.fold:has(.hero-scene:defined) .hero-cards { visibility: hidden; }
-/* Preview 2type hero: no 3D scene (landing.js also stops its render loop) */
-.hero-2type .hero-scene { display: none; }
-/* 1type hero: the cube piles (hero-cubes.js) fill the same layer the Spline scene did */
-.hero-cubes { position: absolute; left: 0; top: 0; width: 100%; height: 100vh; height: 100svh; pointer-events: none; }
-.hero-cubes canvas { display: block; width: 100%; height: 100%; -webkit-mask-image: linear-gradient(#000 78%, transparent); mask-image: linear-gradient(#000 78%, transparent); } /* the floor fades out at the bottom edge instead of stopping */
-.fold:has(.hero-cubes) .hero-cards { visibility: hidden; }
-.hero-2type .hero-cubes { display: none; }
-.hc-x { position: absolute; left: 0; top: 0; font-weight: 900; font-size: 40px; line-height: 44px; color: var(--fg-primary); white-space: nowrap; opacity: 0; transform-origin: 50% 100%; }
 /* 2type hero line art (Figma 75:9371): a 6px orange curve behind the copy. In Figma it sits at x -268 / y 157 of the
    1440 hero frame (top = 65px below the page top here) and is rotated 8.29deg.
    It runs as a comet on a loop: a bright head travelling from the lower end to the upper end with a fading tail. SVG has no
@@ -146,18 +130,9 @@ nav.main button:hover { color: var(--fg-base); }
    bottom row up (full rows + a partial row) while the numbers count up. Dot counts follow the money: broker 58 dots
    ($48), OHAYO 576 dots ($482), so the area is 10x. */
 .hero-seq { display: none; position: relative; z-index: 1; width: min(1080px, 100%); height: 200px; margin: 0 auto; } /* narrower screens: landing.js scales the stage down */
-.hero-2type .hero, .hero-3type .hero { display: flex; flex-direction: column; }
-.hero-2type .hero-grid, .hero-3type .hero-grid { flex: 1 0 auto; display: flex; flex-direction: column; width: 100%; } /* auto side margins would otherwise shrink the .wrap to its content in a flex column */
-.hero-2type .hero-visual, .hero-3type .hero-visual { flex: 1 0 auto; display: flex; align-items: center; justify-content: center; padding: 24px 0; }
-/* 3type: 1type's visual is emptied (no cube piles, no result cards); the Spline scene (.hero-s3) fills the first screen */
-.hero-3type .hero-cubes, .hero-3type .hero-a { display: none; }
-/* 3type: the Spline scene fills the first screen behind the copy, like 1type's scene did; it takes the pointer
-   (the copy layer lets it through, only its controls take clicks) */
-.fold > .dot-wave { display: none; }
-.hero-3type .fold > .dot-wave { display: block; }
-.hero-s3 { display: none; position: absolute; left: 0; top: 0; width: 100%; height: 100vh; height: 100svh; }
-.hero-3type .hero-s3 { display: block; }
-.hero-s3 spline-viewer { display: block; width: 100%; height: 100%; }
+.hero-2type .hero { display: flex; flex-direction: column; }
+.hero-2type .hero-grid { flex: 1 0 auto; display: flex; flex-direction: column; width: 100%; } /* auto side margins would otherwise shrink the .wrap to its content in a flex column */
+.hero-2type .hero-visual { flex: 1 0 auto; display: flex; align-items: center; justify-content: center; padding: 24px 0; }
 /* The storyboard sequence (.hero-seq) is parked; to bring it back: .hero-2type .hero-seq { display: block; } */
 .hero-belt { display: none; position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; }
 .hero-2type .hero-belt { display: block; }
@@ -385,6 +360,10 @@ nav.main button:hover { color: var(--fg-base); }
 .tv-fill .nav { display: flex; gap: 6px; }
 .tv-fill .nav button { min-width: 44px; min-height: 44px; border-radius: var(--radius-control); border: 1px solid var(--bd-control); background: var(--bg-raised); color: var(--fg-base); }
 .tv-fill .nav button:disabled { opacity: 0.35; cursor: default; }
+/* TradeView assembly (landing.js): until it plays, the mock's parts wait hidden; the script then builds it piece by piece */
+.tv-pre .tv-side, .tv-pre .tv-detail, .tv-pre .tv-filter .chip, .tv-pre .tv-row, .tv-pre .tv-side > .muted, .tv-pre .tv-top > *,
+.tv-pre .tv-svg, .tv-pre .tv-fill > *, .tv-pre .tv-detail .why, .tv-pre .talk > *, .tv-pre .sec-head > * { opacity: 0; }
+.tv-svg .mk { transform-box: fill-box; transform-origin: 50% 50%; }
 .why { border-left: 2px solid var(--bg-primary); padding: 2px 0 2px 12px; }
 .why small { display: block; font-family: var(--font-led); font-weight: 700; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-primary); margin-bottom: 2px; }
 .why.ai { border-left-color: var(--bd-control-hover); }
@@ -419,7 +398,6 @@ nav.main button:hover { color: var(--fg-base); }
 .replay svg { flex: none; }
 
 /* v9: team thread feedback */
-.hero-a[hidden] { display: none; }
 /* two-column blocks share one bottom edge */
 .tv-side { padding: 18px; display: flex; flex-direction: column; gap: 8px; }
 .tv-side > .muted { margin-top: auto; padding-top: 10px; }
@@ -465,6 +443,17 @@ nav.main button:hover { color: var(--fg-base); }
 }
 .creators + section { border-top: 0; }
 #compare, #tradeview, #spotlight, #start, #faq, .final { border-top: 0; } /* no rules between these sections */ /* no rule between the creators row and the section after it */
+/* Section reveal (landing.js; Creators and Compare). The section gets .rv-pre, then .rv-in once half of it is on screen;
+   it plays once. ohayo-motion: out easing, 400ms each. The items (creator cards / table rows) stagger by a beat
+   divided among them and grow from 0 to full size with their opacity; on the next beat the title block plays the same,
+   its lines 80ms apart, with any note under the items. Background layers (the ticker marquee) are left alone. */
+.rv-pre .rv-item, .rv-pre .rv-head { opacity: 0; transform: scale(0); }
+.rv-pre .rv-item { transform-origin: 50% 50%; }
+.rv-pre .rv-head { transform-origin: 0 50%; }
+.rv-in .rv-item, .rv-in .rv-head {
+  opacity: 1; transform: none; transition: opacity 400ms cubic-bezier(0.2, 0.7, 0.2, 1), transform 400ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: var(--d, 0ms);
+}
 .creator-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .creator { display: flex; align-items: center; gap: 14px; background: var(--bg-raised); border: 1px solid var(--bd-strong); border-radius: var(--radius-card); padding: 16px; }
 .creator svg { flex: none; }
@@ -738,13 +727,6 @@ label.check small { color: var(--fg-muted); margin-left: auto; font-family: var(
   .hero { padding: 36px 0 40px; }
   .hero-grid { position: relative; min-height: 0; }
   .hero-copy { max-width: none; }
-  .hero-a { position: relative; inset: auto; width: 100%; max-width: 580px; height: auto; aspect-ratio: 580 / 625; margin: 24px auto 0; }
-  .hero-cards { position: absolute; left: -74.1%; top: -22.4%; width: 234.3%; height: 149.8%; }
-  /* The scene's camera is framed for the wide layout; narrow screens keep the still image. */
-  .hero-scene { display: none; }
-  .fold:has(.hero-scene:defined) .hero-cards { visibility: visible; }
-  .hero-cubes { display: none; }
-  .fold:has(.hero-cubes) .hero-cards { visibility: visible; }
 }
 
 /* Daily Tournaments (Figma 45:8529): 170px above, ~238px below. The Spline scene sits at the foot of the section,
