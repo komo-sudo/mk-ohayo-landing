@@ -788,7 +788,11 @@ nav.main a:focus-visible { outline: 2px solid var(--bd-focus); outline-offset: 2
 .promo-copy { gap: 18px; }
 .promo-copy .lede { max-width: 44ch; }
 .promo-copy .row { gap: 12px; margin-top: 6px; }
-.promo-card { padding: 24px; gap: 20px; }
+.promo-card { padding: 0; gap: 20px; background: none; border: 0; border-radius: 0; } /* no surface: the card sits on the page (Figma 147:50615) */
+.promo-card .st-live i, .promo-card .st-live i::after { animation-duration: 3.2s; } /* slow LIVE blink: twice the app's 1.6s */
+.promo-card .p-bump { animation: p-tick 0.4s cubic-bezier(0.2, 0.7, 0.2, 1); } /* a number that just changed settles in */
+@keyframes p-tick { from { opacity: 0.35; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .promo-card .st-live i, .promo-card .st-live i::after, .promo-card .p-bump { animation: none; } }
 .promo-card .tc-title b { font-size: 18px; }
 .promo-card .tc-stats b { font-size: 20px; }
 .promo-joined { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 14px; border-radius: var(--radius-6); background: var(--bg-primary-subtle); font-size: 13px; color: var(--fg-subtle); }
@@ -804,9 +808,12 @@ nav.main a:focus-visible { outline: 2px solid var(--bd-focus); outline-offset: 2
 .promo-lb .lb-row .led.up { text-align: right; }
 .tvp .tvp-svg .mk { cursor: default; pointer-events: none; }
 /* On tournament.html / tradeview.html the intro is the page's first section: clear the floating header, no rule above */
-.page-sub main > .promo:first-child { padding-top: 160px; border-top: 0; }
+/* (Figma 147:50615) It fills the viewport, content centred under the floating header, over a dot-wave field. */
+.page-sub main > .promo:first-child { min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: 96px 0 64px; border-top: 0; }
+.page-sub main > .promo:first-child > .wrap { position: relative; z-index: 1; width: 100%; }
+.page-sub main > .promo:first-child + section { border-top: 0; }
 @media (max-width: 900px) {
   .promo-grid, .promo--flip .promo-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; }
   .promo--flip .promo-copy { order: -1; }
-  .page-sub main > .promo:first-child { padding-top: 120px; }
+  .page-sub main > .promo:first-child { min-height: 0; padding: 120px 0 84px; }
 }

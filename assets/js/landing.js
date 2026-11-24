@@ -1149,6 +1149,65 @@
   }
   if ($('g-btn')) $('g-btn').addEventListener('click', function () { gi = gi === gSteps.length - 1 ? 0 : gi + 1; paintGoal(); });
 
+  /* 3type Tournament intro card ([data-p-live]; ohayo-motion): the live board keeps moving, driven by real time.
+       Ends in    counts down once a second (data-p-clock = seconds left at load; wraps to 24h at zero).
+       Players    +1 to +3 every 2-5s; the new number settles in (.p-bump, 400ms, out).
+       Return %   every 1.5s each row eases (600ms, out) to a new value inside its own band. The bands never overlap,
+                  so the ranks stay as shown: a rank change within seconds wouldn't be believable.
+     Wakes only when something changes (a frame loop only while returns ease), stops off screen.
+     Reduced motion: the clock still counts (it is information), players and returns stay still. */
+  all('[data-p-live]').forEach(function (card) {
+    var clk = card.querySelector('[data-p-clock]'), ply = card.querySelector('[data-p-players]');
+    if (!clk || !ply) return;
+    var BAND = [6, 3.5, 3.5, 6];                                    /* 206-218 · 192.5-199.5 · 184.5-191.5 · 135-147 */
+    var rets = all('[data-p-ret]', card).map(function (el, k) {
+      var b = Number(el.getAttribute('data-p-ret'));
+      return { el: el, base: b, amp: BAND[k] || 3, from: b, to: b, t0: -1e9, shown: b };
+    });
+    var end = Date.now() + Number(clk.getAttribute('data-p-clock')) * 1000, players = Number(ply.textContent.replace(/,/g, ''));
+    var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var out = function (x) { return 1 - Math.pow(1 - x, 3); };
+    var p2 = function (n) { return (n < 10 ? '0' : '') + n; };
+    var on = false, raf = null, timer = null, nextP = 0, nextR = 0;
+    function bump(el, text) { el.textContent = text; el.classList.remove('p-bump'); void el.offsetWidth; el.classList.add('p-bump'); }
+    function step() {
+      raf = timer = null;
+      if (!on) return;
+      var ts = performance.now(), now = Date.now();
+      if (end - now <= 0) end += 24 * 3600 * 1000;
+      var left = Math.ceil((end - now) / 1000);
+      clk.textContent = p2(Math.floor(left / 3600)) + ':' + p2(Math.floor(left / 60) % 60) + ':' + p2(left % 60);
+      if (!still) {
+        if (ts >= nextP) {
+          if (nextP) { players += 1 + Math.floor(Math.random() * 3); bump(ply, players.toLocaleString('en-US')); }
+          nextP = ts + 2000 + Math.random() * 3000;
+        }
+        if (ts >= nextR) {
+          rets.forEach(function (r) { r.from = r.shown; r.to = r.base + (Math.random() * 2 - 1) * r.amp; r.t0 = ts; });
+          nextR = ts + 1500;
+        }
+        rets.forEach(function (r) {
+          r.shown = r.from + (r.to - r.from) * out(Math.min(1, (ts - r.t0) / 600));
+          var s = '+' + Math.round(r.shown) + '%';
+          if (r.el.textContent !== s) r.el.textContent = s;
+        });
+      }
+      var easing = !still && rets.some(function (r) { return ts - r.t0 < 600; });
+      if (easing) { raf = requestAnimationFrame(step); return; }
+      var wait = ((end - Date.now()) % 1000) + 5;                  /* until the countdown's next whole second */
+      if (!still) wait = Math.min(wait, nextP - ts, nextR - ts);
+      timer = setTimeout(step, Math.max(16, wait));
+    }
+    function run(v) {
+      on = v;
+      if (!v) { if (raf) cancelAnimationFrame(raf); if (timer) clearTimeout(timer); raf = timer = null; return; }
+      if (!raf && !timer) step();
+    }
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) { run(es[0].isIntersecting); }).observe(card);
+    } else run(true);
+  });
+
   /* Tournament 3D scene: render only while the section is on screen (two live WebGPU scenes would otherwise run at once). */
   (function () {
     var v = document.querySelector('.t-scene spline-viewer');

@@ -26,6 +26,12 @@ Rules that hold across the whole page are in `.claude/skills/ohayo-design` (layo
 
 ## Tournament
 
+- **2026-11-24 · tournament.html hero** (Figma 147:50615):
+  - Fills the viewport (100svh), content centred, over a dot-wave background.
+  - The intro card has no border or background, on every page.
+  - Card motion: LIVE blinks slowly (3.2s); "Ends in" counts down; players rise by 1–3 every 2–5s; return % eases within fixed bands. Ranks don't change, since a rank change within seconds isn't believable.
+  - Kept the "Joined 09:12" strip, although this Figma copy predates it.
+
 - **2026-11-24 · Condensed message: "Join, and every trade counts."**
   - Joining is what starts the count (PRD 4.2, 5.1).
   - The board card shows "Joined 09:12 · Your trades count from here" above the leaderboard where You is #2.
