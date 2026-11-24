@@ -116,7 +116,8 @@ nav.main button:hover { color: var(--fg-base); }
 /* Hero (Figma ohayo00001 · hero 45:8137): copy top, the belt-scroll chart (2type) under it. */
 .hero { position: relative; overflow: hidden; border-top: 0; padding: 66px 0 0; }
 .hero-grid { min-height: 0; }
-.hero-copy { position: relative; z-index: 1; gap: 20px; max-width: 715px; }
+.hero-copy { position: relative; z-index: 6; gap: 20px; max-width: 715px; } /* above the belt's LED wipe (.hb-fx, z 5), so the copy is never covered */
+.hero-intro-on .hero-copy { z-index: 1; } /* but under the page intro (z 3) while it plays, or the copy's soft shadow shows as a grey block over the intro's light plates */
 .hero-copy .lede { max-width: none; }
 /* 2type hero line art (Figma 75:9371): a 6px orange curve behind the copy. In Figma it sits at x -268 / y 157 of the
    1440 hero frame (top = 65px below the page top here) and is rotated 8.29deg.

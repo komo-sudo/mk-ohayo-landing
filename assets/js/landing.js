@@ -443,32 +443,38 @@
      data-dir="right" rolls left to right (creators + Try it), "up" rolls bottom to top (Spotlight). Each dot's level
      follows a travelling sine bent gently along the other axis, so the crests read as soft, uneven ripples rather than
      straight bars. Levels stay between #141414 and #2c2c2c on black, so it never competes with the cards.
-     data-through="id" stretches the field down to the foot of that later section. Draws at 30fps, only while the
-     field is on screen; reduced motion draws one still frame. */
+     data-through="id" stretches the field down to the foot of that later section. Draws at 30fps at 1x resolution, one
+     fill per grey level, only while the field really overlaps the screen; reduced motion draws one still frame. */
   [].forEach.call(document.querySelectorAll('.dot-wave'), function (cv) {
     var sec = cv.parentNode, end = document.getElementById(cv.getAttribute('data-through') || ''), up = cv.getAttribute('data-dir') === 'up';
     var g = cv.getContext('2d'), P = 24, W = 0, H = 0, dpr = 1, raf = null, last = 0, t0 = 0;
     var LO = 20, HI = 44, V = 60, K = 2 * Math.PI / 520;   /* wavelength 520px drifting at 60px/s: a crest every ~8.7s */
     function size() {
-      dpr = Math.min(2, window.devicePixelRatio || 1); W = sec.clientWidth;
+      /* 1x resolution: dim 2-4px dots on black read the same, and a retina canvas of a two-section field is ~4x the pixels */
+      dpr = 1; W = sec.clientWidth;
       H = Math.round(end ? end.getBoundingClientRect().bottom - sec.getBoundingClientRect().top : sec.clientHeight);
       cv.style.height = H + 'px';
       cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     }
+    /* one path per grey level (25 levels): every dot of a level is added to its path and each path is filled once,
+       so a frame is ~25 fills instead of one per dot; the bend per row / column is computed once per line */
+    var NL = HI - LO + 1;
     function draw(t) {
       g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
-      var ox = (W % P) / 2 + P / 2, oy = (H % P) / 2 + P / 2;
+      var ox = (W % P) / 2 + P / 2, oy = (H % P) / 2 + P / 2, paths = [];
+      for (var q = 0; q < NL; q++) paths.push(new Path2D());
       for (var y = oy; y < H; y += P) {
+        var bendY = up ? 0 : Math.sin(y / 170) * 1.1 + Math.sin(y / 61) * 0.35;
         for (var x = ox; x < W; x += P) {
-          var across = up ? x : y, along = up ? -y : x;               /* "up": travel toward smaller y */
-          var bend = Math.sin(across / 170) * 1.1 + Math.sin(across / 61) * 0.35;
+          var bend = up ? Math.sin(x / 170) * 1.1 + Math.sin(x / 61) * 0.35 : bendY;   /* bent along the other axis */
+          var along = up ? -y : x;                                    /* "up": travel toward smaller y */
           var w = 0.5 + 0.5 * Math.sin((along - t * V) * K + bend);
           w = w * w * w;                                              /* narrow crests, long calm troughs */
-          var v = Math.round(LO + (HI - LO) * w);
-          g.fillStyle = 'rgb(' + v + ',' + v + ',' + v + ')';
-          g.beginPath(); g.arc(x, y, 1.6 + 0.5 * w, 0, 6.2832); g.fill();
+          var lv = Math.round((HI - LO) * w), r = 1.6 + 0.5 * lv / (HI - LO);
+          paths[lv].moveTo(x + r, y); paths[lv].arc(x, y, r, 0, 6.2832);
         }
       }
+      for (q = 0; q < NL; q++) { var v = LO + q; g.fillStyle = 'rgb(' + v + ',' + v + ',' + v + ')'; g.fill(paths[q]); }
     }
     function loop(ts) {
       raf = requestAnimationFrame(loop);
@@ -481,10 +487,13 @@
     if (noMotion || !('IntersectionObserver' in window)) { draw(0); return; }
     t0 = performance.now(); draw(0);
     if ('ResizeObserver' in window) new ResizeObserver(function () { var h = H; size(); if (H !== h) draw((performance.now() - t0) / 1000); }).observe(end || sec);
+    /* only while the field really overlaps the screen: a canvas whose edge just touches the viewport counts as
+       "intersecting" with zero area, which kept a field running under the section next to it */
     new IntersectionObserver(function (es) {
-      if (es[0].isIntersecting && !raf) raf = requestAnimationFrame(loop);
-      else if (!es[0].isIntersecting && raf) { cancelAnimationFrame(raf); raf = null; }
-    }).observe(cv);
+      var on = es[0].isIntersecting && es[0].intersectionRect.height > 1;
+      if (on && !raf) raf = requestAnimationFrame(loop);
+      else if (!on && raf) { cancelAnimationFrame(raf); raf = null; }
+    }, { threshold: [0, 0.01, 0.05] }).observe(cv);
   });
 
   /* Final CTA candidate 2 (Figma 120:7090, "iPhone mockup - Trading chart - Perspective"): the same phone posed in 3D,
@@ -831,12 +840,17 @@
       cv.width = Math.round(W * r); cv.height = Math.round(H * r);
       draw();
     }
+    /* the screen only changes on a tick (every 200ms) and while a new week slides in (300ms), so it is redrawn then and
+       nowhere else: about 5 redraws a second instead of one per display frame; the slide itself is capped at 60fps */
+    var lastDraw = 0;
     function loop(ts) {
       raf = requestAnimationFrame(loop);
       if (prevTs) clock += Math.min(100, ts - prevTs); prevTs = ts;
-      while (clock - lastTick >= TICK) { lastTick += TICK; step(); }
-      if (clock - lastBar >= BAR) { lastBar += BAR; newBar(); }
-      draw();
+      var dirty = false;
+      while (clock - lastTick >= TICK) { lastTick += TICK; step(); dirty = true; }
+      if (clock - lastBar >= BAR) { lastBar += BAR; newBar(); dirty = true; }
+      if (clock - slideT < SLIDE + 20 && ts - lastDraw >= 16) dirty = true;
+      if (dirty) { lastDraw = ts; draw(); }
     }
     window.addEventListener('resize', size);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(size);
@@ -1136,7 +1150,9 @@
     }
     var t = setInterval(function () { if (v._loaded && v._spline) { app = v._spline; clearInterval(t); zoom(); sync(); } }, 300);
     window.addEventListener('resize', function () { setTimeout(zoom, 120); }); /* after Spline's own resize */
-    new IntersectionObserver(function (es) { visible = es[0].isIntersecting; sync(); }, { rootMargin: '200px 0px' }).observe(v);
+    /* runs only while some of it is really on screen (not just touching the edge, no look-ahead margin): the scene sits
+       at the foot of the section, right above TradeView, so a margin kept it rendering under the next section */
+    new IntersectionObserver(function (es) { visible = es[0].isIntersecting && es[0].intersectionRatio > 0.02; sync(); }, { threshold: [0, 0.02, 0.1] }).observe(v);
   })();
 
 
@@ -1490,7 +1506,12 @@
        candle climbs (long) or falls (short) on screen, and the ticker + % label rides beside it. 15px candle slots,
        built from the same move as the counters (0..1 of the move), with a small deterministic wiggle so up and down
        candles mix; history before the run idles around the start level. The profit graph to the right stays fixed. */
-    var CP = 15, CHIST = 160, cache = {};
+    var CP = 15, CHIST = 160, cache = {}, CSS = null;
+    function css() {                                                     /* read once: no style lookups inside a frame */
+      if (!CSS) { var rs = getComputedStyle(document.documentElement);
+        CSS = { font: getComputedStyle(document.body).fontFamily, red: rs.getPropertyValue('--fg-negative').trim() || '#ff4b4e', grn: rs.getPropertyValue('--fg-positive').trim() || '#11ec8a' }; }
+      return CSS;
+    }
     /* the chart flows like a live chart: one steady speed for the whole run (no run-up, no braking), 130px/s */
     var lx = []; for (var li = 0; li < n; li++) lx.push(VX * (li * STEP - PRE) / 1000);
     var wig = function (k) { return 0.08 * Math.sin(k * 1.7) + 0.06 * Math.sin(k * 0.61 + 1.3) + 0.05 * Math.sin(k * 3.1 + 0.4); };
@@ -1526,7 +1547,7 @@
         ctx.strokeStyle = hg; ctx.beginPath(); ctx.moveTo(fadeL, Math.round(hy) + 0.5); ctx.lineTo(W, Math.round(hy) + 0.5); ctx.stroke();
       }
       var G = 138 * sc, gw = wNow;                                     /* each run starts its own calendar (the LED wipe hides the seam) */
-      ctx.font = '500 ' + (12 * sc).toFixed(1) + 'px ' + getComputedStyle(document.body).fontFamily; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = '500 ' + (12 * sc).toFixed(1) + 'px ' + css().font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       for (var gk = Math.floor((gw * sc - HX) / G) - 1; ; gk++) {
         var gx = HX + gk * G - gw * sc; if (gx > W) break; if (gx < -G) continue;
         var ga = a * alphaX(gx);
@@ -1537,8 +1558,7 @@
         ctx.fillText(gk % 2 ? 'Jul' : String(2026 + Math.floor((gk - gE) / 2)), gx, DY + 186 * sc);
       }
       // candles: finished ones from the cache, the head one as it stands at this sample
-      var bw = Math.max(3, 7 * sc), up, red = getComputedStyle(document.documentElement).getPropertyValue('--fg-negative').trim() || '#ff4b4e';
-      var grn = getComputedStyle(document.documentElement).getPropertyValue('--fg-positive').trim() || '#11ec8a';
+      var bw = Math.max(3, 7 * sc), up, red = css().red, grn = css().grn;
       for (var k = head.k; k >= C.k0; k--) {
         var b = k === head.k ? head : C.c[k]; if (!b) continue;
         var x = HX + ((k + 0.5) * CP - wNow) * sc - CP * 0.5 * sc; if (x < -20) break;
@@ -1652,11 +1672,15 @@
       if (rel > -0.13) return FX[2]; if (rel > -0.22) return FX[6]; if (rel > -0.33) return FX[5];   /* lime, amber, coral */
       if (rel > -0.46) return nxt; if (rel > -0.62) return LED_DIM[1]; return LED_DIM[0];
     }
+    var fxLit = true;                                                     /* the wipe layer holds pixels from the last frame */
     function drawFx(t, cur, nxt) {
-      fctx.setTransform(dpr, 0, 0, dpr, 0, 0); fctx.clearRect(0, 0, W, H);
       var FXD = WIPE;                                                       /* each crest takes 3 beats (1.5s) to cross */
       var cover = t > LOOP - FXD ? (t - (LOOP - FXD)) / FXD : -1, reveal = run > 0 && t < FXD ? t / FXD : -1;
-      if (cover < 0 && reveal < 0) return;
+      if (cover < 0 && reveal < 0) {                                        /* idle between wipes: clear once, then skip */
+        if (fxLit) { fctx.setTransform(1, 0, 0, 1, 0, 0); fctx.clearRect(0, 0, fx.width, fx.height); fxLit = false; }
+        return;
+      }
+      fctx.setTransform(dpr, 0, 0, dpr, 0, 0); fctx.clearRect(0, 0, W, H); fxLit = true;
       var fC = cover >= 0 ? FRONT * out(cover) : FRONT, fR = reveal >= 0 ? FRONT * out(reveal) : -1;
       var HS = LP * 0.47, buckets = {};
       for (var d = 0; d < DOTS.length; d++) {
@@ -1683,8 +1707,11 @@
         if (b3.k === 'd') { fctx.strokeStyle = b3.c; fctx.lineWidth = b3.w; fctx.stroke(b3.p); }   /* rounds the squares' corners */
       }
     }
+    var lastFrame = 0;
     function loop(ts) {
       if (!t0) t0 = ts;
+      if (ts - lastFrame < 15.5) { raf = requestAnimationFrame(loop); return; }   /* 60fps at most, even on 120/144Hz screens */
+      lastFrame = ts;
       var e = ts - t0, r = Math.floor(e / LOOP);
       while (run < r) { bx += wx[n - 1]; by += R.dir * wy[n - 1]; cw0 += wx[n - 1]; run++; setRun(run); } /* carry the grid over, switch long <-> short */
       var tr = e - r * LOOP; draw(tr);
