@@ -17,154 +17,157 @@
   var signed = function (n) { return (n < 0 ? '−' : '+') + usd(Math.abs(n)); };
   var signedPct = function (n) { return (n < 0 ? '−' : '+') + Math.abs(n).toFixed(1) + '%'; };
   var pct0 = function (n) { return (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(Math.round(n)) + '%'; };
-  var cv = $('chart'), ctx = cv.getContext ? cv.getContext('2d') : null, raf = null;
-  var GREEN = '#11ec8a', RED = '#ff4b4e';
+  /* The Try it board is on the landing only; the detail pages (tournament.html, tradeview.html) skip it. */
+  if (board) {
+    var cv = $('chart'), ctx = cv.getContext ? cv.getContext('2d') : null, raf = null;
+    var GREEN = '#11ec8a', RED = '#ff4b4e';
 
-  function candles(p) {
-    if (p.c) return p.c;
-    var pts = p.path, N = 44, out = [], prev = 0;
-    for (var i = 1; i <= N; i++) {
-      var x = i / N * (pts.length - 1), k = Math.floor(x), f = x - k;
-      var v = pts[k] + (pts[Math.min(k + 1, pts.length - 1)] - pts[k]) * f;
-      var c = i === N ? pts[pts.length - 1] : v + (Math.sin(i * 12.9898) + Math.sin(i * 4.1414)) * 0.14;
-      out.push({ o: prev, c: c, h: Math.max(prev, c) + 0.1 + 0.28 * Math.abs(Math.sin(i * 7.77)), l: Math.min(prev, c) - 0.1 - 0.28 * Math.abs(Math.sin(i * 3.33)) });
-      prev = c;
-    }
-    p.c = out;
-    return out;
-  }
-
-  function drawChart(progress) {
-    var p = positions[state.pos], isLong = p.side !== 'SHORT', dir = isLong ? 1 : -1;
-    var cs = candles(p), last = cs[cs.length - 1].c;
-    if (!ctx) return last;
-    var rect = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
-    var w = Math.max(220, Math.floor(rect.width)), hgt = Math.max(160, Math.floor(rect.height));
-    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(hgt * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(hgt * dpr); }
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, hgt);
-    var AX = 98, TP = 22, BT = 20, pw = w - AX, ph = hgt - TP - BT;
-    var lo = isLong ? -3 : -6, hi = isLong ? 7.5 : 3;
-    var y = function (v) { return TP + (hi - v) / (hi - lo) * ph; };
-    var hline = function (v, color, dash) {
-      ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.setLineDash(dash || []);
-      ctx.beginPath(); ctx.moveTo(0, Math.round(y(v)) + 0.5); ctx.lineTo(pw, Math.round(y(v)) + 0.5); ctx.stroke(); ctx.setLineDash([]);
-    };
-    var FONT = '600 11px Inter, system-ui, sans-serif';
-    ctx.font = FONT; ctx.textBaseline = 'middle';
-
-    /* grid and the two right-hand scales: price, and your return */
-    for (var g = Math.ceil(lo / 3) * 3; g <= hi; g += 3) {
-      hline(g, '#1b1b1b');
-      var mine = g * dir * state.lev;
-      ctx.textAlign = 'left'; ctx.fillStyle = '#909090'; ctx.fillText(pct0(g), pw + 8, y(g));
-      ctx.textAlign = 'right'; ctx.fillStyle = mine > 0 ? GREEN : mine < 0 ? RED : '#909090'; ctx.fillText(pct0(mine), w - 6, y(g));
-    }
-    ctx.strokeStyle = '#272727'; ctx.beginPath(); ctx.moveTo(pw + 0.5, 0); ctx.lineTo(pw + 0.5, hgt - BT); ctx.stroke();
-    ctx.textAlign = 'left'; ctx.fillStyle = '#909090'; ctx.fillText('PRICE', pw + 8, 9);
-    ctx.textAlign = 'right'; ctx.fillStyle = '#ff5a00'; ctx.fillText('YOU ' + state.lev + 'x', w - 6, 9);
-    ctx.textAlign = 'left'; ctx.fillStyle = '#6c6c6c'; ctx.fillText('ENTRY', 4, hgt - 9);
-    ctx.textAlign = 'right'; ctx.fillText('CLOSE', pw - 4, hgt - 9);
-
-    /* entry level */
-    hline(0, '#b0b0b0', [4, 4]);
-    /* candles */
-    var n = Math.max(1, Math.round(progress * cs.length)), cw = pw / cs.length, bw = Math.max(3, Math.min(11, cw * 0.62)), i, k, x;
-    for (i = 0; i < n; i++) {
-      k = cs[i]; x = cw * i + cw / 2;
-      ctx.strokeStyle = ctx.fillStyle = k.c >= k.o ? GREEN : RED;
-      ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, y(k.h)); ctx.lineTo(Math.round(x) + 0.5, y(k.l)); ctx.stroke();
-      var top = y(Math.max(k.o, k.c)), bh = Math.max(1.5, Math.abs(y(k.o) - y(k.c)));
-      ctx.fillRect(x - bw / 2, top, bw, bh);
-    }
-    var cur = progress >= 1 ? last : cs[n - 1].c;
-
-    /* entry marker */
-    /* keep the marker and its label clear of the first few candles */
-    var far = isLong ? cs[0].l : cs[0].h;
-    for (i = 0; i < 6; i++) far = isLong ? Math.min(far, cs[i].l) : Math.max(far, cs[i].h);
-    var ex = cw / 2, ey = isLong ? y(far) + 8 : y(far) - 8, col = isLong ? GREEN : RED;
-    ctx.fillStyle = col; ctx.beginPath();
-    if (isLong) { ctx.moveTo(ex, ey); ctx.lineTo(ex - 6, ey + 10); ctx.lineTo(ex + 6, ey + 10); }
-    else { ctx.moveTo(ex, ey); ctx.lineTo(ex - 6, ey - 10); ctx.lineTo(ex + 6, ey - 10); }
-    ctx.fill();
-    ctx.font = '700 11px Inter, system-ui, sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText(p.side + ' ' + state.lev + 'x', ex + 10, isLong ? ey + 6 : ey - 6);
-
-    /* close marker */
-    if (progress >= 1) {
-      var lx = cw * (cs.length - 1) + cw / 2;
-      ctx.strokeStyle = '#fafafa'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(lx, y(last), 6, 0, 6.2832); ctx.stroke();
+    function candles(p) {
+      if (p.c) return p.c;
+      var pts = p.path, N = 44, out = [], prev = 0;
+      for (var i = 1; i <= N; i++) {
+        var x = i / N * (pts.length - 1), k = Math.floor(x), f = x - k;
+        var v = pts[k] + (pts[Math.min(k + 1, pts.length - 1)] - pts[k]) * f;
+        var c = i === N ? pts[pts.length - 1] : v + (Math.sin(i * 12.9898) + Math.sin(i * 4.1414)) * 0.14;
+        out.push({ o: prev, c: c, h: Math.max(prev, c) + 0.1 + 0.28 * Math.abs(Math.sin(i * 7.77)), l: Math.min(prev, c) - 0.1 - 0.28 * Math.abs(Math.sin(i * 3.33)) });
+        prev = c;
+      }
+      p.c = out;
+      return out;
     }
 
-    /* live tag across both scales: price move and your return on one line */
-    var win = cur * dir >= 0, ty = Math.max(TP + 2, Math.min(hgt - BT - 2, y(cur)));
-    hline(cur, win ? 'rgba(17,236,138,0.35)' : 'rgba(255,75,78,0.35)', [2, 3]);
-    ctx.fillStyle = win ? GREEN : RED; ctx.fillRect(pw + 1, ty - 10, AX - 1, 20);
-    ctx.fillStyle = '#050505'; ctx.font = '700 11px Inter, system-ui, sans-serif';
-    ctx.textAlign = 'left'; ctx.fillText(signedPct(cur), pw + 8, ty);
-    ctx.textAlign = 'right'; ctx.fillText(signedPct(cur * dir * state.lev), w - 6, ty);
-    return cur;
-  }
+    function drawChart(progress) {
+      var p = positions[state.pos], isLong = p.side !== 'SHORT', dir = isLong ? 1 : -1;
+      var cs = candles(p), last = cs[cs.length - 1].c;
+      if (!ctx) return last;
+      var rect = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+      var w = Math.max(220, Math.floor(rect.width)), hgt = Math.max(160, Math.floor(rect.height));
+      if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(hgt * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(hgt * dpr); }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, hgt);
+      var AX = 98, TP = 22, BT = 20, pw = w - AX, ph = hgt - TP - BT;
+      var lo = isLong ? -3 : -6, hi = isLong ? 7.5 : 3;
+      var y = function (v) { return TP + (hi - v) / (hi - lo) * ph; };
+      var hline = function (v, color, dash) {
+        ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.setLineDash(dash || []);
+        ctx.beginPath(); ctx.moveTo(0, Math.round(y(v)) + 0.5); ctx.lineTo(pw, Math.round(y(v)) + 0.5); ctx.stroke(); ctx.setLineDash([]);
+      };
+      var FONT = '600 11px Inter, system-ui, sans-serif';
+      ctx.font = FONT; ctx.textBaseline = 'middle';
 
-  function paint(progress) {
-    var p = positions[state.pos], dir = p.side === 'SHORT' ? -1 : 1;
-    var pct = drawChart(progress);
-    var ours = state.amt * state.lev * pct / 100 * dir, shares = state.amt * pct / 100;
-    var color = ours < 0 ? 'var(--fg-negative)' : 'var(--fg-positive)';
-    $('p-pnl').textContent = signed(ours); $('p-pnl').style.color = color;
-    $('p-roe').textContent = signedPct(state.lev * pct * dir); $('p-roe').style.color = color;
-    $('p-move').textContent = signedPct(pct);
-    $('p-shares').textContent = signed(shares);
-  }
-  function renderStatic() {
-    var p = positions[state.pos], room = 100 / state.lev;
-    $('p-name').textContent = p.name;
-    $('p-who').textContent = p.who; $('p-ini').textContent = p.ini;
-    $('p-side').textContent = p.side + ' · ' + state.lev + 'x';
-    $('p-side').className = 'side' + (p.side === 'SHORT' ? ' short' : '');
-    $('p-size').textContent = usd(state.amt * state.lev);
-    $('lev-out').textContent = state.lev + 'x';
-  }
-  function settle() { if (raf) cancelAnimationFrame(raf); raf = null; renderStatic(); paint(1); }
-  function play() {
-    if (raf) cancelAnimationFrame(raf);
-    renderStatic();
-    if (noMotion || !window.requestAnimationFrame) { paint(1); return; }
-    var t0 = null;
-    var step = function (ts) {
-      if (t0 === null) t0 = ts;
-      var pr = Math.min(1, (ts - t0) / 3000);
-      paint(pr);
-      raf = pr < 1 ? requestAnimationFrame(step) : null;
-    };
-    raf = requestAnimationFrame(step);
-  }
-  var amtBtns = all('[data-amt]', board);
-  amtBtns.forEach(function (b) {
-    b.addEventListener('click', function () { state.amt = Number(b.getAttribute('data-amt')); press(amtBtns, b); settle(); });
-  });
-  var posBtns = all('[data-pos]', board);
-  posBtns.forEach(function (b) {
-    b.addEventListener('click', function () {
-      state.pos = Number(b.getAttribute('data-pos')); press(posBtns, b);
-      /* each ticker has its own real cap; a tab opens at that cap */
-      var cap = positions[state.pos].max, r = $('lev-range');
-      r.max = cap; r.value = cap; state.lev = cap; $('lev-max').textContent = cap + 'x max';
-      play();
+      /* grid and the two right-hand scales: price, and your return */
+      for (var g = Math.ceil(lo / 3) * 3; g <= hi; g += 3) {
+        hline(g, '#1b1b1b');
+        var mine = g * dir * state.lev;
+        ctx.textAlign = 'left'; ctx.fillStyle = '#909090'; ctx.fillText(pct0(g), pw + 8, y(g));
+        ctx.textAlign = 'right'; ctx.fillStyle = mine > 0 ? GREEN : mine < 0 ? RED : '#909090'; ctx.fillText(pct0(mine), w - 6, y(g));
+      }
+      ctx.strokeStyle = '#272727'; ctx.beginPath(); ctx.moveTo(pw + 0.5, 0); ctx.lineTo(pw + 0.5, hgt - BT); ctx.stroke();
+      ctx.textAlign = 'left'; ctx.fillStyle = '#909090'; ctx.fillText('PRICE', pw + 8, 9);
+      ctx.textAlign = 'right'; ctx.fillStyle = '#ff5a00'; ctx.fillText('YOU ' + state.lev + 'x', w - 6, 9);
+      ctx.textAlign = 'left'; ctx.fillStyle = '#6c6c6c'; ctx.fillText('ENTRY', 4, hgt - 9);
+      ctx.textAlign = 'right'; ctx.fillText('CLOSE', pw - 4, hgt - 9);
+
+      /* entry level */
+      hline(0, '#b0b0b0', [4, 4]);
+      /* candles */
+      var n = Math.max(1, Math.round(progress * cs.length)), cw = pw / cs.length, bw = Math.max(3, Math.min(11, cw * 0.62)), i, k, x;
+      for (i = 0; i < n; i++) {
+        k = cs[i]; x = cw * i + cw / 2;
+        ctx.strokeStyle = ctx.fillStyle = k.c >= k.o ? GREEN : RED;
+        ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, y(k.h)); ctx.lineTo(Math.round(x) + 0.5, y(k.l)); ctx.stroke();
+        var top = y(Math.max(k.o, k.c)), bh = Math.max(1.5, Math.abs(y(k.o) - y(k.c)));
+        ctx.fillRect(x - bw / 2, top, bw, bh);
+      }
+      var cur = progress >= 1 ? last : cs[n - 1].c;
+
+      /* entry marker */
+      /* keep the marker and its label clear of the first few candles */
+      var far = isLong ? cs[0].l : cs[0].h;
+      for (i = 0; i < 6; i++) far = isLong ? Math.min(far, cs[i].l) : Math.max(far, cs[i].h);
+      var ex = cw / 2, ey = isLong ? y(far) + 8 : y(far) - 8, col = isLong ? GREEN : RED;
+      ctx.fillStyle = col; ctx.beginPath();
+      if (isLong) { ctx.moveTo(ex, ey); ctx.lineTo(ex - 6, ey + 10); ctx.lineTo(ex + 6, ey + 10); }
+      else { ctx.moveTo(ex, ey); ctx.lineTo(ex - 6, ey - 10); ctx.lineTo(ex + 6, ey - 10); }
+      ctx.fill();
+      ctx.font = '700 11px Inter, system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(p.side + ' ' + state.lev + 'x', ex + 10, isLong ? ey + 6 : ey - 6);
+
+      /* close marker */
+      if (progress >= 1) {
+        var lx = cw * (cs.length - 1) + cw / 2;
+        ctx.strokeStyle = '#fafafa'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(lx, y(last), 6, 0, 6.2832); ctx.stroke();
+      }
+
+      /* live tag across both scales: price move and your return on one line */
+      var win = cur * dir >= 0, ty = Math.max(TP + 2, Math.min(hgt - BT - 2, y(cur)));
+      hline(cur, win ? 'rgba(17,236,138,0.35)' : 'rgba(255,75,78,0.35)', [2, 3]);
+      ctx.fillStyle = win ? GREEN : RED; ctx.fillRect(pw + 1, ty - 10, AX - 1, 20);
+      ctx.fillStyle = '#050505'; ctx.font = '700 11px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'left'; ctx.fillText(signedPct(cur), pw + 8, ty);
+      ctx.textAlign = 'right'; ctx.fillText(signedPct(cur * dir * state.lev), w - 6, ty);
+      return cur;
+    }
+
+    function paint(progress) {
+      var p = positions[state.pos], dir = p.side === 'SHORT' ? -1 : 1;
+      var pct = drawChart(progress);
+      var ours = state.amt * state.lev * pct / 100 * dir, shares = state.amt * pct / 100;
+      var color = ours < 0 ? 'var(--fg-negative)' : 'var(--fg-positive)';
+      $('p-pnl').textContent = signed(ours); $('p-pnl').style.color = color;
+      $('p-roe').textContent = signedPct(state.lev * pct * dir); $('p-roe').style.color = color;
+      $('p-move').textContent = signedPct(pct);
+      $('p-shares').textContent = signed(shares);
+    }
+    function renderStatic() {
+      var p = positions[state.pos], room = 100 / state.lev;
+      $('p-name').textContent = p.name;
+      $('p-who').textContent = p.who; $('p-ini').textContent = p.ini;
+      $('p-side').textContent = p.side + ' · ' + state.lev + 'x';
+      $('p-side').className = 'side' + (p.side === 'SHORT' ? ' short' : '');
+      $('p-size').textContent = usd(state.amt * state.lev);
+      $('lev-out').textContent = state.lev + 'x';
+    }
+    function settle() { if (raf) cancelAnimationFrame(raf); raf = null; renderStatic(); paint(1); }
+    function play() {
+      if (raf) cancelAnimationFrame(raf);
+      renderStatic();
+      if (noMotion || !window.requestAnimationFrame) { paint(1); return; }
+      var t0 = null;
+      var step = function (ts) {
+        if (t0 === null) t0 = ts;
+        var pr = Math.min(1, (ts - t0) / 3000);
+        paint(pr);
+        raf = pr < 1 ? requestAnimationFrame(step) : null;
+      };
+      raf = requestAnimationFrame(step);
+    }
+    var amtBtns = all('[data-amt]', board);
+    amtBtns.forEach(function (b) {
+      b.addEventListener('click', function () { state.amt = Number(b.getAttribute('data-amt')); press(amtBtns, b); settle(); });
     });
-  });
-  $('lev-range').addEventListener('input', function () { state.lev = Number(this.value) || 1; settle(); });
-  $('replay').addEventListener('click', play);
-  window.addEventListener('resize', settle);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (!raf) paint(1); });
-  settle();
-  /* The chart sits below the first screen, so draw it in (play) the first time it scrolls into view rather than on load. */
-  if ('IntersectionObserver' in window && !noMotion) {
-    var chartSeen = new IntersectionObserver(function (entries) {
-      if (entries.some(function (e) { return e.isIntersecting; })) { chartSeen.disconnect(); play(); }
-    }, { threshold: 0.4 });
-    chartSeen.observe($('chart'));
+    var posBtns = all('[data-pos]', board);
+    posBtns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        state.pos = Number(b.getAttribute('data-pos')); press(posBtns, b);
+        /* each ticker has its own real cap; a tab opens at that cap */
+        var cap = positions[state.pos].max, r = $('lev-range');
+        r.max = cap; r.value = cap; state.lev = cap; $('lev-max').textContent = cap + 'x max';
+        play();
+      });
+    });
+    $('lev-range').addEventListener('input', function () { state.lev = Number(this.value) || 1; settle(); });
+    $('replay').addEventListener('click', play);
+    window.addEventListener('resize', settle);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (!raf) paint(1); });
+    settle();
+    /* The chart sits below the first screen, so draw it in (play) the first time it scrolls into view rather than on load. */
+    if ('IntersectionObserver' in window && !noMotion) {
+      var chartSeen = new IntersectionObserver(function (entries) {
+        if (entries.some(function (e) { return e.isIntersecting; })) { chartSeen.disconnect(); play(); }
+      }, { threshold: 0.4 });
+      chartSeen.observe($('chart'));
+    }
   }
 
   /* TradeView mock: pick someone, step through their trades on the chart, read why, react. Sample data. */
@@ -222,12 +225,14 @@
       box.appendChild(b);
     });
   }
-  function tvPaint() {
+  /* The chart as an SVG string, for trader t with fill `sel` selected (shared by the TradeView board and the
+     3type TradeView intro card). */
+  function tvChart(t, sel) {
     /* Exchange-style chart: candles built from the trader's price path (open = previous close, small deterministic
        wicks), volume bars, a right-hand % axis with grid, the entry level dashed, a last-price tag, and execution
        markers the way exchanges print fills: BUY = green ▲ under the candle, SELL = red ▼ over it. The selected
        fill gets a crosshair and an expanded label. */
-    var t = tvData[tvS.who], f = t.fills[tvS.fill], W = 560, H = 236, AX = 54, PT = 36, PB = 60, VOL = 22;   /* headroom so markers clear the edges and the volume strip */
+    var f = t.fills[sel], W = 560, H = 236, AX = 54, PT = 36, PB = 60, VOL = 22;   /* headroom so markers clear the edges and the volume strip */
     var n = t.path.length, UP = '#11ec8a', DN = '#ff4b4e', MUTED = '#909090', GRID = '#1c1c1c';
     var wick = function (i) { return 0.12 + ((i * 37 + 11) % 13) / 13 * 0.32; };
     var cdl = t.path.map(function (c, i) {
@@ -272,19 +277,23 @@
       '<text x="' + (PW + AX / 2) + '" y="' + (ly + 3.5).toFixed(1) + '" text-anchor="middle" font-size="10" font-weight="700" fill="#050505" ' + font + '>' + pct(last.c) + '</text>';
     // execution markers
     t.fills.forEach(function (m, k) {
-      var buy = m.side === 'BUY', col = buy ? UP : DN, c = cdl[m.i], x = X(m.i), sel = k === tvS.fill;
+      var buy = m.side === 'BUY', col = buy ? UP : DN, c = cdl[m.i], x = X(m.i), on = k === sel;
       var ay = buy ? Y(c.l) + 6 : Y(c.h) - 6, d = buy ? 1 : -1;            /* arrow tip sits just off the wick */
       var tri = 'M' + x.toFixed(1) + ',' + ay.toFixed(1) + ' l' + (-6) + ',' + (9 * d) + ' l12,0 z';
-      var label = sel ? (buy ? 'BUY' : 'SELL') + ' #' + (k + 1) : (buy ? 'B' : 'S');
-      var lw = sel ? 50 : 16, ly2 = ay + d * 12 + (buy ? 0 : -16);
-      svg += '<g class="mk' + (sel ? ' on' : '') + '" data-k="' + k + '" role="button" aria-label="' + (buy ? 'Buy' : 'Sell') + ' ' + (k + 1) + '">' +
+      var label = on ? (buy ? 'BUY' : 'SELL') + ' #' + (k + 1) : (buy ? 'B' : 'S');
+      var lw = on ? 50 : 16, ly2 = ay + d * 12 + (buy ? 0 : -16);
+      svg += '<g class="mk' + (on ? ' on' : '') + '" data-k="' + k + '" role="button" aria-label="' + (buy ? 'Buy' : 'Sell') + ' ' + (k + 1) + '">' +
         '<rect x="' + (x - 14).toFixed(1) + '" y="' + Math.min(ay, ly2).toFixed(1) + '" width="28" height="30" fill="transparent"/>' +
-        '<path d="' + tri + '" fill="' + col + '"' + (sel ? ' stroke="#fafafa" stroke-width="1.2"' : '') + '/>' +
-        '<rect x="' + (x - lw / 2).toFixed(1) + '" y="' + ly2.toFixed(1) + '" width="' + lw + '" height="16" rx="3" fill="' + (sel ? col : '#0d0d0d') + '" stroke="' + col + '"/>' +
-        '<text x="' + x.toFixed(1) + '" y="' + (ly2 + 11.5).toFixed(1) + '" text-anchor="middle" font-size="10" font-weight="700" fill="' + (sel ? '#050505' : col) + '" ' + font + '>' + label + '</text></g>';
+        '<path d="' + tri + '" fill="' + col + '"' + (on ? ' stroke="#fafafa" stroke-width="1.2"' : '') + '/>' +
+        '<rect x="' + (x - lw / 2).toFixed(1) + '" y="' + ly2.toFixed(1) + '" width="' + lw + '" height="16" rx="3" fill="' + (on ? col : '#0d0d0d') + '" stroke="' + col + '"/>' +
+        '<text x="' + x.toFixed(1) + '" y="' + (ly2 + 11.5).toFixed(1) + '" text-anchor="middle" font-size="10" font-weight="700" fill="' + (on ? '#050505' : col) + '" ' + font + '>' + label + '</text></g>';
     });
-    $('tv-svg').setAttribute('viewBox', '0 0 ' + W + ' ' + H);
-    $('tv-svg').innerHTML = svg;
+    return { box: '0 0 ' + W + ' ' + H, svg: svg };
+  }
+  function tvPaint() {
+    var t = tvData[tvS.who], f = t.fills[tvS.fill], ch = tvChart(t, tvS.fill);
+    $('tv-svg').setAttribute('viewBox', ch.box);
+    $('tv-svg').innerHTML = ch.svg;
     all('.mk', $('tv-svg')).forEach(function (g) { g.addEventListener('click', function () { tvS.fill = Number(g.getAttribute('data-k')); tvPaint(); }); });
     $('tv-name').textContent = t.name;
     $('tv-pos').textContent = t.pos; $('tv-pos').className = 'side' + (t.short ? ' short' : '');
@@ -300,14 +309,19 @@
     $('tv-c1n').textContent = t.c[0][0]; $('tv-c1').textContent = t.c[0][1];
     $('tv-c2n').textContent = t.c[1][0]; $('tv-c2').textContent = t.c[1][1];
   }
-  $('tv-prev').addEventListener('click', function () { if (tvS.fill > 0) { tvS.fill--; tvPaint(); } });
-  $('tv-next').addEventListener('click', function () { if (tvS.fill < tvData[tvS.who].fills.length - 1) { tvS.fill++; tvPaint(); } });
-  $('tv-follow').addEventListener('click', function () { tvS.following[tvS.who] = !tvS.following[tvS.who]; tvPaint(); });
-  var tvVote = function (k) { return function () { var key = tvS.who + '-' + tvS.fill; tvS.votes[key] = tvS.votes[key] || { u: 0, d: 0 }; tvS.votes[key][k]++; tvPaint(); }; };
-  $('tv-up').addEventListener('click', tvVote('u')); $('tv-down').addEventListener('click', tvVote('d'));
-  var whoBtns = all('[data-who]');
-  whoBtns.forEach(function (b) { b.addEventListener('click', function () { press(whoBtns, b); tvRows(b.getAttribute('data-who')); }); });
-  tvRows('all'); tvPaint();
+  /* The TradeView board lives on the landing (1/2type) and on tradeview.html; other pages skip it. */
+  if ($('tv-svg')) {
+    $('tv-prev').addEventListener('click', function () { if (tvS.fill > 0) { tvS.fill--; tvPaint(); } });
+    $('tv-next').addEventListener('click', function () { if (tvS.fill < tvData[tvS.who].fills.length - 1) { tvS.fill++; tvPaint(); } });
+    $('tv-follow').addEventListener('click', function () { tvS.following[tvS.who] = !tvS.following[tvS.who]; tvPaint(); });
+    var tvVote = function (k) { return function () { var key = tvS.who + '-' + tvS.fill; tvS.votes[key] = tvS.votes[key] || { u: 0, d: 0 }; tvS.votes[key][k]++; tvPaint(); }; };
+    $('tv-up').addEventListener('click', tvVote('u')); $('tv-down').addEventListener('click', tvVote('d'));
+    var whoBtns = all('[data-who]');
+    whoBtns.forEach(function (b) { b.addEventListener('click', function () { press(whoBtns, b); tvRows(b.getAttribute('data-who')); }); });
+    tvRows('all'); tvPaint();
+  }
+  /* 3type TradeView intro card: the first trader's chart, first trade selected, drawn once (no interaction). */
+  all('.tvp-svg').forEach(function (el) { var ch = tvChart(tvData[0], 0); el.setAttribute('viewBox', ch.box); el.innerHTML = ch.svg; });
 
   /* Spotlight (ohayo-motion): a good day moves you up the board, people follow, OHAYO calls. Sample.
      Plays once when the board scrolls into view; the button replays it. Time-driven render(t), 0.5s beats:
@@ -989,6 +1003,8 @@
   all('[data-scroll]').forEach(function (el) {
     el.addEventListener('click', function (e) {
       e.preventDefault();
+      /* 3type moves some sections to their own pages: go there instead (e.g. Today's board -> tournament.html) */
+      if (el.hasAttribute('data-v3-href') && document.body.classList.contains('hero-v3')) { location.assign(el.getAttribute('data-v3-href')); return; }
       var target = $(el.getAttribute('data-scroll'));
       if (!target) return;
       /* Scrolling down hides the header, so only leave room for it when the target is above. */
@@ -1068,8 +1084,10 @@
   }
   var liveHtml = '', soonHtml = '', liveN = 0, soonN = 0;
   tours.forEach(function (t, i) { if (t.status === 'live') { liveHtml += tcard(t, i); liveN++; } else { soonHtml += tcard(t, i); soonN++; } });
-  $('live-cards').innerHTML = liveHtml; $('soon-cards').innerHTML = soonHtml;
-  $('live-n').textContent = liveN; $('soon-n').textContent = soonN;
+  if ($('live-cards')) {   /* the full Tournament section: landing (1/2type) and tournament.html */
+    $('live-cards').innerHTML = liveHtml; $('soon-cards').innerHTML = soonHtml;
+    $('live-n').textContent = liveN; $('soon-n').textContent = soonN;
+  }
 
   /* Tabs (the usual pattern for in-page tabs whose panels differ in height): switch the panel, then keep the reader
      at the top of the new content. If the tab row is not already near the top of the screen (just under the floating
@@ -1097,7 +1115,7 @@
     var tail = t.status === 'live' ? ' left' : '';
     return '<span><span class="' + cls + '">' + lead + '</span> ' + esc(t.name) + ' · ' + usd(t.pool) + ' <span class="s-time"><span data-clock="' + i + '">--:--:--</span>' + tail + '</span></span>';
   }).join('');
-  $('strip-run').innerHTML = stripHtml + stripHtml;
+  if ($('strip-run')) $('strip-run').innerHTML = stripHtml + stripHtml;   /* the strip is on the landing only */
 
   function tick() {
     var now = Date.now();
@@ -1129,7 +1147,7 @@
     $('g-gap').textContent = usd(s.gap);
     $('g-btn').textContent = gi === gSteps.length - 1 ? 'Start over' : 'Add a winning trade';
   }
-  $('g-btn').addEventListener('click', function () { gi = gi === gSteps.length - 1 ? 0 : gi + 1; paintGoal(); });
+  if ($('g-btn')) $('g-btn').addEventListener('click', function () { gi = gi === gSteps.length - 1 ? 0 : gi + 1; paintGoal(); });
 
   /* Tournament 3D scene: render only while the section is on screen (two live WebGPU scenes would otherwise run at once). */
   (function () {
@@ -1751,18 +1769,25 @@
 
   /* Preview bar: shows by default (?preview=0 hides it). Hero 1type / 2type: 2type is a copy of 1type, marked by
      body.hero-v2 (?hero=2 opens it); everything 1type does runs as is, 2type-only changes hang off that class.
-     Switching replays the page intro and the belt. */
+     3type (?hero=3) is a copy of 2type: it keeps hero-v2 and adds body.hero-v3 for 3type-only changes.
+     Switching reloads the page on the chosen type. */
   var heroBtns = all('[data-hero]');
   heroBtns.forEach(function (b) {
     b.addEventListener('click', function () {
-      press(heroBtns, b);
-      document.body.classList.toggle('hero-v2', b.getAttribute('data-hero') === '2');
-      document.dispatchEvent(new Event('herochange'));
+      /* Types can differ in page structure, and scroll/background setup runs once at load, so switching reloads
+         the page with ?hero=1|2|3 (other query params kept) instead of toggling classes in place. */
+      if (b.getAttribute('aria-pressed') === 'true') return;
+      var u = new URL(location.href);
+      u.searchParams.set('hero', b.getAttribute('data-hero'));
+      u.hash = '';
+      location.assign(u.toString());
     });
   });
-  press(heroBtns, heroBtns.filter(function (x) { return x.getAttribute('data-hero') === (document.body.classList.contains('hero-v2') ? '2' : '1'); })[0]);
-  $('preview-x').addEventListener('click', function () { $('preview').hidden = true; });
-  if (!/[?&]preview=0/.test(location.search)) $('preview').hidden = false;
+  press(heroBtns, heroBtns.filter(function (x) { return x.getAttribute('data-hero') === (document.body.classList.contains('hero-v3') ? '3' : document.body.classList.contains('hero-v2') ? '2' : '1'); })[0]);
+  if ($('preview')) {   /* the landing only; the 3type detail pages have no preview bar */
+    $('preview-x').addEventListener('click', function () { $('preview').hidden = true; });
+    if (!/[?&]preview=0/.test(location.search)) $('preview').hidden = false;
+  }
   /* The hero (body.hero-2type, set by the inline script before first paint): 'herochange' starts the page intro and the belt */
   document.dispatchEvent(new Event('herochange'));
 })();

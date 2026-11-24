@@ -18,18 +18,25 @@
 <body>
 <!-- The hero: body.hero-2type (the belt-scroll hero; the class name predates the current naming) is set before first paint
      so the page intro runs from a clean first frame. Preview 2type (?hero=2) is a copy of it, told apart by body.hero-v2,
-     so it can change without touching 1type. -->
-<script>document.body.classList.add('hero-2type'); if (/[?&]hero=2/.test(location.search)) document.body.classList.add('hero-v2');</script>
+     so it can change without touching 1type. Preview 3type (?hero=3) is a copy of 2type: it carries hero-v2 as well,
+     plus body.hero-v3, so 3type-only changes hang off hero-v3 without touching 2type. -->
+<script>document.body.classList.add('hero-2type'); (function (m) { if (m) { document.body.classList.add('hero-v2'); if (m[1] === '3') document.body.classList.add('hero-v3'); } })(/[?&]hero=([23])/.exec(location.search));</script>
 
 <header class="top">
   <div class="wrap">
     <a class="wordmark" href="#top" data-scroll="top"><img src="assets/img/ohayo-logo.svg" alt="OHAYO" width="80" height="24"></a>
-    <nav class="main" aria-label="Sections">
+    <nav class="main v3-hide" aria-label="Sections">
       <button type="button" data-scroll="compare">How it compares</button>
       <button type="button" data-scroll="tournament">Tournaments</button>
       <button type="button" data-scroll="tradeview">TradeView</button>
       <button type="button" data-scroll="start">Get started</button>
       <button type="button" data-scroll="faq">FAQ</button>
+    </nav>
+    <!-- 3type menu: pages instead of sections -->
+    <nav class="main v3-only" aria-label="Pages">
+      <a href="index.html?hero=3" aria-current="page">About OHAYO</a>
+      <a href="tournament.html">Tournaments</a>
+      <a href="tradeview.html">TradeView</a>
     </nav>
     <a class="btn btn-primary btn-sm" href="https://app.ohayo.global" target="_blank" rel="noopener">Get the app</a>
   </div>
@@ -82,7 +89,7 @@
 </section>
 
 
-<button type="button" class="strip" data-scroll="tournament" aria-label="See today's tournaments">
+<button type="button" class="strip" data-scroll="tournament" data-v3-href="tournament.html" aria-label="See today's tournaments">
   <span class="strip-label">Today's board</span>
   <span class="strip-view"><span class="strip-run" id="strip-run"></span></span>
 </button>
@@ -237,7 +244,53 @@
   </div>
 </section>
 
-<section id="tournament">
+<section class="promo v3-only" id="tour-intro">
+  <!-- 3type: Tournaments in one message (Figma 147:49339). Joining is what starts the count (PRD 4.2, 5.1). -->
+  <div class="wrap promo-grid">
+    <div class="stack promo-copy">
+      <p class="eyebrow">Tournaments</p>
+      <h2>Join, and every trade counts.</h2>
+      <p class="lede">Pick a tournament and join. No entry fee, nothing locked. From the moment you join, your trades go on the board.</p>
+      <div class="row"><a class="btn btn-primary" href="tournament.html">View more</a></div>
+    </div>
+    <div class="tcard promo-card" role="img" aria-label="Sample tournament card: NVIDIA Earnings Cup, joined at 09:12, you are second on the return board">
+      <div class="tc-status"><span class="st st-live"><i></i>LIVE</span><span class="badge">24h</span></div>
+      <div class="tc-title"><img class="av av-logo" src="assets/img/ohayo-avatar.svg" width="40" height="40" alt=""><div><b>NVIDIA Earnings Cup</b><small>Hosted by OHAYO · News day</small></div></div>
+      <p class="promo-joined"><b>Joined 09:12</b><i></i>Your trades count from here</p>
+      <div class="tc-stats"><div><small>Prize pool</small><b class="led">$5,000</b></div><div><small>Ends in</small><b class="led hot">05:41:16</b></div><div><small>Players</small><b class="led">412</b></div></div>
+      <div class="promo-lb">
+        <div class="row"><span class="board-label">Leaderboard · return %</span><span class="board-label">Prize</span></div>
+        <div class="lb-row"><span class="led lb-rank">#1</span><span>night_owl</span><span class="led up">+212%</span><span class="lb-prize">$2,000</span></div>
+        <div class="lb-row you"><span class="led lb-rank">#2</span><span>You<span class="tagx">THAT'S YOU</span></span><span class="led up">+196%</span><span class="lb-prize">$1,000</span></div>
+        <div class="lb-row"><span class="led lb-rank">#3</span><span>Chip Whale</span><span class="led up">+188%</span><span class="lb-prize">$500</span></div>
+        <div class="lb-row"><span class="led lb-rank">#4</span><span>mina_k</span><span class="led up">+141%</span><span class="lb-prize">—</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="promo promo--flip tvp v3-only" id="tv-intro">
+  <!-- 3type: TradeView in one message (Figma 147:49399). The chart is drawn by landing.js (tvChart). -->
+  <div class="wrap promo-grid">
+    <div class="board tv-detail" role="img" aria-label="Sample TradeView board: Semi Hunter's NVDA short on the chart, first trade selected, with the reason in their words">
+      <div class="tv-top">
+        <div class="row" style="gap:10px"><img class="av av-photo" src="assets/img/avatars/men-32.jpg" width="40" height="40" alt=""><b class="pos-name" style="margin:0">Semi Hunter</b><span class="side short">NVDA · SHORT 20x</span></div>
+        <span class="btn btn-ghost btn-sm" aria-hidden="true">Follow</span>
+      </div>
+      <svg class="tv-svg tvp-svg" viewBox="0 0 560 236" aria-hidden="true"></svg>
+      <div class="tv-fill"><div><span class="board-label">Trade 1 of 3 · sell</span><h3 style="margin-top:4px">Opened short</h3></div></div>
+      <div class="why"><small>Why, in their words</small><p>Guidance was fine but the stock gave back the whole gap inside an hour. Short until it reclaims the open.</p></div>
+    </div>
+    <div class="stack promo-copy">
+      <p class="eyebrow">TradeView · coming January 2027</p>
+      <h2>See why they got in.</h2>
+      <p class="lede">Every entry and exit lands on the chart, with the reason in the trader's own words. You learn the move, then make your own call.</p>
+      <div class="row"><a class="btn btn-primary" href="tradeview.html">View more</a></div>
+    </div>
+  </div>
+</section>
+
+<section id="tournament" class="v3-hide">
   <!-- 3D scene behind the section head (Figma 45:8529); a black gradient buries its lower part under the cards -->
   <div class="t-scene" aria-hidden="true"><spline-viewer url="https://prod.spline.design/Tin5K45wrhVcuyeS/scene.splinecode"></spline-viewer><div class="t-fade"></div></div>
   <div class="wrap">
@@ -308,7 +361,7 @@
   </div>
 </section>
 
-<section id="tradeview">
+<section id="tradeview" class="v3-hide">
   <div class="wrap">
     <div class="stack sec-head">
       <p class="eyebrow">TradeView · coming January 2027</p>
@@ -357,7 +410,7 @@
   </div>
 </section>
 
-<section id="spotlight">
+<section id="spotlight" class="v3-hide">
   <canvas class="dot-wave" data-dir="up" data-through="start" aria-hidden="true"></canvas>
   <div class="wrap">
     <div class="stack sec-head">
@@ -529,6 +582,7 @@
   <span>Preview · hero</span>
   <button type="button" class="chip" data-hero="1" aria-pressed="true">1type</button>
   <button type="button" class="chip" data-hero="2" aria-pressed="false">2type</button>
+  <button type="button" class="chip" data-hero="3" aria-pressed="false">3type</button>
   <span>Samples · sign-ups not saved</span>
   <button type="button" class="x" id="preview-x" aria-label="Hide preview controls">×</button>
 </div>

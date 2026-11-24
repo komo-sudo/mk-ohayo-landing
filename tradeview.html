@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TradeView — OHAYO</title>
+<meta name="description" content="See why traders got in: every entry and exit on the chart, with the reason in their own words. Coming January 2027.">
+<meta property="og:title" content="OHAYO — SK hynix. 10x. Here.">
+<meta property="og:description" content="The stocks you already watch. Long when they run, short when they drop.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="assets/css/landing.css">
+</head>
+<body class="hero-v3 page-sub">
+<!-- 3type detail page (Figma v3 · Landing plan 147:50759). Shares landing.css and landing.js with the landing;
+     the sections below are copies of the landing's, so edit both when one changes. -->
+<header class="top">
+  <div class="wrap">
+    <a class="wordmark" href="index.html?hero=3"><img src="assets/img/ohayo-logo.svg" alt="OHAYO" width="80" height="24"></a>
+    <nav class="main v3-only" aria-label="Pages">
+      <a href="index.html?hero=3">About OHAYO</a>
+      <a href="tournament.html">Tournaments</a>
+      <a href="tradeview.html" aria-current="page">TradeView</a>
+    </nav>
+    <a class="btn btn-primary btn-sm" href="https://app.ohayo.global" target="_blank" rel="noopener">Get the app</a>
+  </div>
+</header>
+
+<main id="top">
+
+<section class="promo promo--flip tvp" id="tv-intro">
+  <!-- 3type: TradeView in one message (Figma 147:49399). The chart is drawn by landing.js (tvChart). -->
+  <div class="wrap promo-grid">
+    <div class="board tv-detail" role="img" aria-label="Sample TradeView board: Semi Hunter's NVDA short on the chart, first trade selected, with the reason in their words">
+      <div class="tv-top">
+        <div class="row" style="gap:10px"><img class="av av-photo" src="assets/img/avatars/men-32.jpg" width="40" height="40" alt=""><b class="pos-name" style="margin:0">Semi Hunter</b><span class="side short">NVDA · SHORT 20x</span></div>
+        <span class="btn btn-ghost btn-sm" aria-hidden="true">Follow</span>
+      </div>
+      <svg class="tv-svg tvp-svg" viewBox="0 0 560 236" aria-hidden="true"></svg>
+      <div class="tv-fill"><div><span class="board-label">Trade 1 of 3 · sell</span><h3 style="margin-top:4px">Opened short</h3></div></div>
+      <div class="why"><small>Why, in their words</small><p>Guidance was fine but the stock gave back the whole gap inside an hour. Short until it reclaims the open.</p></div>
+    </div>
+    <div class="stack promo-copy">
+      <p class="eyebrow">TradeView · coming January 2027</p>
+      <h2>See why they got in.</h2>
+      <p class="lede">Every entry and exit lands on the chart, with the reason in the trader's own words. You learn the move, then make your own call.</p>
+      <div class="row"><button type="button" class="btn btn-primary" data-open="tradeview">Notify me at launch</button></div>
+    </div>
+  </div>
+</section>
+
+<section id="tradeview">
+  <div class="wrap">
+    <div class="stack sec-head">
+      <p class="eyebrow">TradeView · coming January 2027</p>
+      <h2>See why they got in.</h2>
+      <p class="lede">Pick the whales, top traders and creators you rate. Watch every entry and exit land on the chart, read why they did it, and talk it through with everyone else watching. You learn the move, then make your own call.</p>
+    </div>
+
+    <div class="tv-app">
+      <div class="board tv-side">
+        <div class="tv-filter" role="group" aria-label="Who to watch">
+          <button type="button" class="chip" data-who="all" aria-pressed="true">All</button>
+          <button type="button" class="chip" data-who="Whale" aria-pressed="false">Whales</button>
+          <button type="button" class="chip" data-who="Top trader" aria-pressed="false">Top traders</button>
+          <button type="button" class="chip" data-who="Creator" aria-pressed="false">Creators</button>
+        </div>
+        <div id="tv-rows" class="tv-list"></div>
+        <p class="muted">Sample wallets, trades and notes.</p>
+      </div>
+
+      <div class="board tv-detail" aria-live="polite">
+        <div class="tv-top">
+          <div><b class="pos-name" id="tv-name">Semi Hunter</b><span class="side" id="tv-pos">NVDA · SHORT 20x</span></div>
+          <button type="button" class="btn btn-ghost btn-sm" id="tv-follow">Follow</button>
+        </div>
+        <svg class="tv-svg" id="tv-svg" viewBox="0 0 560 190" role="img" aria-label="Price chart with this trader's buys and sells marked"></svg>
+        <div class="tv-fill">
+          <div><span class="board-label" id="tv-step">Trade 1 of 3</span><h3 id="tv-title" style="margin-top:4px">Opened short</h3></div>
+          <div class="nav"><button type="button" id="tv-prev" aria-label="Previous trade">←</button><button type="button" id="tv-next" aria-label="Next trade">→</button></div>
+        </div>
+        <div class="why" id="tv-note-box"><small>Why, in their words</small><p id="tv-note"></p></div>
+        <div class="why ai"><small>AI's read of the chart</small><p id="tv-ai"></p></div>
+        <div class="talk">
+          <div class="vote"><span class="board-label">What happens next?</span>
+            <button type="button" class="chip" id="tv-up">▲ Up <span id="tv-upn">0</span></button>
+            <button type="button" class="chip" id="tv-down">▼ Down <span id="tv-downn">0</span></button>
+          </div>
+          <p><b id="tv-c1n"></b><span id="tv-c1"></span></p>
+          <p><b id="tv-c2n"></b><span id="tv-c2"></span></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="row tour-cta">
+      <button type="button" class="btn btn-primary" data-open="tradeview">Notify me at launch</button>
+    </div>
+  </div>
+</section>
+
+<section id="spotlight">
+  <canvas class="dot-wave" data-dir="up" data-through="start" aria-hidden="true"></canvas>
+  <div class="wrap">
+    <div class="stack sec-head">
+      <p class="eyebrow">Anyone can be the one people follow</p>
+      <h2>Trade well. Get followed.</h2>
+      <p class="lede">You don't need a channel or an audience. Place on a leaderboard and your profile is in front of everyone looking for who to watch next. They open your trades, they follow, and the best get a call from us.</p>
+    </div>
+    <div class="sp-grid">
+      <div class="board">
+        <span class="board-label">SK hynix Daily · return % · sample</span>
+        <div id="lb" style="margin:10px 0 16px"></div>
+        <button type="button" class="btn btn-primary btn-sm" id="sp-btn">Have a great trading day</button>
+      </div>
+      <div class="sp-steps">
+        <div class="card sp-step on" id="sp1"><span class="tag">1 · The board</span><h3>Your name is where everyone is looking</h3><p>Every tournament has a public leaderboard. Rank by profit, return or volume.</p></div>
+        <div class="card sp-step" id="sp2"><span class="tag">2 · The following</span><h3><span class="led" id="sp-fol">12</span> followers</h3><p>People who see you on the board open your trades in TradeView and follow.</p></div>
+        <div class="card sp-step" id="sp3"><span class="tag">3 · The call</span><h3>OHAYO reaches out</h3><p>Top performers get contacted about partner terms and extra rewards.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="stack sec-head">
+      <p class="eyebrow">Before you start</p>
+      <h2>Questions people ask first.</h2>
+    </div>
+    <div class="faq">
+      <details>
+        <summary>Do I own real shares?</summary>
+        <p>With perpetuals, no. Every leveraged trade on this page is a perpetual: a contract that follows the stock's price, long or short, without shareholder rights or dividends. Spot is the other kind of market on OHAYO. There is no leverage there. You buy the asset and hold it.</p>
+      </details>
+      <details>
+        <summary>Where is my money held?</summary>
+        <p>In an account created for you at sign-up that only you can move funds from. Trades settle on Hyperliquid's public order book. OHAYO does not hold your balance.</p>
+      </details>
+      <details>
+        <summary>How do I add money?</summary>
+        <p>You deposit USDC, a digital dollar. The app shows your deposit address and the steps. The minimum deposit is 5 USDC.</p>
+      </details>
+      <details>
+        <summary>What can go wrong?</summary>
+        <p>Leverage multiplies losses the same way it multiplies gains. If the price moves far enough against you, the position is liquidated and its margin is lost. Open positions also pay or receive a funding rate.</p>
+      </details>
+      <details>
+        <summary>How often do tournaments open?</summary>
+        <p>The plan is a new one every day once tournaments launch in December, some run by OHAYO and some by creators. Each tournament lists its tickers, prize pool and the traded volume you need to qualify.</p>
+      </details>
+      <details>
+        <summary>Is TradeView copy trading?</summary>
+        <p>No. It shows you other accounts' real trades. Nothing is placed for you, and every order is your own decision.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <canvas class="dot-wave" data-dir="up" aria-hidden="true"></canvas>
+  <div class="wrap fin-grid">
+    <div class="fin-copy">
+      <h2>Same move. Your leverage.</h2>
+      <div class="row">
+        <a class="btn btn-primary" href="https://app.ohayo.global" target="_blank" rel="noopener">Get the app</a>
+        <button type="button" class="btn btn-ghost" data-open="both">Get launch updates</button>
+      </div>
+    </div>
+    <!-- Candidate 4 (Figma 118:24391): the desktop trading screen on a soft black halo, sunk into the page by a radial
+         black vignette; its prices, ticker, chart, order book and clocks are redrawn live by landing.js -->
+    <div class="fin-web" role="img" aria-label="The OHAYO web app trading screen with a live BTC chart and order book">
+      <div class="fw-halo"></div>
+      <div class="fw-scene">
+        <img src="assets/img/mockup/web-trade.png" width="1920" height="1128" alt="">
+        <canvas class="fw-live" aria-hidden="true"></canvas>
+        <div class="fw-vignette"><i></i></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Perpetual contracts are leveraged products and you can lose all of the margin you post. Past results do not predict future results. The position in the hero is a sample. Service availability depends on your region.</p>
+  </div>
+</footer>
+
+<dialog id="reg" aria-labelledby="reg-title">
+  <form class="stack dlg" id="reg-form" novalidate>
+    <div class="dlg-head">
+      <div>
+        <h3 id="reg-title">Get launch updates</h3>
+        <p class="note">One sign-up. Pick what you want to hear about.</p>
+      </div>
+      <button type="button" class="x" data-close aria-label="Close">×</button>
+    </div>
+    <label class="field" for="reg-email">Email
+      <input type="email" id="reg-email" name="email" placeholder="you@example.com" autocomplete="email">
+    </label>
+    <label class="check" for="reg-tournament"><input type="checkbox" id="reg-tournament"> Daily tournaments <small>DEC</small></label>
+    <label class="check" for="reg-tradeview"><input type="checkbox" id="reg-tradeview"> TradeView launch <small>JAN 2027</small></label>
+    <p class="err" id="reg-err" role="alert"></p>
+    <button type="submit" class="btn btn-primary">Sign me up</button>
+  </form>
+  <div class="stack dlg" id="reg-done" hidden>
+    <div class="dlg-head">
+      <div>
+        <p class="eyebrow">You're on the list</p>
+        <h3 id="done-title" style="margin-top:6px">We'll email you.</h3>
+      </div>
+      <button type="button" class="x" data-close aria-label="Close">×</button>
+    </div>
+    <p class="note" id="done-body"></p>
+    <div class="card" style="background:var(--bg-base)">
+      <h3>While you wait: the OHAYO Discord</h3>
+      <p>Market talk, tournament Q&amp;A and pre-launch events happen there first.</p>
+    </div>
+    <button type="button" class="btn btn-primary" id="discord-btn">Join the Discord</button>
+    <p class="note" id="discord-note" hidden>Preview: the Discord invite link is not connected yet.</p>
+    <p class="note">Preview: this sign-up was not saved anywhere.</p>
+  </div>
+</dialog>
+
+<script src="assets/js/landing.js"></script>
+</body>
+</html>

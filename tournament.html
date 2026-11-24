@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tournaments — OHAYO</title>
+<meta name="description" content="Join a tournament on OHAYO and every trade you make from then on goes on the board. No entry fee, nothing locked.">
+<meta property="og:title" content="OHAYO — SK hynix. 10x. Here.">
+<meta property="og:description" content="The stocks you already watch. Long when they run, short when they drop.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="assets/css/landing.css">
+<script type="module" src="https://unpkg.com/@splinetool/viewer@2.0.203/build/spline-viewer.js"></script>
+</head>
+<body class="hero-v3 page-sub">
+<!-- 3type detail page (Figma v3 · Landing plan 147:50759). Shares landing.css and landing.js with the landing;
+     the sections below are copies of the landing's, so edit both when one changes. -->
+<header class="top">
+  <div class="wrap">
+    <a class="wordmark" href="index.html?hero=3"><img src="assets/img/ohayo-logo.svg" alt="OHAYO" width="80" height="24"></a>
+    <nav class="main v3-only" aria-label="Pages">
+      <a href="index.html?hero=3">About OHAYO</a>
+      <a href="tournament.html" aria-current="page">Tournaments</a>
+      <a href="tradeview.html">TradeView</a>
+    </nav>
+    <a class="btn btn-primary btn-sm" href="https://app.ohayo.global" target="_blank" rel="noopener">Get the app</a>
+  </div>
+</header>
+
+<main id="top">
+
+<section class="promo" id="tour-intro">
+  <!-- 3type: Tournaments in one message (Figma 147:49339). Joining is what starts the count (PRD 4.2, 5.1). -->
+  <div class="wrap promo-grid">
+    <div class="stack promo-copy">
+      <p class="eyebrow">Tournaments</p>
+      <h2>Join, and every trade counts.</h2>
+      <p class="lede">Pick a tournament and join. No entry fee, nothing locked. From the moment you join, your trades go on the board.</p>
+      <div class="row"><button type="button" class="btn btn-primary" data-open="tournament">Notify me when tournaments open</button></div>
+    </div>
+    <div class="tcard promo-card" role="img" aria-label="Sample tournament card: NVIDIA Earnings Cup, joined at 09:12, you are second on the return board">
+      <div class="tc-status"><span class="st st-live"><i></i>LIVE</span><span class="badge">24h</span></div>
+      <div class="tc-title"><img class="av av-logo" src="assets/img/ohayo-avatar.svg" width="40" height="40" alt=""><div><b>NVIDIA Earnings Cup</b><small>Hosted by OHAYO · News day</small></div></div>
+      <p class="promo-joined"><b>Joined 09:12</b><i></i>Your trades count from here</p>
+      <div class="tc-stats"><div><small>Prize pool</small><b class="led">$5,000</b></div><div><small>Ends in</small><b class="led hot">05:41:16</b></div><div><small>Players</small><b class="led">412</b></div></div>
+      <div class="promo-lb">
+        <div class="row"><span class="board-label">Leaderboard · return %</span><span class="board-label">Prize</span></div>
+        <div class="lb-row"><span class="led lb-rank">#1</span><span>night_owl</span><span class="led up">+212%</span><span class="lb-prize">$2,000</span></div>
+        <div class="lb-row you"><span class="led lb-rank">#2</span><span>You<span class="tagx">THAT'S YOU</span></span><span class="led up">+196%</span><span class="lb-prize">$1,000</span></div>
+        <div class="lb-row"><span class="led lb-rank">#3</span><span>Chip Whale</span><span class="led up">+188%</span><span class="lb-prize">$500</span></div>
+        <div class="lb-row"><span class="led lb-rank">#4</span><span>mina_k</span><span class="led up">+141%</span><span class="lb-prize">—</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tournament">
+  <!-- 3D scene behind the section head (Figma 45:8529); a black gradient buries its lower part under the cards -->
+  <div class="t-scene" aria-hidden="true"><spline-viewer url="https://prod.spline.design/Tin5K45wrhVcuyeS/scene.splinecode"></spline-viewer><div class="t-fade"></div></div>
+  <div class="wrap">
+    <div class="t-hero">
+      <p class="eyebrow">Daily Tournaments</p>
+      <div class="t-title"><h2>A new board every day.</h2></div>
+      <p class="lede">Different tickers, different hosts, a fresh prize pool each time. You trade the way you already do and it counts. Miss today's and another one starts tomorrow.</p>
+    </div>
+
+    <div class="t-tabs" role="tablist" aria-label="Tournament views">
+      <button type="button" class="t-tab" role="tab" data-tab="find" aria-selected="true"><span class="t-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>Find</button>
+      <button type="button" class="t-tab" role="tab" data-tab="joined" aria-selected="false"><span class="t-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 19V5M6.5 6h11l-2 3.5 2 3.5h-11"/></svg></span>Joined</button>
+      <button type="button" class="t-tab" role="tab" data-tab="results" aria-selected="false"><span class="t-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0V4zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7"/></svg></span>Results</button>
+    </div>
+
+    <div class="t-panel" id="tp-find">
+      <div class="t-sec"><h3>Live</h3><span class="cnt" id="live-n">0</span></div>
+      <div class="carousel" id="live-cards"></div>
+      <div class="t-sec"><h3>Starting soon</h3><span class="cnt" id="soon-n">0</span></div>
+      <div class="soon" id="soon-cards"></div>
+      <p class="muted" style="margin-top:14px">Preview. Tournament names, hosts, prize pools and player counts are samples.</p>
+    </div>
+
+    <div class="t-panel" id="tp-joined" hidden>
+      <div class="goal-grid" style="margin-top:0">
+        <div class="stack" style="gap:14px">
+          <h3 class="h3-lg">You always know what one more trade is worth.</h3>
+          <p class="lede">Your score shows the next rank and the next prize tier, and exactly how much more it takes to get there.</p>
+        </div>
+        <div class="board goal" id="goal" aria-live="polite">
+          <span class="board-label">My score · SOXL Daily · sample</span>
+          <div class="goal-line"><small>Rank</small><span class="led now" id="g-rank">#14</span><span class="led arr">→</span><span class="led next" id="g-next">#13</span></div>
+          <div class="goal-line"><small>Prize</small><span class="led now" id="g-prize">$120</span><span class="led arr">→</span><span class="led next" id="g-nprize">$150</span></div>
+          <p class="goal-left"><b id="g-gap">$42</b> more profit to move up</p>
+          <button type="button" class="btn btn-ghost btn-sm" id="g-btn">Add a winning trade</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="t-panel" id="tp-results" hidden>
+      <div class="goal-grid" style="margin-top:0">
+        <div class="stack" style="gap:14px">
+          <h3 class="h3-lg">It ends, you see where you placed, the prize lands in your account.</h3>
+          <p class="lede">Results go through three steps you can follow: ranking, payout pending, paid. Then tomorrow's board is already open.</p>
+        </div>
+        <div class="tcard">
+          <div class="tc-status"><span class="st st-flag"><i></i>ENDED</span><span class="badge">24h</span></div>
+          <div class="tc-title"><img class="av av-logo" src="assets/img/ohayo-avatar.svg" width="40" height="40" alt="OHAYO"><div><b>SOXL Daily</b><small>Hosted by OHAYO · sample result</small></div></div>
+          <div class="tc-stats"><div><small>Your rank</small><b class="led">#7</b></div><div><small>Your prize</small><b class="led hot">$60</b></div><div><small>Players</small><b class="led">268</b></div></div>
+          <div class="tc-prog"><div class="row"><small>Payout</small><small>Payout pending</small></div><div class="pay"><i class="on"></i><i class="on"></i><i></i></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feat-grid">
+      <div class="card"><span class="tag">Stacking</span><h3>One trade, several boards</h3><p>Join as many tournaments as you like. An SK hynix trade counts in every one you joined that includes SK hynix, and the prizes stack.</p></div>
+      <div class="card"><span class="tag">Entry</span><h3>No entry fee, nothing locked</h3><p>You join with $100 or more in your account, depending on the tournament. The money stays yours to trade or withdraw.</p></div>
+      <div class="card"><span class="tag">Timing</span><h3>Join late, still count</h3><p>Your score starts the moment you join. Many tournaments take entries until they end.</p></div>
+      <div class="card"><span class="tag">Three boards</span><h3>Three ways to place</h3><p>Dollar profit, percentage return and volume are ranked separately. One account can win on all three.</p></div>
+      <div class="card"><span class="tag">Hosts</span><h3>Run by OHAYO and by creators</h3><p>Creators open tournaments for their own communities. Big news days, like an earnings call, get a board of their own.</p></div>
+      <div class="card"><span class="tag">Review</span><h3>See how the leaders traded</h3><p>Open any player on the leaderboard to review their tournament trades on the chart.</p></div>
+    </div>
+
+    <div class="row tour-cta">
+      <button type="button" class="btn btn-primary" data-open="tournament">Notify me when tournaments open</button>
+      <a class="btn btn-ghost" href="https://app.ohayo.global" target="_blank" rel="noopener">Get the app first</a>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="stack sec-head">
+      <p class="eyebrow">Before you start</p>
+      <h2>Questions people ask first.</h2>
+    </div>
+    <div class="faq">
+      <details>
+        <summary>Do I own real shares?</summary>
+        <p>With perpetuals, no. Every leveraged trade on this page is a perpetual: a contract that follows the stock's price, long or short, without shareholder rights or dividends. Spot is the other kind of market on OHAYO. There is no leverage there. You buy the asset and hold it.</p>
+      </details>
+      <details>
+        <summary>Where is my money held?</summary>
+        <p>In an account created for you at sign-up that only you can move funds from. Trades settle on Hyperliquid's public order book. OHAYO does not hold your balance.</p>
+      </details>
+      <details>
+        <summary>How do I add money?</summary>
+        <p>You deposit USDC, a digital dollar. The app shows your deposit address and the steps. The minimum deposit is 5 USDC.</p>
+      </details>
+      <details>
+        <summary>What can go wrong?</summary>
+        <p>Leverage multiplies losses the same way it multiplies gains. If the price moves far enough against you, the position is liquidated and its margin is lost. Open positions also pay or receive a funding rate.</p>
+      </details>
+      <details>
+        <summary>How often do tournaments open?</summary>
+        <p>The plan is a new one every day once tournaments launch in December, some run by OHAYO and some by creators. Each tournament lists its tickers, prize pool and the traded volume you need to qualify.</p>
+      </details>
+      <details>
+        <summary>Is TradeView copy trading?</summary>
+        <p>No. It shows you other accounts' real trades. Nothing is placed for you, and every order is your own decision.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <canvas class="dot-wave" data-dir="up" aria-hidden="true"></canvas>
+  <div class="wrap fin-grid">
+    <div class="fin-copy">
+      <h2>Same move. Your leverage.</h2>
+      <div class="row">
+        <a class="btn btn-primary" href="https://app.ohayo.global" target="_blank" rel="noopener">Get the app</a>
+        <button type="button" class="btn btn-ghost" data-open="both">Get launch updates</button>
+      </div>
+    </div>
+    <!-- Candidate 4 (Figma 118:24391): the desktop trading screen on a soft black halo, sunk into the page by a radial
+         black vignette; its prices, ticker, chart, order book and clocks are redrawn live by landing.js -->
+    <div class="fin-web" role="img" aria-label="The OHAYO web app trading screen with a live BTC chart and order book">
+      <div class="fw-halo"></div>
+      <div class="fw-scene">
+        <img src="assets/img/mockup/web-trade.png" width="1920" height="1128" alt="">
+        <canvas class="fw-live" aria-hidden="true"></canvas>
+        <div class="fw-vignette"><i></i></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Perpetual contracts are leveraged products and you can lose all of the margin you post. Past results do not predict future results. The position in the hero is a sample. Service availability depends on your region.</p>
+  </div>
+</footer>
+
+<dialog id="reg" aria-labelledby="reg-title">
+  <form class="stack dlg" id="reg-form" novalidate>
+    <div class="dlg-head">
+      <div>
+        <h3 id="reg-title">Get launch updates</h3>
+        <p class="note">One sign-up. Pick what you want to hear about.</p>
+      </div>
+      <button type="button" class="x" data-close aria-label="Close">×</button>
+    </div>
+    <label class="field" for="reg-email">Email
+      <input type="email" id="reg-email" name="email" placeholder="you@example.com" autocomplete="email">
+    </label>
+    <label class="check" for="reg-tournament"><input type="checkbox" id="reg-tournament"> Daily tournaments <small>DEC</small></label>
+    <label class="check" for="reg-tradeview"><input type="checkbox" id="reg-tradeview"> TradeView launch <small>JAN 2027</small></label>
+    <p class="err" id="reg-err" role="alert"></p>
+    <button type="submit" class="btn btn-primary">Sign me up</button>
+  </form>
+  <div class="stack dlg" id="reg-done" hidden>
+    <div class="dlg-head">
+      <div>
+        <p class="eyebrow">You're on the list</p>
+        <h3 id="done-title" style="margin-top:6px">We'll email you.</h3>
+      </div>
+      <button type="button" class="x" data-close aria-label="Close">×</button>
+    </div>
+    <p class="note" id="done-body"></p>
+    <div class="card" style="background:var(--bg-base)">
+      <h3>While you wait: the OHAYO Discord</h3>
+      <p>Market talk, tournament Q&amp;A and pre-launch events happen there first.</p>
+    </div>
+    <button type="button" class="btn btn-primary" id="discord-btn">Join the Discord</button>
+    <p class="note" id="discord-note" hidden>Preview: the Discord invite link is not connected yet.</p>
+    <p class="note">Preview: this sign-up was not saved anywhere.</p>
+  </div>
+</dialog>
+
+<!-- Spline sends its scene files without cache headers, so browsers keep an old scene after it is republished.
+     A per-load query asks for the current file (it runs before the viewer module, which loads after parsing).
+     The #.splinecode fragment is never sent; it keeps the URL ending the viewer checks for. -->
+<script>document.querySelectorAll('spline-viewer[url]').forEach(function (v) { v.setAttribute('url', v.getAttribute('url') + '?v=' + Date.now() + '#.splinecode'); });</script>
+<script src="assets/js/landing.js"></script>
+</body>
+</html>

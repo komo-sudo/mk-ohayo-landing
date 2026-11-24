@@ -771,3 +771,42 @@ label.check small { color: var(--fg-muted); margin-left: auto; font-family: var(
 .st-chrome { position: absolute; left: 0; top: 0; width: 100%; height: auto; pointer-events: none; }
 .st-chrome--top { clip-path: inset(5.286% 9.677% 89.868% 9.677%); }
 .st-chrome--bot { clip-path: inset(91.85% 9.677% 5.286% 9.677%); }
+
+/* ---------- 3type (?hero=3) page structure (Figma v3 · Landing plan 147:50759) ----------
+   The landing keeps the hero through Compare, then a short intro each for Tournaments and TradeView that links to
+   its own page (tournament.html, tradeview.html), then Get started, FAQ and the final CTA. The full Tournament,
+   TradeView and Spotlight sections move to those pages. v3-only shows on 3type alone; v3-hide drops out of it. */
+body:not(.hero-v3) .v3-only { display: none !important; }
+body.hero-v3 .v3-hide { display: none !important; }
+nav.main a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; color: var(--fg-subtle); font-size: 14px; border-radius: var(--radius-control); text-decoration: none; }
+nav.main a:hover, nav.main a[aria-current="page"] { color: var(--fg-base); }
+nav.main a:focus-visible { outline: 2px solid var(--bd-focus); outline-offset: 2px; }
+
+.promo { position: relative; }
+.promo-grid { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 540px); justify-content: space-between; align-items: center; gap: 48px; }
+.promo--flip .promo-grid { grid-template-columns: minmax(0, 600px) minmax(0, 400px); }
+.promo-copy { gap: 18px; }
+.promo-copy .lede { max-width: 44ch; }
+.promo-copy .row { gap: 12px; margin-top: 6px; }
+.promo-card { padding: 24px; gap: 20px; }
+.promo-card .tc-title b { font-size: 18px; }
+.promo-card .tc-stats b { font-size: 20px; }
+.promo-joined { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 14px; border-radius: var(--radius-6); background: var(--bg-primary-subtle); font-size: 13px; color: var(--fg-subtle); }
+.promo-joined b { font-family: var(--font-led); font-weight: 900; letter-spacing: 0.04em; color: var(--fg-primary); }
+.promo-joined i { width: 5px; height: 5px; border-radius: 50%; background: var(--fg-primary); }
+.promo-lb { border-top: 1px solid var(--bd-strong); padding-top: 16px; }
+.promo-lb .row { justify-content: space-between; margin-bottom: 8px; }
+.promo-lb .lb-row { grid-template-columns: 36px minmax(0, 1fr) 64px 64px; border-top: 0; padding: 11px 10px; }
+.promo-lb .lb-row + .lb-row { margin-top: 4px; }
+.promo-lb .lb-row.you { box-shadow: 0 0 0 1px var(--bg-primary); will-change: auto; }
+.promo-lb .lb-rank { color: var(--fg-muted); font-size: 14px; }
+.promo-lb .lb-prize { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.promo-lb .lb-row .led.up { text-align: right; }
+.tvp .tvp-svg .mk { cursor: default; pointer-events: none; }
+/* On tournament.html / tradeview.html the intro is the page's first section: clear the floating header, no rule above */
+.page-sub main > .promo:first-child { padding-top: 160px; border-top: 0; }
+@media (max-width: 900px) {
+  .promo-grid, .promo--flip .promo-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .promo--flip .promo-copy { order: -1; }
+  .page-sub main > .promo:first-child { padding-top: 120px; }
+}
