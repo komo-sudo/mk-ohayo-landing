@@ -1497,7 +1497,9 @@
       var narrow = window.innerWidth <= 900;
       if (narrow) { frame.style.transform = ''; return false; }
       var wrapW = Math.min(sec.clientWidth, 1120) - 40, left = (sec.clientWidth - wrapW) / 2;
-      s = Math.min(wrapW / 1080, (sec.clientHeight - 65) / 840);
+      /* fit the whole composition to the screen: the tallest moment, the C1 headline (78 + 4 lines x 184 = 814)
+         and the C4 list (to 835), plus 40px clear at the foot, scales with the viewport height as well as width */
+      s = Math.min(wrapW / 1080, (sec.clientHeight - 65 - 40) / 835);
       frame.style.left = '0px'; frame.style.top = '0px';
       frame.style.transform = 'translate(' + (left - 180 * s) + 'px,65px) scale(' + s + ')';
       return true;
@@ -1529,7 +1531,7 @@
       fx.textContent = ''; tracks = []; shows = [];
       var headTxt = headW.map(function (w) { return w.textContent; }), ledeTxt = ledeW.map(function (w) { return w.textContent; });
       /* C1 / C2: headline words, 200px -> 66px */
-      var big = layoutOf(headTxt, 'left:180px;top:78px;width:1080px;font-size:200px;font-weight:700;line-height:1.112;letter-spacing:-0.02em;');
+      var big = layoutOf(headTxt, 'left:180px;top:78px;width:1080px;font-size:200px;font-weight:700;line-height:0.92;letter-spacing:-0.02em;');   /* tight as in Figma (715px for 4 lines) */
       var hs = slot('head');
       headW.forEach(function (w, i) {
         var a = big[i], b = slotXY(hs, w), k = 66 / 200, d = i * 25;

@@ -36,6 +36,7 @@ Rules that hold across the whole page are in `.claude/skills/ohayo-design` (layo
     - Each of the 7 layers grows from scale 0 / opacity 0 to full in 500ms (out, no overshoot), starting at a random moment within 1.2s; the order is reshuffled every loop.
     - Changed the same day: random order → top to bottom (reading order), one layer every 0.3s, each growing over 0.6s, so it reads easily. Hold 3.3s; 9.9s loop.
     - Entry changed from scale 0→1 to a 3D swing: each layer is hinged on its left edge and turns rotateY 90° → 0° like a closing door (perspective 900px), fading in on the way. (−90° → 0°, an opening door, was tried first.)
+  - The hero's objects size to the viewport: the 1440×1020 frame scales to fit both width and height (the whole composition to y 835 plus 40px clear), and the C1 headline uses Figma's tight line spacing (0.92), so nothing is cut on short screens.
     - Hold 3s, then the layers fade and the headline grows back. 8.9s loop.
 
 - **2026-11-25 · tournament.html hero rebuilt** (Figma 147:50615, copy option A).
