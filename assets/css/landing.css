@@ -896,6 +896,9 @@ nav.main a:focus-visible { outline: 2px solid var(--bd-focus); outline-offset: 2
 /* narrow screens: the last cut as a plain flow, no frame */
 @media (max-width: 900px) {
   .phero--tk { padding: 120px 0 84px; min-height: 0; }
+  .phero--tvf { padding-top: 110px; }
+  .tvf-ring { left: 50%; top: calc(100% + 40px); }
+  .tvf-card { width: 260px; left: -130px; transform: rotate(calc(var(--i) * 40deg)) translateY(-400px) rotate(90deg); }
   .tk-frame { position: static; width: auto; height: auto; transform: none !important; padding: 0 20px; }
   .tk-slot { position: static; white-space: normal; }
   .tk-h { font-size: clamp(34px, 8vw, 52px); width: auto; }
@@ -905,6 +908,33 @@ nav.main a:focus-visible { outline: 2px solid var(--bd-focus); outline-offset: 2
   .tk-list .tk-s40 { flex-basis: auto; }
   .tk-fx { display: none; }
 }
+
+/* .phero--tvf (tradeview.html, Figma 161:51190): headline and lede top left; the nine creators from the About page
+   on a ring centred low on the right, so its top half reads as a fan; the ring turns once every 120s. Cards lie
+   along the radius like spokes (turned 90deg clockwise, Figma's -90), all one height. The fan fades into the section's foot. */
+.phero--tvf { position: relative; min-height: 100vh; min-height: 100svh; padding: 122px 0 64px; border-top: 0; overflow: hidden; }
+.phero--tvf + section { border-top: 0; }
+.tvf-copy { position: relative; z-index: 2; }
+.tvf-title { font-size: clamp(40px, 4.8vw, 68px); line-height: 1.08; letter-spacing: -1.4px; max-width: 560px; }
+.tvf-lede { margin-top: 22px; max-width: 647px; font-size: 18px; line-height: 27.9px; color: var(--fg-subtle); }
+/* entrance, the same as the tournament hero's C4 layers: hinged on the left edge, each swings shut rotateY 90deg -> 0
+   (600ms, out, no overshoot), fading in on the way; headline first, the lede 0.3s later. Plays once on load. */
+.tvf-copy > * { transform-origin: 0 50%; animation: tvf-swing 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.tvf-title { animation-delay: 0.2s; }
+.tvf-lede { animation-delay: 0.5s; }
+@keyframes tvf-swing { from { transform: perspective(900px) rotateY(90deg); opacity: 0; } 40% { opacity: 1; } to { transform: perspective(900px) rotateY(0deg); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tvf-copy > * { animation: none; } }
+.tvf-fan { position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  -webkit-mask-image: linear-gradient(#000 58%, transparent 99%); mask-image: linear-gradient(#000 58%, transparent 99%); }
+.tvf-ring { position: absolute; left: calc(50% + 316px); top: calc(100% + 80px); width: 0; height: 0; animation: tvf-turn 120s linear infinite; }
+.tvf-fan.is-off .tvf-ring { animation-play-state: paused; }
+@keyframes tvf-turn { to { transform: rotate(360deg); } }
+.tvf-card { position: absolute; left: -150px; top: -54px; width: 300px; height: 108px; transform: rotate(calc(var(--i) * 40deg)) translateY(-560px) rotate(90deg); }
+/* every card one height, the median of their natural heights (108px, as on the About page): the name stays on one
+   line, the info line gets two at most; longer text ends in an ellipsis */
+.tvf-card .who b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tvf-card .who .muted { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+@media (prefers-reduced-motion: reduce) { .tvf-ring { animation: none; } }
 
 @media (max-width: 900px) {
   .promo-grid, .promo--flip .promo-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; }

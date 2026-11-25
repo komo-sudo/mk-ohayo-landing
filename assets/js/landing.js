@@ -1607,6 +1607,12 @@
     } else visible = true;
   });
 
+  /* TradeView page hero fan (.tvf-fan): the ring turns by CSS; pause it while the hero is off screen */
+  all('.tvf-fan').forEach(function (fan) {
+    if (!('IntersectionObserver' in window)) return;
+    new IntersectionObserver(function (es) { fan.classList.toggle('is-off', !es[0].isIntersecting); }).observe(fan);
+  });
+
   /* Tournament 3D scene: render only while the section is on screen (two live WebGPU scenes would otherwise run at once). */
   (function () {
     var v = document.querySelector('.t-scene spline-viewer');

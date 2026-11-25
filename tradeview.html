@@ -31,23 +31,61 @@
 
 <main id="top">
 
-<section class="phero phero--flip tvp" id="tv-hero">
-  <!-- 3type TradeView page hero (designed apart from the landing intro). TradeView in one message (Figma 147:49399). The chart is drawn by landing.js (tvChart). -->
-  <div class="wrap phero-grid">
-    <div class="board tv-detail" role="img" aria-label="Sample TradeView board: Semi Hunter's NVDA short on the chart, first trade selected, with the reason in their words">
-      <div class="tv-top">
-        <div class="row" style="gap:10px"><img class="av av-photo" src="assets/img/avatars/men-32.jpg" width="40" height="40" alt=""><b class="pos-name" style="margin:0">Semi Hunter</b><span class="side short">NVDA · SHORT 20x</span></div>
-        <span class="btn btn-ghost btn-sm" aria-hidden="true">Follow</span>
-      </div>
-      <svg class="tv-svg tvp-svg" viewBox="0 0 560 236" aria-hidden="true"></svg>
-      <div class="tv-fill"><div><span class="board-label">Trade 1 of 3 · sell</span><h3 style="margin-top:4px">Opened short</h3></div></div>
-      <div class="why"><small>Why, in their words</small><p>Guidance was fine but the stock gave back the whole gap inside an hour. Short until it reclaims the open.</p></div>
+<section class="phero phero--tvf" id="tv-hero">
+  <!-- 3type TradeView page hero (Figma 161:51190): headline and lede top left; the creators from the About page sit
+       on a ring low on the right, fanned out, turning slowly (CSS; landing.js pauses it off screen). -->
+  <canvas class="dot-wave" data-dir="right" aria-hidden="true"></canvas>
+  <div class="wrap tvf-copy">
+    <h1 class="tvf-title">Find the trader worth watching.</h1>
+    <p class="tvf-lede">Compare the top five over the same period by profit, return and drawdown. Open anyone and their buys and sells are already on the chart.</p>
+  </div>
+  <div class="tvf-fan" aria-label="Sample creators">
+    <div class="tvf-ring">
+    <div class="creator tvf-card" style="--i:0">
+      <img class="creator-avatar" src="assets/img/avatars/men-32.jpg" width="48" height="48" alt="">
+      <div class="who"><b>Semi Hunter</b><span class="muted">412K subscribers · NVDA, MU</span></div>
+      <div class="pnl"><span class="led up">+38.2%</span><span class="muted">30D PnL</span></div>
     </div>
-    <div class="stack phero-copy">
-      <p class="eyebrow">TradeView · coming January 2027</p>
-      <h2>See why they got in.</h2>
-      <p class="lede">Every entry and exit lands on the chart, with the reason in the trader's own words. You learn the move, then make your own call.</p>
-      <div class="row"><button type="button" class="btn btn-primary" data-open="tradeview">Notify me at launch</button></div>
+    <div class="creator tvf-card" style="--i:1">
+      <img class="creator-avatar" src="assets/img/avatars/city-night.jpg" width="48" height="48" alt="">
+      <div class="who"><b>Night Desk Jay</b><span class="muted">186K subscribers · TSLA, SOXL</span></div>
+      <div class="pnl"><span class="led up">+21.7%</span><span class="muted">30D PnL</span></div>
+    </div>
+    <div class="creator tvf-card" style="--i:2">
+      <img class="creator-avatar" src="assets/img/avatars/women-44.jpg" width="48" height="48" alt="">
+      <div class="who"><b>Chart Mina</b><span class="muted">94K subscribers · KORU, AMD</span></div>
+      <div class="pnl"><span class="led down">−6.4%</span><span class="muted">30D PnL</span></div>
+    </div>
+    <div class="creator tvf-card" style="--i:3">
+      <img class="creator-avatar" src="assets/img/avatars/chip-whale.svg" width="48" height="48" alt="">
+      <div class="who"><b>Chip Whale</b><span class="muted">61K followers · SK hynix, Samsung</span></div>
+      <div class="pnl"><span class="led up">+27.9%</span><span class="muted">30D PnL</span></div>
+    </div>
+    <div class="creator tvf-card" style="--i:4">
+      <img class="creator-avatar" src="assets/img/avatars/ocean-wave.jpg" width="48" height="48" alt="">
+      <div class="who"><b>Macro Wave</b><span class="muted">233K subscribers · NVDA, GOOGL</span></div>
+      <div class="pnl"><span class="led up">+9.8%</span><span class="muted">30D PnL</span></div>
+    </div>
+    <div class="creator tvf-card" style="--i:5">
+      <img class="creator-avatar" src="assets/img/avatars/night-owl.png" width="48" height="48" alt="">
+      <div class="who"><b>night_owl</b><span class="muted">48K followers · SOXL, NVDA</span></div>
+      <div class="pnl"><span class="led up">+14.3%</span><span class="muted">30D PnL</span></div>
+    </div>
+    <div class="creator tvf-card" style="--i:6">
+      <span class="creator-avatar creator-ini">DK</span>
+      <div class="who"><b>Daejeon Dip Kim</b><span class="muted">127K subscribers · Samsung, KORU</span></div>
+      <div class="pnl"><span class="led down">−11.2%</span><span class="muted">30D PnL</span></div>
+    </div>
+    <div class="creator tvf-card" style="--i:7">
+      <img class="creator-avatar" src="assets/img/avatars/mina-k.png" width="48" height="48" alt="">
+      <div class="who"><b>Gap Fill Yuna</b><span class="muted">39K followers · SK hynix, MU</span></div>
+      <div class="pnl"><span class="led up">+52.6%</span><span class="muted">30D PnL</span></div>
+    </div>
+    <div class="creator tvf-card" style="--i:8">
+      <span class="creator-avatar creator-ini">SB</span>
+      <div class="who"><b>Semis Breakfast</b><span class="muted">305K subscribers · NVDA, TSLA</span></div>
+      <div class="pnl"><span class="led up">+4.1%</span><span class="muted">30D PnL</span></div>
+    </div>
     </div>
   </div>
 </section>
