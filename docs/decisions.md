@@ -26,11 +26,46 @@ Rules that hold across the whole page are in `.claude/skills/ohayo-design` (layo
 
 ## Tournament
 
+- **2026-11-25 · tournament.html hero v2: the storyboard (Figma 75:10785, 14 cuts).**
+  - The inverting dot-type hero (v1) is hidden, kept in `<template id="tour-hero-v1">` in tournament.html.
+  - Cuts: headline giant → headline and lede shrink into place → each fact enters its own way (slides in, swings in tilted with depth, flies forward out of a giant 10% word, rides a black panel across, lands while a giant line scrolls past) and settles into a list → hold → the headline grows back. 14.3s loop.
+  - Depth after the Pinterest reference: big type shrinking and turning in 3D into small type.
+  - Built in Figma pixels inside a scaled 1440×1020 frame: ghost copies at their largest size fly into the real slots, so the type stays crisp.
+  - Narrow screens and reduced motion show the last cut, still.
+  - 2026-11-25 · Cuts after C3 removed. The new C4 (Figma 158:50828) is the final composition, weight 800: Ranked 3 ways / profit return volume / No entry fee / Join late… / Paid within…
+    - Each of the 7 layers grows from scale 0 / opacity 0 to full in 500ms (out, no overshoot), starting at a random moment within 1.2s; the order is reshuffled every loop.
+    - Changed the same day: random order → top to bottom (reading order), one layer every 0.3s, each growing over 0.6s, so it reads easily. Hold 3.3s; 9.9s loop.
+    - Entry changed from scale 0→1 to a 3D swing: each layer is hinged on its left edge and turns rotateY 90° → 0° like a closing door (perspective 900px), fading in on the way. (−90° → 0°, an opening door, was tried first.)
+    - Hold 3s, then the layers fade and the headline grows back. 8.9s loop.
+
+- **2026-11-25 · tournament.html hero rebuilt** (Figma 147:50615, copy option A).
+  - Headline only: "Always know what the next rank takes." No lede, no button; the board card is no longer on the page hero.
+  - Four facts: No entry fee / Ranked 3 ways: profit, return, volume / Join late, count from then / Paid within 5 business days.
+  - First version (a wave crest rewriting the line) was rejected: "doesn't feel like motion graphics".
+  - Now, after the designer's reference (a Pinterest kinetic-type reel: one word per beat, hard cuts, frame inverting black/white):
+    - A small lead line cuts in, then big punch lines on the 0.5s beat, and the full-width band inverts on each punch. "profit | return | volume" replace one another; "5 business days" is typed.
+    - Each line enters with a short dot smear; the last state holds 3 beats; about 11.5s a loop.
+  - The dot style stays (6px grid aligned to the dot-wave). The white band carries the dot-wave inverted.
+  - 2026-11-25 · Inversion now covers the whole section (the floating header excepted), and the headline flips colour with it.
+  - The headline is hidden while facts 1–4 play. It then cuts in on the beat in chunks (Always | know what | the next | rank | takes.), inverting on each, and holds 2s before the loop restarts (about 13.5s).
+  - The hero is as tall as the viewport (100svh), no longer the fixed 1085px from the Figma frame.
+  - Each fact gets its own type layout after the Figma storyboard 75:10785 (layout only; style and colour stay ours, weight 900):
+    - No entry fee: one centred line.
+    - Ranked 3 ways: a small line over a big punch.
+    - Join late / Paid within: two equal lines, with a big "5".
+    - Every block's last baseline sits 70% down the section. Timing and animation unchanged.
+  - Hard cuts override ohayo-motion's "transform, don't cut", by request, for this piece only. Inversions stay at or under 2 per second.
+
 - **2026-11-24 · tournament.html hero** (Figma 147:50615):
   - Fills the viewport (100svh), content centred, over a dot-wave background.
   - The intro card has no border or background, on every page.
   - Card motion: LIVE blinks slowly (3.2s); "Ends in" counts down; players rise by 1–3 every 2–5s; return % eases within fixed bands. Ranks don't change, since a rank change within seconds isn't believable.
   - Kept the "Joined 09:12" strip, although this Figma copy predates it.
+  - The landing's Tournament intro uses the same design (`.promo--hero`: viewport height, dot-wave). Only the button differs: View more on the landing, the notify button on the page.
+- **2026-11-24 · Page heroes split from landing intros.** tournament.html and tradeview.html heroes are `.phero` (ids `tour-hero`, `tv-hero`). The landing intros are `.promo` (`tour-intro`, `tv-intro`). They are designed separately from now on. Card motion (`[data-p-live]`) and the TradeView chart (`.tvp-svg`) are shared behaviour only.
+  - The landing Tournament intro: no rule above or below; the dot-wave sits under the content.
+  - Landing intros (Tournament and TradeView) are 1120px tall, the height of Slide the leverage (#simulate), not the viewport. Both have a dot-wave. The TradeView intro board has no edge or dot texture; the chart keeps its black backdrop and outline.
+  - The landing TradeView intro steps through every buy and sell automatically (3s each, then loops). Each step shows the marker, what was done, the reason in the trader's words and the AI's read. Clicking a marker jumps to it. Votes and comments from the full board are left out.
 
 - **2026-11-24 · Condensed message: "Join, and every trade counts."**
   - Joining is what starts the count (PRD 4.2, 5.1).

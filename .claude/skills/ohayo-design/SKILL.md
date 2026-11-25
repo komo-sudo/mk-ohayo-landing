@@ -50,7 +50,8 @@ Inside `.tcard`, numbers switch back to the body font (`.tcard .led`). Keep that
 | Trader / chart board | `.tv-detail` > `.tv-top`, `.tv-svg` (draw with `tvChart(trader, fill)` in landing.js), `.tv-fill`, `.why` (own words) / `.why.ai` (AI read) |
 | Long/short tag | `.side` / `.side.short` |
 | Feature grid | `.card` with `.tag` + h3 + p |
-| 3type intro sections | `.promo` + `.promo-grid` (`.promo--flip` puts the visual left) |
+| 3type landing intros | `.promo` + `.promo-grid` (`.promo--flip` puts the visual left, `.promo--hero` = viewport height + dot-wave) |
+| 3type page heroes | `.phero` (tournament.html / tradeview.html; `.phero--full` = viewport height + dot-wave). Separate from `.promo` on purpose: design them independently |
 | Sign-up | any `[data-open="tournament|tradeview|both"]` opens the one shared dialog `#reg` |
 | Background | `.dot-wave` canvas (`data-dir`, `data-through`) — see ohayo-motion |
 

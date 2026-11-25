@@ -1,6 +1,8 @@
 # OHAYO landing
 
-Static marketing site for OHAYO (stock perpetuals, tournaments, TradeView). No build step. The designer works in Korean; answer in Korean.
+Static marketing site for OHAYO (stock perpetuals, tournaments, TradeView). No build step.
+
+**Always answer in Korean.** When English has to be shown (page copy, headlines, UI text, proposals), give it in two versions: the English, and a Korean translation right under it.
 
 ## Read first
 

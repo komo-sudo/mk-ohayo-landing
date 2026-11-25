@@ -32,31 +32,53 @@
 
 <main id="top">
 
-<section class="promo" id="tour-intro">
-  <!-- 3type: Tournaments in one message (Figma 147:49339). Joining is what starts the count (PRD 4.2, 5.1). -->
+<section class="phero phero--tk" id="tour-hero">
+  <!-- 3type Tournament page hero, storyboard Figma 75:10785 (C1-C3, then C4 158:50828). The markup below is the
+       last cut, the full composition, and stands on its own (no JS, narrow screens, reduced motion). landing.js
+       ([data-tk]) scales the 1440 x 1020 frame to the screen and plays the cuts. -->
   <canvas class="dot-wave" data-dir="right" aria-hidden="true"></canvas>
-  <div class="wrap promo-grid">
-    <div class="stack promo-copy">
-      <p class="eyebrow">Tournaments</p>
-      <h2>Join, and every trade counts.</h2>
-      <p class="lede">Pick a tournament and join. No entry fee, nothing locked. From the moment you join, your trades go on the board.</p>
-      <div class="row"><button type="button" class="btn btn-primary" data-open="tournament">Notify me when tournaments open</button></div>
-    </div>
-    <div class="tcard promo-card" data-p-live role="img" aria-label="Sample tournament card: NVIDIA Earnings Cup, joined at 09:12, you are second on the return board">
-      <div class="tc-status"><span class="st st-live"><i></i>LIVE</span><span class="badge">24h</span></div>
-      <div class="tc-title"><img class="av av-logo" src="assets/img/ohayo-avatar.svg" width="40" height="40" alt=""><div><b>NVIDIA Earnings Cup</b><small>Hosted by OHAYO · News day</small></div></div>
-      <p class="promo-joined"><b>Joined 09:12</b><i></i>Your trades count from here</p>
-      <div class="tc-stats"><div><small>Prize pool</small><b class="led">$5,000</b></div><div><small>Ends in</small><b class="led hot" data-p-clock="20476">05:41:16</b></div><div><small>Players</small><b class="led" data-p-players>412</b></div></div>
-      <div class="promo-lb">
-        <div class="row"><span class="board-label">Leaderboard · return %</span><span class="board-label">Prize</span></div>
-        <div class="lb-row"><span class="led lb-rank">#1</span><span>night_owl</span><span class="led up" data-p-ret="212">+212%</span><span class="lb-prize">$2,000</span></div>
-        <div class="lb-row you"><span class="led lb-rank">#2</span><span>You<span class="tagx">THAT'S YOU</span></span><span class="led up" data-p-ret="196">+196%</span><span class="lb-prize">$1,000</span></div>
-        <div class="lb-row"><span class="led lb-rank">#3</span><span>Chip Whale</span><span class="led up" data-p-ret="188">+188%</span><span class="lb-prize">$500</span></div>
-        <div class="lb-row"><span class="led lb-rank">#4</span><span>mina_k</span><span class="led up" data-p-ret="141">+141%</span><span class="lb-prize">—</span></div>
-      </div>
+  <div class="tk-frame" data-tk>
+    <h1 class="tk-slot tk-h" data-slot="head">Always know what the next rank takes.</h1>
+    <p class="tk-slot tk-lede" data-slot="lede">Your score shows your rank, the next rank and the next prize tier, and exactly how much more it takes to reach each one.</p>
+    <!-- C4 (Figma 158:50828): every layer grows in from nothing, top to bottom in this order (landing.js) -->
+    <ul class="tk-list">
+      <li class="tk-slot tk-s18" data-pop style="left:180px;top:374px">Ranked 3 ways:</li>
+      <li class="tk-slot tk-s40" data-pop style="left:180px;top:401px">profit</li>
+      <li class="tk-slot tk-s40" data-pop style="left:302px;top:401px">return</li>
+      <li class="tk-slot tk-s40" data-pop style="left:437px;top:401px">volume</li>
+      <li class="tk-slot tk-s32" data-pop style="left:180px;top:541px">No entry fee</li>
+      <li class="tk-slot tk-s32" data-pop style="left:180px;top:669px">Join late, count from then</li>
+      <li class="tk-slot tk-s32 tk-lh12" data-pop style="left:180px;top:797px">Paid within 5 business days</li>
+    </ul>
+    <div class="tk-fx" aria-hidden="true"></div>
+  </div>
+</section>
+<!-- Previous hero (inverting dot-type facts), kept to bring back: move this markup back in place of the section above. -->
+<template id="tour-hero-v1">
+<section class="phero phero--facts" id="tour-hero">
+  <!-- 3type Tournament page hero (Figma 147:50615): the headline, then four facts the wave writes in dots, one at a
+       time (landing.js, [data-tf]). Designed apart from the landing intro. -->
+  <canvas class="dot-wave" data-dir="right" aria-hidden="true"></canvas>
+  <canvas class="tf-canvas" aria-hidden="true"></canvas>
+  <div class="wrap tf">
+    <!-- data-tf-head: chunks (| separated) that cut in on the beat once facts 1-4 have played -->
+    <h1 class="tf-title" data-tf-head="Always|know what|the next|rank|takes.">Always know what the next rank takes.</h1>
+    <p class="tf-count" aria-hidden="true"><b data-tf-n>01</b> / 04</p>
+    <div class="tf-stage">
+      <!-- Each fact plays as a lead, then one or more punches on the beat (| separates punches, data-type types the
+           punch out). data-layout sets the type layout (Figma 75:10785): line = one centred line; stack = small lead
+           over a big punch; two = two equal lines (data-big-first: the punch's first character larger). The list
+           itself is what screen readers read. -->
+      <ul class="tf-list" data-tf>
+        <li data-layout="line" data-lead="No" data-punch="entry fee">No entry fee</li>
+        <li data-layout="stack" data-lead="Ranked 3 ways:" data-punch="profit|return|volume">Ranked 3 ways: profit, return, volume</li>
+        <li data-layout="two" data-lead="Join late," data-punch="count from then">Join late, count from then</li>
+        <li data-layout="two" data-big-first data-lead="Paid within" data-punch="5 business days" data-type>Paid within 5 business days</li>
+      </ul>
     </div>
   </div>
 </section>
+</template>
 
 <section id="tournament">
   <!-- 3D scene behind the section head (Figma 45:8529); a black gradient buries its lower part under the cards -->

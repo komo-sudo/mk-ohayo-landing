@@ -808,12 +808,112 @@ nav.main a:focus-visible { outline: 2px solid var(--bd-focus); outline-offset: 2
 .promo-lb .lb-row .led.up { text-align: right; }
 .tvp .tvp-svg .mk { cursor: default; pointer-events: none; }
 /* On tournament.html / tradeview.html the intro is the page's first section: clear the floating header, no rule above */
-/* (Figma 147:50615) It fills the viewport, content centred under the floating header, over a dot-wave field. */
-.page-sub main > .promo:first-child { min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: 96px 0 64px; border-top: 0; }
-.page-sub main > .promo:first-child > .wrap { position: relative; z-index: 1; width: 100%; }
-.page-sub main > .promo:first-child + section { border-top: 0; }
+/* .promo--hero: the landing's Tournament and TradeView intros, 1120px tall like Slide the leverage, content centred,
+   over a dot-wave field; no rule above or below. (It started as a copy of the tournament.html hero; the two are now designed separately.) */
+.promo--hero { min-height: 1120px; display: flex; flex-direction: column; justify-content: center; padding: 96px 0 64px; border-top: 0; } /* fixed: the height of Slide the leverage (#simulate) on wide screens */
+.promo--hero > .wrap { position: relative; z-index: 1; width: 100%; } /* above the dot-wave */
+.promo--hero + section { border-top: 0; }
+/* Landing TradeView intro: the board has no surface (no edge, no dot texture) and sits on the dot-wave; the chart keeps
+   its own black backdrop and outline (.tv-svg) */
+.promo.tvp .tv-detail { background: none; border: 0; border-radius: 0; padding: 0; }
+.promo.tvp .tvp-svg .mk { pointer-events: auto; cursor: pointer; } /* the landing intro's markers jump to that trade */
+.tvp-text { display: flex; flex-direction: column; gap: 14px; }
+/* ---------- 3type detail-page heroes (.phero: tournament.html, tradeview.html) ----------
+   Separate from the landing intros (.promo) so each can be designed on its own; they started as the same design.
+   The card motion ([data-p-live]) and the TradeView chart (.tvp-svg) are shared behaviour, not shared styling. */
+.phero { position: relative; padding-top: 160px; border-top: 0; } /* the page's first section: clear the floating header */
+/* .phero--full (tournament.html, Figma 147:50615): fills the viewport, content centred under the floating header,
+   over a dot-wave field; no rule above or below */
+.phero--full { min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: 96px 0 64px; border-top: 0; }
+.phero--full > .wrap { position: relative; z-index: 1; width: 100%; } /* above the dot-wave */
+.phero--full + section { border-top: 0; }
+.phero-grid { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 540px); justify-content: space-between; align-items: center; gap: 48px; }
+.phero--flip .phero-grid { grid-template-columns: minmax(0, 600px) minmax(0, 400px); }
+.phero-copy { gap: 18px; }
+.phero-copy .lede { max-width: 44ch; }
+.phero-copy .row { gap: 12px; margin-top: 6px; }
+.phero-card { padding: 0; gap: 20px; background: none; border: 0; border-radius: 0; } 
+.phero-card .st-live i, .phero-card .st-live i::after { animation-duration: 3.2s; } 
+.phero-card .p-bump { animation: p-tick 0.4s cubic-bezier(0.2, 0.7, 0.2, 1); } 
+@media (prefers-reduced-motion: reduce) { .phero-card .st-live i, .phero-card .st-live i::after, .phero-card .p-bump { animation: none; } }
+.phero-card .tc-title b { font-size: 18px; }
+.phero-card .tc-stats b { font-size: 20px; }
+.phero-joined { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 14px; border-radius: var(--radius-6); background: var(--bg-primary-subtle); font-size: 13px; color: var(--fg-subtle); }
+.phero-joined b { font-family: var(--font-led); font-weight: 900; letter-spacing: 0.04em; color: var(--fg-primary); }
+.phero-joined i { width: 5px; height: 5px; border-radius: 50%; background: var(--fg-primary); }
+.phero-lb { border-top: 1px solid var(--bd-strong); padding-top: 16px; }
+.phero-lb .row { justify-content: space-between; margin-bottom: 8px; }
+.phero-lb .lb-row { grid-template-columns: 36px minmax(0, 1fr) 64px 64px; border-top: 0; padding: 11px 10px; }
+.phero-lb .lb-row + .lb-row { margin-top: 4px; }
+.phero-lb .lb-row.you { box-shadow: 0 0 0 1px var(--bg-primary); will-change: auto; }
+.phero-lb .lb-rank { color: var(--fg-muted); font-size: 14px; }
+.phero-lb .lb-prize { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.phero-lb .lb-row .led.up { text-align: right; }
+
+/* .phero--facts (tournament.html, Figma 147:50615): the headline top left, then a stage where four facts are written in
+   dots on the beat (landing.js [data-tf]). As tall as the viewport (the stage takes what the headline leaves). */
+.phero--facts { min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; padding: 143px 0 80px; border-top: 0; }
+.phero--facts > .wrap { position: relative; z-index: 1; width: 100%; flex: 1; display: flex; flex-direction: column; } /* above the dot-wave */
+.phero--facts + section { border-top: 0; }
+.tf-title { font-size: clamp(38px, 4.6vw, 66px); line-height: 1.11; max-width: 11.5em; }
+.tf-count { margin-top: 40px; font-family: var(--font-led); font-weight: 700; font-size: 14px; letter-spacing: 0.08em; color: var(--fg-muted); }
+.tf-count b { font-weight: inherit; color: var(--fg-primary); }
+.tf-stage { position: relative; flex: 1; min-height: 300px; margin-top: 16px; }
+/* The whole section inverts on the beat (the floating header stays as it is): the canvas covers the section above
+   the dot-wave and under the content, painting white plus the inverted dot field; .tf-inv flips the type */
+.tf-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; pointer-events: none; }
+.phero--facts.tf-inv .tf-title { color: #050505; }
+.phero--facts.tf-inv .tf-count { color: #6c6c6c; }
+/* headline chunks while the sequence runs: hidden until their beat, then a short slide-and-blur in (the reel's smear) */
+.tf-run .tf-w { opacity: 0; }
+.tf-run .tf-w.on { opacity: 1; animation: tf-in 0.16s cubic-bezier(0.2, 0.7, 0.2, 1); }
+@keyframes tf-in { from { transform: translateX(18px); filter: blur(4px); } to { transform: none; filter: none; } }
+.tf-w { display: inline-block; }
+.tf-run.tf-head .tf-count { opacity: 0; }
+.tf-list { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; margin: 0; padding: 0; } /* read by screen readers; the canvas is the picture of it */
+@media (prefers-reduced-motion: reduce) {
+  .tf-canvas, .tf-count { display: none; }
+  .tf-list { position: static; width: auto; height: auto; clip-path: none; white-space: normal; list-style: none; display: grid; gap: 10px; font-size: clamp(24px, 3.4vw, 44px); font-weight: 700; line-height: 1.15; }
+}
+
+/* .phero--tk (tournament.html, storyboard Figma 75:10785): a 1440 x 1020 frame in Figma pixels, placed under the
+   floating header and scaled by landing.js (--tk-s) so x 180 sits on the content column. Slots are the last cut;
+   .tk-fx holds the ghost copies that play the cuts. */
+.phero--tk { position: relative; min-height: 100vh; min-height: 100svh; padding: 0; border-top: 0; overflow: hidden; }
+.phero--tk + section { border-top: 0; }
+.tk-frame { position: absolute; left: calc(50% - 720px); top: 65px; width: 1440px; height: 1020px; z-index: 1; transform-origin: 0 0; }
+.tk-slot { position: absolute; margin: 0; white-space: nowrap; color: var(--fg-base); font-weight: 800; letter-spacing: -1.4px; line-height: 1.5; }
+.tk-slot[data-pop] { transform-origin: 0 50%; } /* C4 swings in hinged on the left edge */
+.tk-h { left: 180px; top: 78px; width: 695px; white-space: normal; font-size: 66px; font-weight: 700; line-height: 1.112; letter-spacing: -0.02em; }
+.tk-lede { left: 180px; top: 245px; width: 520px; white-space: normal; font-size: 18px; font-weight: 400; line-height: 1.36; letter-spacing: 0; color: var(--fg-subtle); }
+.tk-list { list-style: none; margin: 0; padding: 0; }
+.tk-s18 { font-size: 18px; } .tk-s24 { font-size: 24px; } .tk-s32 { font-size: 32px; } .tk-s40 { font-size: 40px; }
+.tk-lh12 { line-height: 1.2; }
+.tk-w { display: inline-block; line-height: 1; }
+.tk-fx { position: absolute; inset: 0; perspective: 1400px; pointer-events: none; }
+.tk-g { position: absolute; left: 0; top: 0; transform-origin: 0 0; white-space: nowrap; color: var(--fg-base); font-weight: 900; letter-spacing: -1.4px; will-change: transform, opacity; }
+.tk-panel { position: absolute; left: 0; top: 0; width: 1241px; height: 1020px; background: var(--bg-base); will-change: transform; }
+/* narrow screens: the last cut as a plain flow, no frame */
+@media (max-width: 900px) {
+  .phero--tk { padding: 120px 0 84px; min-height: 0; }
+  .tk-frame { position: static; width: auto; height: auto; transform: none !important; padding: 0 20px; }
+  .tk-slot { position: static; white-space: normal; }
+  .tk-h { font-size: clamp(34px, 8vw, 52px); width: auto; }
+  .tk-lede { width: auto; margin-top: 16px; }
+  .tk-list { margin-top: 36px; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  .tk-list li { flex-basis: 100%; }
+  .tk-list .tk-s40 { flex-basis: auto; }
+  .tk-fx { display: none; }
+}
+
 @media (max-width: 900px) {
   .promo-grid, .promo--flip .promo-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; }
   .promo--flip .promo-copy { order: -1; }
-  .page-sub main > .promo:first-child { min-height: 0; padding: 120px 0 84px; }
+  .promo--hero { min-height: 0; padding: 120px 0 84px; }
+  .phero-grid, .phero--flip .phero-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .phero--flip .phero-copy { order: -1; }
+  .phero { padding-top: 120px; }
+  .phero--full { min-height: 0; padding: 120px 0 84px; }
+  .phero--facts { min-height: 0; padding: 120px 0 84px; }
+  .tf-stage { min-height: 300px; }
 }

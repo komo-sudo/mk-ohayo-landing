@@ -320,8 +320,55 @@
     whoBtns.forEach(function (b) { b.addEventListener('click', function () { press(whoBtns, b); tvRows(b.getAttribute('data-who')); }); });
     tvRows('all'); tvPaint();
   }
-  /* 3type TradeView intro card: the first trader's chart, first trade selected, drawn once (no interaction). */
+  /* 3type TradeView cards (.tvp-svg): the first trader's chart, first trade selected. The page hero stays on it. */
   all('.tvp-svg').forEach(function (el) { var ch = tvChart(tvData[0], 0); el.setAttribute('viewBox', ch.box); el.innerHTML = ch.svg; });
+
+  /* Landing TradeView intro ([data-tvp-cycle]; ohayo-motion): steps through every buy and sell of the trade so each
+     one's reason gets read. Per trade, 3s:
+       0       the chart redraws with the next marker selected; it lands (0.8 -> 1 scale, 400ms, out)
+       0       the text block slides out (200ms, in-out), swaps, slides in from 8px below (350ms, out)
+       3s      next trade; after the last, back to the first.
+     A trade holds about 2.5s still: reading time for its reason, not a pause in a motion sequence.
+     Clicking a marker jumps to it and restarts the 3s. Runs only on screen; reduced motion shows trade 1, still. */
+  all('[data-tvp-cycle]').forEach(function (board) {
+    var svg = board.querySelector('.tvp-svg'), box = board.querySelector('.tvp-text');
+    if (!svg || !box) return;
+    var t = tvData[0], k = 0, timer = null, on = false, HOLD = 3000;
+    var q = function (a) { return board.querySelector('[data-tvp-' + a + ']'); };
+    var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function fillText(i) {
+      var f = t.fills[i];
+      q('step').textContent = 'Trade ' + (i + 1) + ' of ' + t.fills.length + ' · ' + (f.side === 'BUY' ? 'buy' : 'sell');
+      q('title').textContent = f.title;
+      q('notebox').hidden = !f.note; q('note').textContent = f.note;
+      q('ai').textContent = f.ai;
+    }
+    /* Keep the block as tall as its longest trade, so the section never shifts while it steps */
+    var tallest = 0;
+    t.fills.forEach(function (f, i) { fillText(i); tallest = Math.max(tallest, box.offsetHeight); });
+    box.style.minHeight = tallest + 'px';
+    function chart(i, land) {
+      var ch = tvChart(t, i); svg.innerHTML = ch.svg;
+      all('.mk', svg).forEach(function (g) { g.addEventListener('click', function () { go(Number(g.getAttribute('data-k'))); }); });
+      var mk = svg.querySelector('.mk.on');
+      if (land && mk && mk.animate) mk.animate([{ transform: 'scale(0.8)', opacity: 0.4 }, { transform: 'scale(1)', opacity: 1 }], { duration: 400, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' });
+    }
+    function show(i, anim) {
+      k = i; chart(i, anim);
+      if (!anim || !box.animate) { fillText(i); return; }
+      box.animate([{ transform: 'none', opacity: 1 }, { transform: 'translateY(-6px)', opacity: 0 }], { duration: 200, easing: 'cubic-bezier(0.45, 0, 0.55, 1)' }).onfinish = function () {
+        fillText(i);
+        box.animate([{ transform: 'translateY(8px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 350, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' });
+      };
+    }
+    function schedule() { clearTimeout(timer); timer = on && !still ? setTimeout(function () { show((k + 1) % t.fills.length, true); schedule(); }, HOLD) : null; }
+    function go(i) { if (i !== k) show(i, !still); schedule(); }
+    show(0, false);
+    if (still) return;
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) { on = es[0].isIntersecting; schedule(); }, { threshold: 0.3 }).observe(board);
+    } else { on = true; schedule(); }
+  });
 
   /* Spotlight (ohayo-motion): a good day moves you up the board, people follow, OHAYO calls. Sample.
      Plays once when the board scrolls into view; the button replays it. Time-driven render(t), 0.5s beats:
@@ -1206,6 +1253,358 @@
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function (es) { run(es[0].isIntersecting); }).observe(card);
     } else run(true);
+  });
+
+  /* Tournament page hero facts ([data-tf]). After a reference the designer chose (a kinetic-type reel: one word per
+     beat, hard cuts, the frame flipping black/white): the user asked for cuts and inversion here, which overrides
+     ohayo-motion's "transform, don't cut" for this piece only. The dot style stays: every line is set in dots on a
+     6px grid aligned to the dot-wave's 24px one.
+     Per fact, on a 0.5s beat (time-driven from one clock):
+       beat 0      the small lead line cuts in on the dark band ("No", "Ranked 3 ways:", ...)
+       beat 1..n   each punch cuts in big under it, and the band inverts on every punch (white, dark, white...);
+                   "profit | return | volume" replace one another
+       data-type   the punch is typed instead, one letter per 60ms (like "repea" -> "repeat.")
+       hold        3 beats on the last state, dots still breathing with the background wave
+     After the 4th fact the stage empties and the headline (data-tf-head) cuts in chunk by chunk on the beat, the
+     section inverting on each chunk, holds 4 beats, then hides again for fact 1. The whole section inverts (the
+     canvas covers it; .tf-inv flips the headline), the floating header excepted.
+     Between facts: a cut to the next fact's lead on the dark band. Every line enters with a 160ms dot smear from the right
+     (out easing), like the reel's motion blur. When the band is white it carries the dot-wave inverted (same grid,
+     speed and wavelength), so the field reads as one surface flipping, not a white box laid on it.
+     About 11.5s a loop. Inversions never exceed two a second (photosensitivity limit is three). Runs only on
+     screen: 60fps around a cut or while typing, 30fps at rest. Reduced motion: the four facts as a plain list. */
+  all('[data-tf]').forEach(function (list) {
+    var stage = list.parentNode, sec = stage.closest('section'), cv = sec && sec.querySelector('.tf-canvas');
+    var num = sec && sec.querySelector('[data-tf-n]'), head = sec && sec.querySelector('[data-tf-head]');
+    if (!cv || !sec || noMotion) return;
+    /* the headline as beat chunks: the text stays the same for readers, only wrapped */
+    var chunks = head ? head.getAttribute('data-tf-head').split('|') : [], words = [];
+    if (head) {
+      head.textContent = '';
+      chunks.forEach(function (c, k) {
+        var sp = document.createElement('span'); sp.className = 'tf-w'; sp.textContent = c; head.appendChild(sp); words.push(sp);
+        if (k < chunks.length - 1) head.appendChild(document.createTextNode(' '));
+      });
+    }
+    var facts = all('li', list).map(function (li) {
+      return { lead: li.getAttribute('data-lead'), punch: li.getAttribute('data-punch').split('|'), type: li.hasAttribute('data-type'),
+               layout: li.getAttribute('data-layout') || 'stack', bigFirst: li.hasAttribute('data-big-first') };
+    });
+    var g = cv.getContext('2d'), P = 6, B = 500, HOLDB = 3, HEADHOLD = 4, SMEAR = 160, TYPE = 60;
+    var V = 60, K = 2 * Math.PI / 520;
+    var W = 0, H = 0, dpr = 1, cols = 0, rows = 0, x0 = 0, y0 = 0, secDx = 0, secDy = 0, tx = 0, tw = 0, sTop = 0, sH = 0;
+    var out = function (x) { x = x < 0 ? 0 : x > 1 ? 1 : x; return 1 - Math.pow(1 - x, 3); };
+    var font = function (px) { return '900 ' + px + 'px "Pretendard Variable", Pretendard, Inter, sans-serif'; };
+    var off, o, timeline = [], LOOP = 0;
+    /* coverage of some runs of text ({ s, px, x, y }: string, size, left, baseline), per grid cell */
+    function mask(runs) {
+      o.clearRect(0, 0, W, H); o.fillStyle = '#fff'; o.textBaseline = 'alphabetic';
+      runs.forEach(function (r) { if (r.s) { o.font = font(r.px); o.fillText(r.s, r.x, r.y); } });
+      var d = o.getImageData(0, 0, W, H).data, cov = new Float32Array(cols * rows);
+      for (var r = 0; r < rows; r++) {
+        var cy = Math.round(y0 + r * P); if (cy < 1 || cy >= H - 1) continue;
+        for (var c = 0; c < cols; c++) {
+          var cx = Math.round(x0 + c * P); if (cx < 1 || cx >= W - 1) continue;
+          var sum = 0;
+          for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) sum += d[((cy + dy) * W + cx + dx) * 4 + 3];
+          cov[r * cols + c] = sum / 9 / 255;
+        }
+      }
+      return cov;
+    }
+    function layout() {
+      var cr = cv.getBoundingClientRect(), sr = sec.getBoundingClientRect(), st = stage.getBoundingClientRect();
+      W = Math.round(cr.width); H = Math.round(cr.height);
+      if (!W || !H) return false;
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      secDx = cr.left - sr.left; secDy = cr.top - sr.top;
+      tx = Math.round(st.left - cr.left); tw = Math.round(st.width);   /* text starts at the content column */
+      sTop = st.top - cr.top; sH = st.height;                         /* facts sit in the stage, inside the section canvas */
+      var bgOx = (sec.clientWidth % 24) / 2 + 12, bgOy = (sec.clientHeight % 24) / 2 + 12;
+      x0 = ((bgOx - secDx) % P + P) % P; y0 = ((bgOy - secDy) % P + P) % P;
+      cols = Math.floor((W - x0) / P) + 1; rows = Math.floor((H - y0) / P) + 1;
+      off = document.createElement('canvas'); off.width = W; off.height = H; o = off.getContext('2d', { willReadFrequently: true });
+      var m = document.createElement('canvas').getContext('2d');      /* measuring only; mask() changes o.font */
+      /* states on the beat. Layouts after the Figma storyboard (75:10785, a 1440 x 1020 frame, weight 900):
+           line   "No entry fee"              one line, 166px, centred on the content column
+           stack  "Ranked 3 ways:" / "profit"  66px over 166px, left
+           two    "Join late," / "count ..."   two lines of 120px, left (big-first: "5" at 160px)
+         Every block's last baseline sits on one line, 70% down the section (the storyboard's ~690 of 1020 under a
+         65px header); sizes scale with the column (1080 = 100%) and shrink if a short screen can't hold them. */
+      timeline = []; var t = 0;
+      var w = function (str, px) { m.font = font(px); return m.measureText(str).width; };
+      var anchor = Math.max(sTop + 60, Math.min(sTop + sH - 24, H * 0.70));
+      facts.forEach(function (f, fi) {
+        var k = Math.min(1, tw / 1080), above = f.layout === 'line' ? 130 : 270;
+        k = Math.min(k, (anchor - sTop) / above);
+        var Lr, punchRuns;
+        if (f.layout === 'line') {
+          var px = Math.round(166 * k), gap = w(f.lead + ' ', px), total = gap + w(f.punch[0], px);
+          var x = Math.round(tx + (tw - total) / 2);
+          Lr = [{ s: f.lead, px: px, x: x, y: anchor }];
+          punchRuns = function (p) { return [{ s: p, px: px, x: x + gap, y: anchor }]; };
+        } else if (f.layout === 'stack') {
+          var sm = Math.round(66 * k), bg = Math.round(166 * k);
+          Lr = [{ s: f.lead, px: sm, x: tx, y: anchor - bg * 1.22 }];
+          punchRuns = function (p) { return [{ s: p, px: bg, x: tx, y: anchor }]; };
+        } else {
+          var lp = Math.round(120 * k), lb = Math.round(160 * k);
+          Lr = [{ s: f.lead, px: lp, x: tx, y: anchor - lp * 1.5 }];
+          punchRuns = function (p) {
+            if (!f.bigFirst) return [{ s: p, px: lp, x: tx, y: anchor }];
+            var head = p.slice(0, 1), rest = p.slice(1);
+            return [{ s: head, px: lb, x: tx, y: anchor }, { s: rest, px: lp, x: tx + w(head, lb), y: anchor }];
+          };
+        }
+        var L = mask(Lr);
+        timeline.push({ t: t, fact: fi, head: 0, lead: L, punch: null, inv: false, enter: 'lead' }); t += B;
+        f.punch.forEach(function (p, j) {
+          var inv = j % 2 === 0;
+          if (f.type) {
+            for (var n = 1; n <= p.length; n++) {
+              if (p[n - 1] === ' ' && n < p.length) continue;
+              timeline.push({ t: t + (n - 1) * TYPE, fact: fi, head: 0, lead: L, punch: mask(punchRuns(p.slice(0, n))), inv: inv, enter: n === 1 ? 'punch' : null });
+            }
+            t += Math.ceil((p.length * TYPE) / B) * B;
+          } else {
+            timeline.push({ t: t, fact: fi, head: 0, lead: L, punch: mask(punchRuns(p)), inv: inv, enter: 'punch' }); t += B;
+          }
+        });
+        t += (HOLDB - 1) * B;
+      });
+      /* finale: the stage empties and the headline cuts in chunk by chunk, inverting on each, then holds */
+      chunks.forEach(function (c, k) { timeline.push({ t: t, fact: -1, head: k + 1, lead: null, punch: null, inv: k % 2 === 0, enter: null }); t += B; });
+      if (chunks.length) t += (HEADHOLD - 1) * B;
+      LOOP = t;
+      return true;
+    }
+    function draw(ts, now) {
+      g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+      var e = now % LOOP, i = 0;
+      while (i + 1 < timeline.length && timeline[i + 1].t <= e) i++;
+      var s = timeline[i], since = e - s.t;
+      /* the line that just cut in smears in from the right: offset in cells, plus a fading trail behind it */
+      var enterAt = s.t; for (var j = i; j >= 0 && timeline[j].fact === s.fact; j--) { if (timeline[j].enter) { enterAt = timeline[j].t; break; } }
+      var enterWhich = timeline[j] ? timeline[j].enter : null, ep = out((e - enterAt) / SMEAR), shift = Math.round((1 - ep) * 9);
+      var tsec = ts / 1000;
+      if (s.inv) {
+        g.fillStyle = '#fafafa'; g.fillRect(0, 0, W, H);
+        /* the dot-wave, inverted: dark dots on the white band, same grid and wave */
+        var field = new Path2D(), field2 = new Path2D();
+        var fx0 = ((((sec.clientWidth % 24) / 2 + 12) - secDx) % 24 + 24) % 24, fy0 = ((((sec.clientHeight % 24) / 2 + 12) - secDy) % 24 + 24) % 24;
+        for (var fy = fy0; fy < H; fy += 24) {
+          var bY = Math.sin((fy + secDy) / 170) * 1.1 + Math.sin((fy + secDy) / 61) * 0.35;
+          for (var fx = fx0; fx < W; fx += 24) {
+            var w0 = 0.5 + 0.5 * Math.sin((fx + secDx - tsec * V) * K + bY); w0 = w0 * w0 * w0;
+            var rr = 1.6 + 0.5 * w0, pth = w0 > 0.5 ? field2 : field;
+            pth.moveTo(fx + rr, fy); pth.arc(fx, fy, rr, 0, 6.2832);
+          }
+        }
+        g.fillStyle = '#e2e2e2'; g.fill(field); g.fillStyle = '#cfcfcf'; g.fill(field2);
+      }
+      var lv = [], STEPS = 10;
+      for (var q = 0; q <= STEPS; q++) lv.push(new Path2D());
+      var Lm = s.lead, Pm = s.punch;
+      for (var r = 0; r < rows; r++) {
+        var y = y0 + r * P, bendY = Math.sin((y + secDy) / 170) * 1.1 + Math.sin((y + secDy) / 61) * 0.35, row = r * cols;
+        for (var c = 0; c < cols; c++) {
+          var a = 0;
+          var sl = enterWhich === 'lead' ? shift : 0, sp = enterWhich === 'punch' ? shift : 0;
+          if (Lm) a = Math.max(a, smear(Lm, row, c, sl, ep, enterWhich === 'lead'));
+          if (Pm) a = Math.max(a, smear(Pm, row, c, sp, ep, enterWhich === 'punch'));
+          if (a < 0.06) continue;
+          var x = x0 + c * P, w = 0.5 + 0.5 * Math.sin((x + secDx - tsec * V) * K + bendY); w = w * w * w;
+          var k = Math.round(STEPS * Math.min(1, a * (0.8 + 0.2 * w))), rad = 0.6 + 1.9 * a;
+          lv[k].moveTo(x + rad, y); lv[k].arc(x, y, rad, 0, 6.2832);
+        }
+      }
+      for (q = 1; q <= STEPS; q++) {
+        var f = q / STEPS, cc = s.inv ? Math.round(200 - 195 * f) : Math.round(44 + 206 * f);
+        g.fillStyle = 'rgb(' + cc + ',' + cc + ',' + cc + ')'; g.fill(lv[q]);
+      }
+      if (num && s.fact >= 0) { var nn = (s.fact < 9 ? '0' : '') + (s.fact + 1); if (num.textContent !== nn) num.textContent = nn; }
+      if (s !== shown) {                                               /* the DOM side of the beat: section and headline */
+        shown = s;
+        sec.classList.toggle('tf-inv', s.inv);
+        sec.classList.toggle('tf-head', s.fact < 0);
+        words.forEach(function (w, k) { w.classList.toggle('on', k < s.head); });
+      }
+      return since < SMEAR + 40 || (s.fact >= 0 && facts[s.fact].type && s.punch && since < B);   /* busy: draw at 60fps */
+    }
+    function smear(m, row, c, sh, ep, entering) {
+      var cc = c + sh; if (cc < 0 || cc >= cols) return 0;
+      var v = m[row + cc];
+      if (entering && ep < 1) {                                         /* trail behind the moving line */
+        for (var k = 1; k <= 3; k++) { var c2 = cc + k; if (c2 < cols) v = Math.max(v, m[row + c2] * (1 - ep) * (0.55 - k * 0.13)); }
+      }
+      return v;
+    }
+    var t0 = 0, raf = null, last = 0, busy = true, ready = false, visible = false, shown = null;
+    function frame(ts) {
+      raf = requestAnimationFrame(frame);
+      var now = ts - t0;
+      if (!busy && ts - last < 33) {                                    /* at rest: 30fps, but never late for a cut */
+        var e = now % LOOP, nxt = null;
+        for (var i = 0; i < timeline.length; i++) if (timeline[i].t > e) { nxt = timeline[i].t; break; }
+        if (nxt === null || nxt - e > 20) return;
+      }
+      last = ts; busy = draw(ts, now);
+    }
+    function start() { if (!raf && ready) { if (!t0) t0 = performance.now(); sec.classList.add('tf-run'); raf = requestAnimationFrame(frame); } }
+    function stop() { if (raf) { cancelAnimationFrame(raf); raf = null; } }
+    (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(function () {
+      ready = layout(); if (ready && visible) start();
+    });
+    window.addEventListener('resize', function () { if (ready) layout(); });
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) { visible = es[0].isIntersecting; if (visible) start(); else stop(); }).observe(cv);
+    } else visible = true;
+  });
+
+  /* Tournament page hero, storyboard Figma 75:10785 ([data-tk]; ohayo-motion: 0.5s beats, out / in-out, things
+     transform into their place instead of cutting). The markup is the last cut. Everything runs in Figma pixels
+     inside .tk-frame (1440 x 1020), scaled so x 180 sits on the content column. Ghost copies, set at the largest size
+     they reach so scaling only ever goes down (crisp type), fly into the slots; a slot shows once its ghost lands.
+       0.0-0.5   C1  headline at 200px, words rise in (first loop only)
+       1.5-2.1   C2  headline words fly into the 66px slot; 1.8-2.3 the lede rises in at 88px
+       2.8-3.4   C3  lede words shrink into the 18px slot
+       3.6-6.0   C4  (Figma 158:50828) the seven layers under the title swing in on a left-edge hinge,
+                     rotateY 90deg -> 0 (closing), 600ms each (out), top to bottom, one every 300ms
+       6.0-9.3   hold (the dot-wave keeps moving)
+       9.3-9.9   the layers fade out and the headline grows back to C1; loop (9.9s)
+     Runs only on screen; reduced motion and narrow screens (<= 900px) show the last cut, still. */
+  all('[data-tk]').forEach(function (frame) {
+    var sec = frame.closest('section'), fx = frame.querySelector('.tk-fx');
+    if (!sec || !fx) return;
+    var slot = function (k) { return frame.querySelector('[data-slot="' + k + '"]'); };
+    var inOut = function (x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+    var outE = function (x) { return 1 - Math.pow(1 - x, 3); };
+    var EASE = { o: outE, io: inOut, l: function (x) { return x; } };
+    var LOOP = 9900, s = 1, pops = [], POP0 = 3600, POPS = 300, POPD = 600, HOLD_END = 9300;
+    /* wrap the words of the multi-word slots, so each can be measured and flown separately */
+    function words(el) {
+      if (el.querySelector('.tk-w')) return all('.tk-w', el);
+      var txt = el.textContent.trim().split(/\s+/); el.textContent = '';
+      return txt.map(function (w, i) {
+        var sp = document.createElement('span'); sp.className = 'tk-w'; sp.textContent = w; el.appendChild(sp);
+        if (i < txt.length - 1) el.appendChild(document.createTextNode(' '));
+        return sp;
+      });
+    }
+    var headW = words(slot('head')), ledeW = words(slot('lede'));
+    function place() {
+      var narrow = window.innerWidth <= 900;
+      if (narrow) { frame.style.transform = ''; return false; }
+      var wrapW = Math.min(sec.clientWidth, 1120) - 40, left = (sec.clientWidth - wrapW) / 2;
+      s = Math.min(wrapW / 1080, (sec.clientHeight - 65) / 840);
+      frame.style.left = '0px'; frame.style.top = '0px';
+      frame.style.transform = 'translate(' + (left - 180 * s) + 'px,65px) scale(' + s + ')';
+      return true;
+    }
+    if (noMotion || !place()) { window.addEventListener('resize', place); return; }
+
+    /* where a word sits in a layout we don't show at rest (C1 headline 200px, C2 lede 88px, the panel's 120px
+       lines): a hidden clone in the frame, read back in frame pixels */
+    function layoutOf(text, css) {
+      var d = document.createElement('div');
+      d.style.cssText = 'position:absolute;visibility:hidden;white-space:normal;' + css;
+      text.forEach(function (w, i) { var sp = document.createElement('span'); sp.className = 'tk-w'; sp.textContent = w; d.appendChild(sp); if (i < text.length - 1) d.appendChild(document.createTextNode(' ')); });
+      frame.appendChild(d);
+      var r = all('.tk-w', d).map(function (sp) { return { x: d.offsetLeft + sp.offsetLeft, y: d.offsetTop + sp.offsetTop }; });
+      d.remove(); return r;
+    }
+    var slotXY = function (el, w) { return { x: el.offsetLeft + (w ? w.offsetLeft : 0), y: el.offsetTop + (w ? w.offsetTop : 0) }; };
+    var tracks = [];
+    /* a ghost: text at its base size; keys [t ms, x, y, scale, rotate deg (Figma: + is counter-clockwise),
+       rotateY deg, opacity, easing into this key] */
+    function ghost(text, base, css, keys) {
+      var g = document.createElement('span'); g.className = 'tk-g'; g.textContent = text;
+      g.style.cssText = 'font-size:' + base + 'px;' + (css || ''); g.style.opacity = 0;
+      fx.appendChild(g); tracks.push({ el: g, keys: keys }); return g;
+    }
+    var K = function (t, x, y, k, r, ry, o, e) { return { t: t, x: x, y: y, k: k, r: r || 0, ry: ry || 0, o: o === undefined ? 1 : o, e: e || 'io' }; };
+    var shows = [];                                                     /* slot visibility: [el, from, fadeOutFrom] */
+    function build() {
+      fx.textContent = ''; tracks = []; shows = [];
+      var headTxt = headW.map(function (w) { return w.textContent; }), ledeTxt = ledeW.map(function (w) { return w.textContent; });
+      /* C1 / C2: headline words, 200px -> 66px */
+      var big = layoutOf(headTxt, 'left:180px;top:78px;width:1080px;font-size:200px;font-weight:700;line-height:1.112;letter-spacing:-0.02em;');
+      var hs = slot('head');
+      headW.forEach(function (w, i) {
+        var a = big[i], b = slotXY(hs, w), k = 66 / 200, d = i * 25;
+        ghost(w.textContent, 200, 'font-weight:700;letter-spacing:-0.02em;line-height:1', [
+          K(0, a.x, a.y + 30, 1, 0, 0, 0), K(500 + i * 40, a.x, a.y, 1, 0, 0, 1, 'o'), K(1500 + d, a.x, a.y, 1),
+          K(2100 + d, b.x, b.y, k), K(2101 + headW.length * 25, b.x, b.y, k, 0, 0, 0, 'l'),
+          K(HOLD_END - 1, b.x, b.y, k, 0, 0, 0, 'l'), K(HOLD_END, b.x, b.y, k), K(LOOP, a.x, a.y, 1)]);
+      });
+      shows.push([hs, 2100 + headW.length * 25, HOLD_END, true]);
+      /* C2 / C3: lede words, 88px -> 18px */
+      var lb = layoutOf(ledeTxt, 'left:180px;top:305px;width:1080px;font-size:88px;font-weight:400;line-height:1.36;');
+      var ls = slot('lede');
+      ledeW.forEach(function (w, i) {
+        var a = lb[i], b = slotXY(ls, w), k = 18 / 88;
+        ghost(w.textContent, 88, 'font-weight:400;letter-spacing:0;color:var(--fg-subtle);line-height:1', [
+          K(1800 + i * 15, a.x, a.y + 20, 1, 0, 0, 0), K(2300 + i * 15, a.x, a.y, 1, 0, 0, 1, 'o'), K(2800 + i * 8, a.x, a.y, 1),
+          K(3400 + i * 8, b.x, b.y, k), K(3400 + ledeW.length * 8 + 1, b.x, b.y, k, 0, 0, 0, 'l')]);
+      });
+      shows.push([ls, 3400 + ledeW.length * 8]);
+      /* C4 (Figma 158:50828): the layers under the title, popping in top to bottom (render) */
+      pops = all('[data-pop]', frame);
+    }
+    function at(keys, t) {
+      if (t < keys[0].t || t > keys[keys.length - 1].t) return null;
+      for (var i = 1; i < keys.length; i++) {
+        var a = keys[i - 1], b = keys[i];
+        if (t <= b.t) {
+          var p = b.t === a.t ? 1 : EASE[b.e]((t - a.t) / (b.t - a.t)), m = function (u, v) { return u + (v - u) * p; };
+          return { x: m(a.x, b.x), y: m(a.y, b.y), k: m(a.k, b.k), r: m(a.r, b.r), ry: m(a.ry, b.ry), o: m(a.o, b.o) };
+        }
+      }
+      return null;
+    }
+    var t0 = 0, raf = null, loops = 0;
+    function render(now) {
+      var e = now % LOOP, first = now < LOOP;
+      tracks.forEach(function (tr) {
+        var v = at(tr.keys, e);
+        /* after the first loop the headline is already big at 0-0.5s (it grew back at the end) */
+        if (!first && tr.keys[0].t === 0 && tr.keys[0].o === 0 && e < tr.keys[1].t) v = at(tr.keys, tr.keys[1].t);
+        if (!v || v.o <= 0.001) { if (tr.el.style.opacity !== '0') tr.el.style.opacity = 0; return; }
+        tr.el.style.opacity = v.o;
+        tr.el.style.transform = 'translate(' + v.x.toFixed(1) + 'px,' + v.y.toFixed(1) + 'px) rotate(' + (-v.r).toFixed(2) + 'deg) rotateY(' + v.ry.toFixed(2) + 'deg) scale(' + v.k.toFixed(4) + ')';
+      });
+      shows.forEach(function (sh) {
+        var el = sh[0], on = e >= sh[1], o = on ? 1 : 0;
+        if (sh[2] !== undefined && e >= sh[2]) o = 0;                   /* the headline hands back to its ghost */
+        else if (on && !sh[3] && e >= HOLD_END) o = Math.max(0, 1 - (e - HOLD_END) / 400);   /* the list fades out */
+        if (el.style.opacity !== String(o)) el.style.opacity = o;
+      });
+      /* C4: each layer swings shut like a door hinged on its left edge, rotateY 90deg (edge on, the free side
+         coming from behind) -> 0 (600ms, out, no overshoot), fading in on the way, top to bottom in reading order,
+         one every 300ms */
+      pops.forEach(function (el, i) {
+        var p = Math.max(0, Math.min(1, (e - POP0 - i * POPS) / POPD)), v = outE(p);
+        if (e >= HOLD_END) v = Math.max(0, 1 - (e - HOLD_END) / 400);   /* the loop's end: fade out with the rest */
+        el.style.opacity = e >= HOLD_END ? v : Math.min(1, v * 1.6);   /* visible early in the swing, not only at its end */
+        el.style.transform = e >= HOLD_END ? '' : 'perspective(900px) rotateY(' + (90 * (1 - v)).toFixed(2) + 'deg)';
+      });
+    }
+    function frameFn(ts) { raf = requestAnimationFrame(frameFn); render(ts - t0); }
+    var built = false;
+    function start() { if (!raf && built) { if (!t0) t0 = performance.now(); raf = requestAnimationFrame(frameFn); } }
+    function stop() { if (raf) { cancelAnimationFrame(raf); raf = null; } }
+    var visible = false;
+    (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(function () {
+      build(); built = true; render(0); if (visible) start();
+    });
+    window.addEventListener('resize', function () {
+      if (!place()) { stop(); fx.textContent = ''; all('.tk-slot', frame).forEach(function (el) { el.style.opacity = ''; }); built = false; return; }
+      build(); built = true; if (visible) start();
+    });
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) { visible = es[0].isIntersecting; if (visible) start(); else stop(); }).observe(sec);
+    } else visible = true;
   });
 
   /* Tournament 3D scene: render only while the section is on screen (two live WebGPU scenes would otherwise run at once). */
