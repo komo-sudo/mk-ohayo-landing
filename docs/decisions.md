@@ -84,6 +84,7 @@ Rules that hold across the whole page are in `.claude/skills/ohayo-design` (layo
   - The trader board example is removed. In its place, the nine creator cards from the About page sit on a ring (radius 560, centred low on the right) so the top half reads as a fan; it turns once every 120s and pauses off screen.
   - Same day: cards turned to lie along the radius like spokes, at −90° in Figma's terms (90° clockwise). Every card one height, 108px: the median of their natural heights, the same as on the About page. The name is held to one line and the info line to two, with an ellipsis. (80px was tried first: too small.)
   - Headline and lede enter with the tournament C4 swing: hinged left, rotateY 90° → 0° over 0.6s; headline at 0.2s, lede at 0.5s. Plays once on load.
+  - 2026-11-26: the lede no longer swings. It surfaces slowly from the dark: 1.4s from 0.5s, opacity 0→1 with blur 6px and brightness 0.2 lifting to normal.
 
 - **TradeView is a standalone feature, not a Tournament sub-feature.** Notion 1-Pager · TradeView lives under "Next 킬러피쳐 (Post-Tournament)".
 - **Condensed message: "See why they got in."** Every entry and exit is on the chart with the trader's reason in their own words.

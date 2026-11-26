@@ -918,10 +918,12 @@ nav.main a:focus-visible { outline: 2px solid var(--bd-focus); outline-offset: 2
 .tvf-title { font-size: clamp(40px, 4.8vw, 68px); line-height: 1.08; letter-spacing: -1.4px; max-width: 560px; }
 .tvf-lede { margin-top: 22px; max-width: 647px; font-size: 18px; line-height: 27.9px; color: var(--fg-subtle); }
 /* entrance, the same as the tournament hero's C4 layers: hinged on the left edge, each swings shut rotateY 90deg -> 0
-   (600ms, out, no overshoot), fading in on the way; headline first, the lede 0.3s later. Plays once on load. */
+   (600ms, out, no overshoot), fading in on the way. The lede instead surfaces slowly from the dark (1.4s, out,
+   blur and brightness lifting) from 0.5s. Plays once on load. */
 .tvf-copy > * { transform-origin: 0 50%; animation: tvf-swing 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 .tvf-title { animation-delay: 0.2s; }
-.tvf-lede { animation-delay: 0.5s; }
+.tvf-lede { animation: tvf-dawn 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) 0.5s both; } /* the lede doesn't swing: it surfaces from the dark */
+@keyframes tvf-dawn { from { opacity: 0; filter: blur(6px) brightness(0.2); } to { opacity: 1; filter: none; } }
 @keyframes tvf-swing { from { transform: perspective(900px) rotateY(90deg); opacity: 0; } 40% { opacity: 1; } to { transform: perspective(900px) rotateY(0deg); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .tvf-copy > * { animation: none; } }
 .tvf-fan { position: absolute; inset: 0; z-index: 1; pointer-events: none;

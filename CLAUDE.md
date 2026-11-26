@@ -55,4 +55,9 @@ When the user says "커밋 / 배포" ("commit and deploy"):
 4. The push to `main` triggers `.github/workflows/pages.yml`. Watch the run, then compare the live files byte for byte with local ones:
    - Site: https://komo-sudo.github.io/mk-ohayo-landing/
    - Add a `?v=random` query to bypass the cache.
-5. If the deploy fails with an artifact error, start a fresh `gh workflow run pages.yml`. Don't re-run only the failed job; that creates duplicate artifacts.
+5. If the deploy fails with an artifact error ("Fetching artifact metadata failed" / "No artifacts named github-pages"), it is GitHub's artifact service lagging, not the site.
+   - Don't retry back to back; immediate retries keep failing.
+   - Tell the user the commit is pushed but not live yet. Then wait 10 minutes (in the background) and start one fresh `gh workflow run pages.yml`.
+   - Verify the live files after it finishes, and report.
+   - If that run also fails, stop and ask the user before trying again.
+   - Never re-run only the failed job; that creates duplicate artifacts.
