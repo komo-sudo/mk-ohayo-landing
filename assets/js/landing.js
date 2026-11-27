@@ -319,6 +319,31 @@
     var whoBtns = all('[data-who]');
     whoBtns.forEach(function (b) { b.addEventListener('click', function () { press(whoBtns, b); tvRows(b.getAttribute('data-who')); }); });
     tvRows('all'); tvPaint();
+    /* phones (<= 600px): no filter, every trader listed; the picker collapses to the selected trader as a compact row
+       with a dropdown. Tapping it opens the list; tapping a trader selects it (the row's own handler) and closes the
+       list; a tap outside or Esc closes it too. */
+    (function () {
+      var side = document.querySelector('.tv-side'), small = window.matchMedia('(max-width: 600px)');
+      if (!side) return;
+      function sync() {
+        var open = side.classList.contains('is-open');
+        all('.tv-row', side).forEach(function (r) { if (r.getAttribute('aria-pressed') === 'true') r.setAttribute('aria-expanded', small.matches ? String(open) : null); else r.removeAttribute('aria-expanded'); });
+        if (!small.matches) all('.tv-row', side).forEach(function (r) { r.removeAttribute('aria-expanded'); });
+      }
+      function setOpen(v) { side.classList.toggle('is-open', v); sync(); }
+      side.addEventListener('click', function (e) {               /* runs after the row's own select handler */
+        if (!small.matches) return;
+        var row = e.target.closest && e.target.closest('.tv-row'); if (!row) return;
+        setOpen(!side.classList.contains('is-open'));
+      });
+      document.addEventListener('click', function (e) {         /* a tap outside closes it; the row re-renders on select, */
+        var path = e.composedPath ? e.composedPath() : [];      /* so test the event's original path, not the (detached) target */
+        if (side.classList.contains('is-open') && path.indexOf(side) === -1 && !side.contains(e.target)) setOpen(false);
+      });
+      side.addEventListener('keydown', function (e) { if (e.key === 'Escape' && side.classList.contains('is-open')) setOpen(false); });
+      var fit = function () { if (small.matches && !whoBtns[0].matches('[aria-pressed="true"]')) whoBtns[0].click(); if (!small.matches) side.classList.remove('is-open'); sync(); };
+      (small.addEventListener ? small.addEventListener('change', fit) : small.addListener(fit)); fit();
+    })();
   }
   /* 3type TradeView cards (.tvp-svg): the first trader's chart, first trade selected. The page hero stays on it. */
   all('.tvp-svg').forEach(function (el) { var ch = tvChart(tvData[0], 0); el.setAttribute('viewBox', ch.box); el.innerHTML = ch.svg; });
@@ -1045,6 +1070,44 @@
     hdr.addEventListener('focusin', function () { hdr.classList.remove('is-hidden'); });
   })();
 
+  /* Mobile menu (<= 900px, where the header menu is hidden): the hamburger opens a full-screen menu built from
+     whichever header menu the page shows (3type page links, or the 1/2type section buttons). Esc or the close button
+     closes it; focus moves in and comes back to the hamburger. */
+  (function () {
+    var btn = document.querySelector('.menu-btn');
+    if (!btn) return;
+    var skip = document.body.classList.contains('hero-v3') ? 'v3-hide' : 'v3-only';   /* the menu this hero type shows */
+    var nav = all('header.top nav.main').filter(function (n) { return !n.classList.contains(skip); })[0];
+    if (!nav) { btn.hidden = true; return; }
+    var m = document.createElement('div'); m.className = 'mnav'; m.id = 'mnav'; m.hidden = true;
+    m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-label', 'Menu');
+    var logo = document.querySelector('header.top .wordmark');
+    m.innerHTML = '<div class="mnav-top"></div><nav class="mnav-list" aria-label="Pages"></nav><div class="mnav-cta"><a class="btn btn-primary" href="https://app.ohayo.global" target="_blank" rel="noopener">Get the app</a></div>';
+    if (logo) m.firstChild.appendChild(logo.cloneNode(true));
+    var x = document.createElement('button'); x.type = 'button'; x.className = 'menu-btn'; x.setAttribute('aria-label', 'Close menu');
+    x.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    m.firstChild.appendChild(x);
+    var list = m.querySelector('.mnav-list');
+    all('a, button', nav).forEach(function (src, k) {
+      var c = src.cloneNode(true); c.style.setProperty('--k', k); c.removeAttribute('data-scroll');   /* scrolling goes through the original */
+      if (src.tagName === 'BUTTON') c.addEventListener('click', function () { close(); src.click(); });   /* section scroll buttons */
+      else c.addEventListener('click', function () { close(true); });
+      list.appendChild(c);
+    });
+    document.body.appendChild(m);
+    function open() {
+      m.hidden = false; btn.setAttribute('aria-expanded', 'true'); document.documentElement.style.overflow = 'hidden';
+      requestAnimationFrame(function () { m.classList.add('is-open'); var f = list.querySelector('a, button'); if (f) f.focus({ preventScroll: true }); });
+    }
+    function close(leaving) {
+      m.classList.remove('is-open'); m.hidden = true; btn.setAttribute('aria-expanded', 'false'); document.documentElement.style.overflow = '';
+      if (!leaving) btn.focus({ preventScroll: true });
+    }
+    btn.addEventListener('click', open); x.addEventListener('click', function () { close(); });
+    m.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    window.addEventListener('resize', function () { if (!m.hidden && window.innerWidth > 900) close(true); });
+  })();
+
   /* Section scrolling */
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   all('[data-scroll]').forEach(function (el) {
@@ -1135,6 +1198,17 @@
     $('live-cards').innerHTML = liveHtml; $('soon-cards').innerHTML = soonHtml;
     $('live-n').textContent = liveN; $('soon-n').textContent = soonN;
   }
+
+  /* Card strips (.carousel): fade a side into black only while there are more cards beyond it (the phone tier
+     masks with --fl / --fr; wider screens ignore them) */
+  all('.carousel').forEach(function (car) {
+    function edges() {
+      var more = car.scrollWidth - car.clientWidth - car.scrollLeft;
+      car.style.setProperty('--fl', car.scrollLeft > 4 ? '40px' : '0px');
+      car.style.setProperty('--fr', more > 4 ? '72px' : '0px');
+    }
+    car.addEventListener('scroll', edges, { passive: true }); window.addEventListener('resize', edges); edges();
+  });
 
   /* Tabs (the usual pattern for in-page tabs whose panels differ in height): switch the panel, then keep the reader
      at the top of the new content. If the tab row is not already near the top of the screen (just under the floating
@@ -1493,14 +1567,29 @@
       });
     }
     var headW = words(slot('head')), ledeW = words(slot('lede'));
+    /* Two layouts. Desktop (> 900px): the 1440 frame in Figma pixels, x 180 on the content column. Tablet and
+       mobile (<= 900px): a 390px portrait frame whose last cut is the stacked type in the CSS tier; C1 and C2 are
+       set for it in build(). Either way the frame scales to fit the width and the height: the tallest moment
+       (needH, the C1 headline or the finished list) plus 40px clear at the foot. */
+    var mobile = false, needH = 835;
     function place() {
-      var narrow = window.innerWidth <= 900;
-      if (narrow) { frame.style.transform = ''; return false; }
-      var wrapW = Math.min(sec.clientWidth, 1120) - 40, left = (sec.clientWidth - wrapW) / 2;
-      /* fit the whole composition to the screen: the tallest moment, the C1 headline (78 + 4 lines x 184 = 814)
-         and the C4 list (to 835), plus 40px clear at the foot, scales with the viewport height as well as width */
-      s = Math.min(wrapW / 1080, (sec.clientHeight - 65 - 40) / 835);
+      mobile = window.innerWidth <= 900;
       frame.style.left = '0px'; frame.style.top = '0px';
+      if (mobile) {
+        var top = 80;
+        /* the frame scales to the width; the composition then spreads down to fill the screen's height: the free
+           height goes 40% before the list and 20% before each of its last three rows (--tk-a, --tk-b) */
+        frame.style.setProperty('--tk-a', '0px'); frame.style.setProperty('--tk-b', '0px');
+        var lst = frame.querySelector('.tk-list'), base = lst.offsetTop + lst.offsetHeight + 24;
+        var sw = sec.clientWidth / 390, free = Math.max(0, (sec.clientHeight - top - 40) / sw - base);
+        frame.style.setProperty('--tk-a', (free * 0.4).toFixed(1) + 'px'); frame.style.setProperty('--tk-b', (free * 0.2).toFixed(1) + 'px');
+        needH = Math.max(needH, base + free);
+        s = Math.min(sw, (sec.clientHeight - top - 40) / needH);
+        frame.style.transform = 'translate(' + ((sec.clientWidth - 390 * s) / 2) + 'px,' + top + 'px) scale(' + s + ')';
+        return true;
+      }
+      var wrapW = Math.min(sec.clientWidth, 1120) - 40, left = (sec.clientWidth - wrapW) / 2;
+      s = Math.min(wrapW / 1080, (sec.clientHeight - 65 - 40) / needH);
       frame.style.transform = 'translate(' + (left - 180 * s) + 'px,65px) scale(' + s + ')';
       return true;
     }
@@ -1516,7 +1605,13 @@
       var r = all('.tk-w', d).map(function (sp) { return { x: d.offsetLeft + sp.offsetLeft, y: d.offsetTop + sp.offsetTop }; });
       d.remove(); return r;
     }
-    var slotXY = function (el, w) { return { x: el.offsetLeft + (w ? w.offsetLeft : 0), y: el.offsetTop + (w ? w.offsetTop : 0) }; };
+    /* where a slot (or a word in it) sits in frame pixels. A word's offsets are measured from its offsetParent: the
+       slot itself when the slot is positioned (desktop), but the frame when the slots are plain flow (phones), so
+       the slot's own offset is added only in the first case (adding it twice made words jump when they landed) */
+    var slotXY = function (el, w) {
+      if (!w) return { x: el.offsetLeft, y: el.offsetTop };
+      return w.offsetParent === el ? { x: el.offsetLeft + w.offsetLeft, y: el.offsetTop + w.offsetTop } : { x: w.offsetLeft, y: w.offsetTop };
+    };
     var tracks = [];
     /* a ghost: text at its base size; keys [t ms, x, y, scale, rotate deg (Figma: + is counter-clockwise),
        rotateY deg, opacity, easing into this key] */
@@ -1530,23 +1625,30 @@
     function build() {
       fx.textContent = ''; tracks = []; shows = [];
       var headTxt = headW.map(function (w) { return w.textContent; }), ledeTxt = ledeW.map(function (w) { return w.textContent; });
-      /* C1 / C2: headline words, 200px -> 66px */
-      var big = layoutOf(headTxt, 'left:180px;top:78px;width:1080px;font-size:200px;font-weight:700;line-height:0.92;letter-spacing:-0.02em;');   /* tight as in Figma (715px for 4 lines) */
-      var hs = slot('head');
+      /* the C1 / C2 sizes: desktop from Figma (200px headline, 88px lede), mobile set for 390px (64 / 24px);
+         the slot sizes come from the CSS, so the flight always lands on what the page shows */
+      var hs = slot('head'), ls = slot('lede');
+      var HB = mobile ? 64 : 200, LB = mobile ? 24 : 88, X0 = mobile ? 20 : 180, W0 = mobile ? 350 : 1080, Y0 = mobile ? 24 : 78;
+      var hk = parseFloat(getComputedStyle(hs).fontSize) / HB, lk = parseFloat(getComputedStyle(ls).fontSize) / LB;
+      var big = layoutOf(headTxt, 'left:' + X0 + 'px;top:' + Y0 + 'px;width:' + W0 + 'px;font-size:' + HB + 'px;font-weight:700;line-height:0.92;letter-spacing:-0.02em;');   /* tight as in Figma (715px for 4 lines) */
+      var bigBottom = big.reduce(function (m, p) { return Math.max(m, p.y + HB); }, 0);
+      var list = frame.querySelector('.tk-list');
+      needH = mobile ? Math.max(bigBottom, list.offsetTop + list.offsetHeight) + 24 : 835;   /* desktop: as before */
+      /* C1 / C2: headline words, big -> the slot */
       headW.forEach(function (w, i) {
-        var a = big[i], b = slotXY(hs, w), k = 66 / 200, d = i * 25;
-        ghost(w.textContent, 200, 'font-weight:700;letter-spacing:-0.02em;line-height:1', [
+        var a = big[i], b = slotXY(hs, w), k = hk, d = i * 25;
+        ghost(w.textContent, HB, 'font-weight:700;letter-spacing:-0.02em;line-height:1', [
           K(0, a.x, a.y + 30, 1, 0, 0, 0), K(500 + i * 40, a.x, a.y, 1, 0, 0, 1, 'o'), K(1500 + d, a.x, a.y, 1),
           K(2100 + d, b.x, b.y, k), K(2101 + headW.length * 25, b.x, b.y, k, 0, 0, 0, 'l'),
           K(HOLD_END - 1, b.x, b.y, k, 0, 0, 0, 'l'), K(HOLD_END, b.x, b.y, k), K(LOOP, a.x, a.y, 1)]);
       });
       shows.push([hs, 2100 + headW.length * 25, HOLD_END, true]);
-      /* C2 / C3: lede words, 88px -> 18px */
-      var lb = layoutOf(ledeTxt, 'left:180px;top:305px;width:1080px;font-size:88px;font-weight:400;line-height:1.36;');
-      var ls = slot('lede');
+      /* C2 / C3: lede words, big -> the slot (desktop at y 305; mobile just under the headline's slot) */
+      var lTop = mobile ? hs.offsetTop + hs.offsetHeight + 24 : 305;
+      var lb = layoutOf(ledeTxt, 'left:' + X0 + 'px;top:' + lTop + 'px;width:' + W0 + 'px;font-size:' + LB + 'px;font-weight:400;line-height:1.36;');
       ledeW.forEach(function (w, i) {
-        var a = lb[i], b = slotXY(ls, w), k = 18 / 88;
-        ghost(w.textContent, 88, 'font-weight:400;letter-spacing:0;color:var(--fg-subtle);line-height:1', [
+        var a = lb[i], b = slotXY(ls, w), k = lk;
+        ghost(w.textContent, LB, 'font-weight:400;letter-spacing:0;color:var(--fg-subtle);line-height:1', [
           K(1800 + i * 15, a.x, a.y + 20, 1, 0, 0, 0), K(2300 + i * 15, a.x, a.y, 1, 0, 0, 1, 'o'), K(2800 + i * 8, a.x, a.y, 1),
           K(3400 + i * 8, b.x, b.y, k), K(3400 + ledeW.length * 8 + 1, b.x, b.y, k, 0, 0, 0, 'l')]);
       });
@@ -1598,12 +1700,9 @@
     function stop() { if (raf) { cancelAnimationFrame(raf); raf = null; } }
     var visible = false;
     (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(function () {
-      build(); built = true; render(0); if (visible) start();
+      place(); build(); place(); built = true; render(0); if (visible) start();   /* place first: it sets the spacing the slots are measured with */
     });
-    window.addEventListener('resize', function () {
-      if (!place()) { stop(); fx.textContent = ''; all('.tk-slot', frame).forEach(function (el) { el.style.opacity = ''; }); built = false; return; }
-      build(); built = true; if (visible) start();
-    });
+    window.addEventListener('resize', function () { place(); build(); place(); built = true; if (visible) start(); });
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function (es) { visible = es[0].isIntersecting; if (visible) start(); else stop(); }).observe(sec);
     } else visible = true;
@@ -1611,6 +1710,17 @@
 
   /* TradeView page hero fan (.tvf-fan): the ring turns by CSS; pause it while the hero is off screen */
   all('.tvf-fan').forEach(function (fan) {
+    /* tablet and mobile (<= 900px): size the fan to the room under the copy, so it never runs over the text. Its
+       centre sits on the bottom-right corner, so it reaches 530px above the foot (radius 400 + half a card 130);
+       --fs scales it between 0.4 and 1. Desktop doesn't use --fs. */
+    var sec = fan.closest('section'), copy = sec && sec.querySelector('.tvf-copy');
+    function fit() {
+      if (!sec || !copy) return;
+      var room = sec.clientHeight - (copy.offsetTop + copy.offsetHeight) - 24;
+      sec.style.setProperty('--fs', Math.max(0.4, Math.min(1, room / 530)).toFixed(3));
+    }
+    fit(); window.addEventListener('resize', fit);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
     if (!('IntersectionObserver' in window)) return;
     new IntersectionObserver(function (es) { fan.classList.toggle('is-off', !es[0].isIntersecting); }).observe(fan);
   });
@@ -1880,14 +1990,17 @@
         dx: c ? 747 : 423, type: c ? [INTRO + 2 * B, INTRO + 3 * B] : [INTRO + B, INTRO + 2 * B], join: LEAD - B + (c ? 120 : 0) }; /* captions enter on beats 4 and 5; amounts join staggered by 120ms */
     });
     cols[0].txt = cols[0].cap.textContent;
-    function fill(box, k, down) { /* light k dots, 12 per row, from the bottom row up (or the top row down) */
-      var full = Math.floor(k / 12), rem = k % 12, f = box.firstElementChild, part = box.lastElementChild;
+    function fill(box, k, down) { /* light k dots, 12 per row (phones: 24), from the bottom row up (or the top row down) */
+      var per = MOB ? 24 : 12;                                            /* phones (Figma 178:51218): 24 a row, both stacks */
+      var full = Math.floor(k / per), rem = k % per, f = box.firstElementChild, part = box.lastElementChild;
+      box.style.width = MOB ? per * 6 + 'px' : '';
       f.style.height = full * 6 + 'px'; part.style.width = rem * 6 + 'px';
       part.style.top = down ? full * 6 + 'px' : ''; part.style.bottom = down ? 'auto' : full * 6 + 'px';
-      box.style.height = Math.ceil(k / 12) * 6 + 'px'; /* the amount rides along with the stack */
+      box.style.height = Math.ceil(k / per) * 6 + 'px'; /* the amount rides along with the stack */
     }
     var R = RUNS[0], col = '#11ec8a', rgb = '17,236,138', orange = '#ff5a00';
     var bx = 0, by = 0, W = 0, H = 0, dpr = 1, DX = 0, DY = 0, sc = 1, room = 1, raf = null, t0 = 0, run = 0, HX = 0, CL = 0, cw0 = 0;
+    var MOB = false, CS = 1, CY = 0, COLX = null, HB = 0;   /* phones: the profit graph gets its own row (see layout) */
 
     var V2 = function () { return document.body.classList.contains('hero-v2'); };
     var runAt = function (r) { return RUNS[(((r + (V2() ? 1 : 0)) % RUNS.length) + RUNS.length) % RUNS.length]; };   /* 2type: short first */
@@ -1904,10 +2017,15 @@
     function place() {
       cols.forEach(function (c) {
         var down = !c.us && R.dir < 0;
-        c.el.style.left = (DX + c.dx * sc * room) + 'px';
-        if (down) { c.el.style.top = (DY - 3.5 * sc) + 'px'; c.el.style.bottom = 'auto'; }   /* caption on top, loss hangs below */
-        else { c.el.style.top = 'auto'; c.el.style.bottom = (H - (DY - 7.5 * sc)) + 'px'; }
-        c.el.style.transform = 'scale(' + sc + ')';
+        c.el.style.left = (MOB ? COLX[c.us ? 1 : 0] : DX + c.dx * sc * room) + 'px';
+        if (down) { c.el.style.top = (CY - 3.5 * CS) + 'px'; c.el.style.bottom = 'auto'; }   /* caption on top, loss hangs below */
+        else { c.el.style.top = 'auto'; c.el.style.bottom = (H - (CY - 7.5 * CS)) + 'px'; }
+        c.el.style.transform = 'scale(' + CS + ')';
+        /* the caption enters at 2x from its left edge; on phones only as large as the room to the screen's edge
+           allows (12px clear), so OHAYO · SHORT 20X never runs off the right */
+        if (c.cap.textContent !== c.txt) c.cap.textContent = c.txt;
+        var left = MOB ? COLX[c.us ? 1 : 0] : 0;
+        c.big = MOB ? Math.max(1, Math.min(2, (W - 12 - left) / Math.max(1, c.cap.scrollWidth * CS * 1.3))) : 2;   /* 1.3: the pop at its peak */
       });
     }
     function layout() {
@@ -1945,6 +2063,24 @@
         x10.style.left = (HX + 420 * sc * room) + 'px';
         label.style.left = (HX + 14 * sc) + 'px';
       } else { cols[0].dx = 423; cols[1].dx = 747; }
+      /* the profit graph rides the chart's line on wider screens; phones (<= 600px, 2type) split the stage in two:
+         a short, quieter chart with its label up top (the flowing history matters less here), and below it, across
+         the width and larger, the profit graph: STOCKS left, the 10x between, OHAYO right */
+      MOB = V2() && W <= 600; CS = sc; CY = DY; COLX = null;
+      if (MOB) {
+        /* phones, after Figma 178:51218: a 360 x 360 stage sitting on the ticker strip, scaled to the width (or to
+           the room under the copy). Label top left (28, 28); 10x / 20x left middle (28, 150); STOCKS bottom left
+           (28, caption at 270, a loss hangs below it); OHAYO right (188), amount on top of its block, caption at
+           270 too. Both stacks 24 dots a row. The flowing chart stays behind, faded. */
+        HB = heroBottom;
+        var k = Math.min(W / 360, (heroBottom - copyBottom - 8) / 360), top = heroBottom - 360 * k, lft = (W - 360 * k) / 2;
+        CS = k;
+        CY = top + 266 * k;
+        COLX = [lft + 28 * k, lft + 188 * k];
+        label.style.left = (lft + 28 * k) + 'px'; label.style.top = (top + 39 * k) + 'px';
+        x10.style.left = (lft + 28 * k) + 'px'; x10.style.top = (top + 128 * k) + 'px';
+        DY = top + 190 * k; HX = lft + 360 * k * 0.66; DX = HX;
+      }
       place();
     }
     /* Ignition orbit, drawn around the dot. Arcs: radius (x the dot radius), width, share of the circle, spin in
@@ -2081,7 +2217,7 @@
       // it ignites at centre stage and glides left into the dot's place while the orbit collapses (0.8-1.5s)
       var ox = DX + (W / 2 - DX) * (1 - inOut(clamp((t - 800) / 700)));
       var hd = null;
-      if (v2) { hd = drawChart(t, i, Math.min(clamp(t / 400), 1 - clamp((t - (LOOP - WIPE)) / 150))); label.style.top = hd.y + 'px'; label.style.left = (hd.x + 14 * sc) + 'px'; }
+      if (v2) { hd = drawChart(t, i, Math.min(clamp(t / 400), 1 - clamp((t - (LOOP - WIPE)) / 150)) * (MOB ? 0.35 : 1)); if (!MOB) { label.style.top = hd.y + 'px'; label.style.left = (hd.x + 14 * sc) + 'px'; } }   /* phones: the chart sits faded behind the profit graph and the label stays pinned (layout) */
       ctx.globalAlpha = a;
       if (!v2 && t < INTRO + 50) ignite(t, eIn, eOut, a, ox);
       // tail: the dot's recent path; 85px at cruise, ~3x at full speed, gone when stopped
@@ -2127,7 +2263,7 @@
         if (c.cap.textContent !== c.txt) c.cap.textContent = c.txt;
         c.cap.style.opacity = cIn;
         var k3 = inOut(clamp((t - (INTRO + 3 * B)) / 350));                  /* beat 6: shrink into place */
-        c.cap.style.transform = 'translateX(' + (-14 * (1 - cIn)).toFixed(1) + 'px) scale(' + ((2 - k3) * (1 + 0.3 * kick(c.type[0]))).toFixed(3) + ')';
+        c.cap.style.transform = 'translateX(' + (-14 * (1 - cIn)).toFixed(1) + 'px) scale(' + ((c.big - (c.big - 1) * k3) * (1 + 0.3 * kick(c.type[0]))).toFixed(3) + ')';
         var k4 = out(clamp((t - c.join) / 300));                              /* amounts and dots join, staggered */
         c.val.style.opacity = k4; c.box.style.opacity = k4;
         var pop = c.us ? popAt(i, 5, R.mult) : popAt(i, 0.5, 1);                /* $50 on OHAYO, $5 on stocks */
@@ -2140,7 +2276,7 @@
       var p5 = clamp((t - END) / 400), e5 = out(p5), s5 = 1 + 0.8 * (1 - e5);
       x10.style.opacity = a * out(clamp((t - END) / 150));
       var xw = x10.offsetWidth;                                             /* scale about its centre, rest exactly where the left-origin layout puts it */
-      x10.style.transform = 'translateX(' + (xw * (sc - 1) / 2).toFixed(1) + 'px) scale(' + (sc * s5).toFixed(3) + ')';
+      x10.style.transform = 'translateX(' + (xw * (CS - 1) / 2).toFixed(1) + 'px) scale(' + (CS * s5).toFixed(3) + ')';
       x10.style.filter = p5 > 0 && p5 < 1 ? 'blur(' + (6 * (1 - e5)).toFixed(2) + 'px)' : 'none';
     }
     /* LED wipe at the run boundary, modelled on the showreel's dot-grid scene: a crest of near-touching circles

@@ -34,11 +34,14 @@
     </nav>
     <!-- 3type menu: pages instead of sections -->
     <nav class="main v3-only" aria-label="Pages">
-      <a href="index.html?hero=3" aria-current="page">About OHAYO</a>
+      <a href="index.html?hero=3" aria-current="page">About</a>
       <a href="tournament.html">Tournaments</a>
       <a href="tradeview.html">TradeView</a>
     </nav>
-    <a class="btn btn-primary btn-sm" href="https://app.ohayo.global" target="_blank" rel="noopener">Get the app</a>
+    <div class="hdr-end">
+      <a class="btn btn-primary btn-sm" href="https://app.ohayo.global" target="_blank" rel="noopener">Get the app</a>
+      <button type="button" class="menu-btn" aria-label="Open menu" aria-expanded="false" aria-controls="mnav"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    </div>
   </div>
 </header>
 
@@ -171,17 +174,20 @@
         <span class="board-label">Sample trade</span>
       </div>
 
-      <div class="pos-head">
-        <div><b class="pos-name" id="p-name">SK hynix</b><span class="side" id="p-side">LONG · 10x</span></div>
-        <div class="pos-who">
-          <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="24" fill="#272727"/><text x="24" y="30" text-anchor="middle" font-family="Courier New, monospace" font-weight="700" font-size="16" fill="#ff5a00" id="p-ini">TB</text></svg>
-          <span id="p-who">Trader Baek</span>
+      <!-- .pos-row: no box on desktop (display: contents); on phones the trade and its P&L share one row -->
+      <div class="pos-row">
+        <div class="pos-head">
+          <div><b class="pos-name" id="p-name">SK hynix</b><span class="side" id="p-side">LONG · 10x</span></div>
+          <div class="pos-who">
+            <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="24" fill="#272727"/><text x="24" y="30" text-anchor="middle" font-family="Courier New, monospace" font-weight="700" font-size="16" fill="#ff5a00" id="p-ini">TB</text></svg>
+            <span id="p-who">Trader Baek</span>
+          </div>
         </div>
-      </div>
 
-      <div class="pos-pnl" aria-live="polite">
-        <span class="led big" id="p-pnl">+$482</span>
-        <span class="led roe" id="p-roe">+48.2%</span>
+        <div class="pos-pnl" aria-live="polite">
+          <span class="led big" id="p-pnl">+$482</span>
+          <span class="led roe" id="p-roe">+48.2%</span>
+        </div>
       </div>
 
       <div class="chart-wrap"><canvas id="chart" role="img" aria-label="Candlestick chart of the sample trade. The right edge shows the price move and, next to it, your return at the chosen leverage."></canvas></div>

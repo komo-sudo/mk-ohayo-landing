@@ -37,7 +37,18 @@ Inside `.tcard`, numbers switch back to the body font (`.tcard .led`). Keep that
 - **Section head pattern:** `.sec-head` stack → eyebrow → h2 → lede, 14px gap, 32px below. Then the board/cards.
 - **Two-column sections** (copy + visual) collapse to one column at 900px with the copy first.
 - **Boards** (`.board`) are the interactive mock surfaces. Label them with `.board-label` (Doto, muted, uppercase) and mark samples ("sample", "Sample wallets…").
-- Header: floating 1126px bar, 12px from top, hides on scroll down. On ≤900px the menu is hidden (no mobile menu yet).
+- Header: floating 1126px bar, 12px from top, hides on scroll down. On ≤900px the page links move into a hamburger (☰) that opens a full-screen menu.
+
+### Breakpoints (3type is the reference; decided 2026-11-27)
+
+| Tier | Width | Design |
+|---|---|---|
+| Desktop | ≥ 1081px | The current design. **Frozen: mobile work never changes it.** 901–1080px keeps the desktop layout, scaled. |
+| Tablet | 601–900px | One column, hamburger menu, section padding 84px. Heroes use the mobile (portrait) compositions, scaled up. |
+| Mobile | ≤ 600px | Designed at 390px. Hamburger menu. Heroes have their own portrait layouts (tournament: a 390px storyboard frame, scaled to the screen; TradeView: the fan centred and sized under the copy). |
+
+- Mobile and tablet changes go **only** inside `@media (max-width: 900px)` or `(max-width: 600px)` (or a JS branch on the same widths). Check at 1440 that desktop is unchanged after every mobile edit.
+- Older rules at 1080 / 760 / 480px still exist inside the tablet and mobile tiers; fold them into 900 / 600 when touching those sections.
 
 ## 4. Components to reuse (don't rebuild)
 
@@ -76,7 +87,7 @@ Interactive states: hover `--bg-selected` / `--bd-control-hover`, press `--bg-pr
 
 - `index.html` always has `body.hero-2type` (legacy name; shown as 1type). `?hero=2` adds `hero-v2`. `?hero=3` adds `hero-v2` + `hero-v3`. Scope type-only changes to the highest class so lower types stay untouched.
 - The preview bar switches types by **reloading** with `?hero=N`. Types may differ in structure, and scroll/background setup runs once at load.
-- **3type** (Figma "v3 · Landing plan" 147:50759): the menu links to pages (About OHAYO / Tournaments / TradeView). The landing shows `.v3-only` intros with "View more"; `.v3-hide` drops the full Tournament, TradeView and Spotlight sections.
+- **3type** (Figma "v3 · Landing plan" 147:50759): the menu links to pages (About / Tournaments / TradeView). The landing shows `.v3-only` intros with "View more"; `.v3-hide` drops the full Tournament, TradeView and Spotlight sections.
   - `tournament.html`: intro → full Tournament → FAQ → Final.
   - `tradeview.html`: intro → full TradeView → Spotlight → FAQ → Final.
 - Detail pages share `landing.css`/`landing.js` and **copy** header, FAQ, Final, footer and dialog markup from `index.html`. Edit every copy when one changes. `landing.js` must keep guarding page-specific blocks (`if ($('id'))`) so it runs on every page.

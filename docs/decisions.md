@@ -4,6 +4,15 @@ What was decided, what was rolled back, and why. Read this before changing the l
 
 Rules that hold across the whole page are in `.claude/skills/ohayo-design` (layout, copy) and `.claude/skills/ohayo-motion` (motion).
 
+## Hidden for now (restorable)
+
+- **2026-11-27 · Launch-update sign-up buttons hidden** (desktop and mobile). Every `[data-open]` button that opens the email sign-up dialog (`#reg`) is hidden by one block at the end of `assets/css/landing.css` ("HIDDEN FOR NOW").
+  - Landing: the hero's "Not ready yet? Get launch updates", "Notify me when tournaments open" (#tournament), "Notify me at launch" (#tradeview), the final CTA's "Get launch updates".
+  - tournament.html: "Notify me when tournaments open", the final CTA's "Get launch updates".
+  - tradeview.html: "Notify me at launch", the final CTA's "Get launch updates".
+  - Tournament cards (built by landing.js): the "Notify me" link.
+  - The markup, the dialog and its JS are untouched. **To restore, delete that CSS block.**
+
 ## Working rules
 
 - **Figma is not a pixel source.** The file mixes old and current designs. Take layout, order and menus from it and keep the code's current visual style (2026-11-24).
@@ -12,8 +21,34 @@ Rules that hold across the whole page are in `.claude/skills/ohayo-design` (layo
 
 ## Page structure
 
+- **2026-11-27 · Breakpoints for 3type** (details in the ohayo-design skill):
+  - Tiers: desktop ≥1081px is frozen; tablet 601–900px; mobile ≤600px, designed at 390px. Mobile requests change only the tablet/mobile tiers.
+  - Below 900px: a hamburger opens a full-screen menu built from the page's own menu.
+  - Tournament hero below 900px: a 390px portrait storyboard frame, scaled up on tablets.
+    - Fixed 2026-11-27: words used to jump about 20–115px when they landed on phones. Their landing spot double-counted the slot offset, because the slots are plain flow there. They now land within 1px.
+    - The phone composition fills the screen height: the frame scales to the width, and the free height is spread 40% before the list and 20% before each of its last three rows (to about 62px above the screen's foot).
+  - TradeView fan below 900px: centre on the screen's bottom-right corner, sized to sit under the copy. The fan's scale and its rotation live on two layers (.tvf-ring / .tvf-spin). On one element the rotation was lost and the fan stood still on small screens.
+  - The tablet/mobile rules live in one block at the end of landing.css.
+  - The landing hero (`.fold`) fills the viewport above the ticker strip on tablet and mobile too, as on desktop.
+  - Phones only (≤600px), the 2type/3type hero belt follows Figma 178:51218. A 360×360 stage sits on the ticker strip, scaled to the width or to the room under the copy:
+    - Ticker + % label at top left.
+    - 10x / 20x at left middle (36px).
+    - STOCKS at bottom left; a loss hangs below it.
+    - OHAYO on the right, its amount (36px) on top of the block, captions on one baseline.
+    - Both stacks are 24 dots a row; the flowing chart stays behind at 35%.
+    - The run-up caption ("OHAYO · SHORT 20X") enters only as large as the room to the screen edge allows, so it is never cut.
+    - 240px is kept under the copy for the graph; 844px-tall phones still fit one screen, shorter ones scroll a little.
+  - Phones (≤600px): the Creators section shows the first three cards only (Semi Hunter, Night Desk Jay, Chart Mina).
+  - Phones (≤600px), Compare table: two columns. Each row's title is a full-width label above the broker and OHAYO cells, so nothing scrolls sideways or gets cut. The OHAYO column has no background shade on phones.
+  - Phones (≤600px), final CTA: the live trading screen sits above the title and buttons.
+  - Phones (≤600px), tournament card strips: full-bleed sideways scroll with no scrollbar. A side with more cards beyond it fades into black (72px right, 40px left).
+  - Phones (≤600px), TradeView picker: the filter chips are gone (All). Collapsed, only the selected trader shows, as a compact row with a dropdown arrow. Tapping it opens every trader; picking one selects it and closes the list (tap outside or Esc closes too).
+  - Phones (≤600px), Try it board: both sample-trade chips on one line (11px); the trade (ticker, side, trader) and its P&L in two blocks side by side; the Put in amounts on one line (12px). The chart is 184px tall (desktop 264) so the whole board fits on one screen. Chip text is centred with a small top nudge (2px tabs, 1px amounts), because Doto glyphs have no descender and otherwise sit high.
+  - Phones (≤600px): the header shows only the logo and the menu button. "Get the app" is removed from the header; it stays in the hero and in the full-screen menu.
+  - Phones (≤600px): the page intro's counting number is 17% of the screen width (56–96px) instead of a 96px floor, so nothing is cut at the slam or during the OHAYO plate wipe.
+
 - **2026-11-24 · 3type = new page structure** (Figma v3 · Landing plan 147:50759).
-  - Menu: About OHAYO / Tournaments / TradeView.
+  - Menu: About / Tournaments / TradeView ("About OHAYO" shortened to "About" on 2026-11-26).
   - Tournament and TradeView each get their own page (`tournament.html`, `tradeview.html`). The landing keeps one-message intros with "View more".
   - Spotlight moves to the TradeView page.
   - Still open: the detail pages repeat the headline (intro + full section), and the full Tournament section still has the old "Daily / you trade and it counts" copy.

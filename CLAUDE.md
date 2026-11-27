@@ -23,6 +23,7 @@ assets/js/landing.js   one IIFE shared by all pages; guard page-specific blocks 
 
 - Hero types: `body.hero-2type` is always set (shown as 1type); `?hero=2` adds `hero-v2`; `?hero=3` adds `hero-v2` and `hero-v3`.
 - The preview bar reloads the page to switch types. `?preview=0` hides it.
+- Breakpoints (see ohayo-design): desktop ≥1081px is frozen; tablet 601–900px; mobile ≤600px (designed at 390px). When the user asks for a mobile change, change only the tablet/mobile tiers and confirm desktop at 1440 is unchanged.
 
 ## Sources
 

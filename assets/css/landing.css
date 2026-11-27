@@ -112,6 +112,28 @@ nav.main { display: flex; gap: 4px; }
 nav.main button { background: none; border: 0; min-height: 44px; padding: 0 12px; color: var(--fg-subtle); font-size: 14px; border-radius: var(--radius-control); }
 nav.main button:hover { color: var(--fg-base); }
 
+/* Header end: Get the app, plus the menu button that only shows at <= 900px (desktop is unchanged) */
+.hdr-end { display: flex; align-items: center; gap: 8px; }
+.menu-btn { display: none; }
+/* Full-screen menu (<= 900px): built by landing.js from the page's own menu */
+.mnav { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; padding: 12px; background: rgba(0, 0, 0, 0.96); backdrop-filter: blur(10px); }
+.mnav[hidden] { display: none; }
+.mnav-top { display: flex; align-items: center; justify-content: space-between; min-height: 64px; padding: 0 8px 0 14px; }
+.mnav-list { display: flex; flex-direction: column; gap: 4px; padding: 40px 14px 0; }
+.mnav-list a, .mnav-list button { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 10px 0; color: var(--fg-base); font: 700 32px/1.2 var(--font-body); letter-spacing: -0.02em; text-decoration: none; border-radius: var(--radius-control);
+  opacity: 0; transform: translateY(12px); transition: opacity 0.3s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1); transition-delay: calc(var(--k) * 60ms); }
+.mnav.is-open .mnav-list a, .mnav.is-open .mnav-list button { opacity: 1; transform: none; }
+.mnav-list [aria-current="page"] { color: var(--fg-primary); }
+.mnav-list a:active, .mnav-list button:active { color: var(--fg-subtle); }
+.mnav-cta { margin: auto 14px 28px; }
+.mnav-cta .btn { width: 100%; }
+@media (prefers-reduced-motion: reduce) { .mnav-list a, .mnav-list button { transition: none; } }
+@media (max-width: 900px) {
+  .menu-btn { display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; background: none; border: 0; color: var(--fg-base); border-radius: var(--radius-control); }
+  .menu-btn:active { background: var(--bg-pressed); }
+  .menu-btn:focus-visible { outline: 2px solid var(--bd-focus); outline-offset: 2px; }
+}
+
 /* Hero */
 /* Hero (Figma ohayo00001 · hero 45:8137): copy top, the belt-scroll chart (2type) under it. */
 .hero { position: relative; overflow: hidden; border-top: 0; padding: 66px 0 0; }
@@ -253,6 +275,7 @@ nav.main button:hover { color: var(--fg-base); }
 .pos-top { justify-content: space-between; gap: 10px 16px; margin-bottom: 18px; }
 .pos-top .group { display: flex; flex-wrap: wrap; gap: 8px; }
 .pos-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; }
+.pos-row { display: contents; } /* phones lay the trade and its P&L side by side (mobile tier) */
 .pos-name { font-size: 24px; font-weight: 700; margin-right: 10px; }
 .side { font-family: var(--font-led); font-weight: 900; font-size: 13px; letter-spacing: 0.06em; padding: 4px 8px; border-radius: var(--radius-tag); background: rgba(17, 236, 138, 0.14); color: var(--fg-positive); white-space: nowrap; }
 .side.short { background: rgba(255, 75, 78, 0.16); color: var(--fg-negative); }
@@ -893,21 +916,6 @@ nav.main a:focus-visible { outline: 2px solid var(--bd-focus); outline-offset: 2
 .tk-fx { position: absolute; inset: 0; perspective: 1400px; pointer-events: none; }
 .tk-g { position: absolute; left: 0; top: 0; transform-origin: 0 0; white-space: nowrap; color: var(--fg-base); font-weight: 900; letter-spacing: -1.4px; will-change: transform, opacity; }
 .tk-panel { position: absolute; left: 0; top: 0; width: 1241px; height: 1020px; background: var(--bg-base); will-change: transform; }
-/* narrow screens: the last cut as a plain flow, no frame */
-@media (max-width: 900px) {
-  .phero--tk { padding: 120px 0 84px; min-height: 0; }
-  .phero--tvf { padding-top: 110px; }
-  .tvf-ring { left: 50%; top: calc(100% + 40px); }
-  .tvf-card { width: 260px; left: -130px; transform: rotate(calc(var(--i) * 40deg)) translateY(-400px) rotate(90deg); }
-  .tk-frame { position: static; width: auto; height: auto; transform: none !important; padding: 0 20px; }
-  .tk-slot { position: static; white-space: normal; }
-  .tk-h { font-size: clamp(34px, 8vw, 52px); width: auto; }
-  .tk-lede { width: auto; margin-top: 16px; }
-  .tk-list { margin-top: 36px; display: flex; flex-wrap: wrap; gap: 6px 16px; }
-  .tk-list li { flex-basis: 100%; }
-  .tk-list .tk-s40 { flex-basis: auto; }
-  .tk-fx { display: none; }
-}
 
 /* .phero--tvf (tradeview.html, Figma 161:51190): headline and lede top left; the nine creators from the About page
    on a ring centred low on the right, so its top half reads as a fan; the ring turns once every 120s. Cards lie
@@ -928,15 +936,19 @@ nav.main a:focus-visible { outline: 2px solid var(--bd-focus); outline-offset: 2
 @media (prefers-reduced-motion: reduce) { .tvf-copy > * { animation: none; } }
 .tvf-fan { position: absolute; inset: 0; z-index: 1; pointer-events: none;
   -webkit-mask-image: linear-gradient(#000 58%, transparent 99%); mask-image: linear-gradient(#000 58%, transparent 99%); }
-.tvf-ring { position: absolute; left: calc(50% + 316px); top: calc(100% + 80px); width: 0; height: 0; animation: tvf-turn 120s linear infinite; }
-.tvf-fan.is-off .tvf-ring { animation-play-state: paused; }
+/* .tvf-ring places (and on small screens scales) the fan; .tvf-spin inside it turns. Two layers, because one
+   element can't carry a scale and a rotation animation: the animation's transform replaced the scale on small screens
+   and its interpolation dropped the turn, so the fan stood still */
+.tvf-ring { position: absolute; left: calc(50% + 316px); top: calc(100% + 80px); width: 0; height: 0; }
+.tvf-spin { position: absolute; left: 0; top: 0; width: 0; height: 0; animation: tvf-turn 120s linear infinite; }
+.tvf-fan.is-off .tvf-spin { animation-play-state: paused; }
 @keyframes tvf-turn { to { transform: rotate(360deg); } }
 .tvf-card { position: absolute; left: -150px; top: -54px; width: 300px; height: 108px; transform: rotate(calc(var(--i) * 40deg)) translateY(-560px) rotate(90deg); }
 /* every card one height, the median of their natural heights (108px, as on the About page): the name stays on one
    line, the info line gets two at most; longer text ends in an ellipsis */
 .tvf-card .who b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tvf-card .who .muted { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
-@media (prefers-reduced-motion: reduce) { .tvf-ring { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .tvf-spin { animation: none; } }
 
 @media (max-width: 900px) {
   .promo-grid, .promo--flip .promo-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; }
@@ -949,3 +961,105 @@ nav.main a:focus-visible { outline: 2px solid var(--bd-focus); outline-offset: 2
   .phero--facts { min-height: 0; padding: 120px 0 84px; }
   .tf-stage { min-height: 300px; }
 }
+
+/* ===================== Tablet (601-900px) and mobile (<= 600px) tiers =====================
+   Desktop (>= 1081px) is the reference and never changes here. Kept last in the file so these rules win over the
+   base rules above. Mobile is designed at 390px. */
+@media (max-width: 900px) {
+  /* TradeView page hero: the fan's centre on the screen's bottom-right corner, sized by landing.js (--fs) to the room below the copy */
+  .phero--tvf { padding-top: 110px; }
+  .tvf-ring { left: 100%; top: 100%; transform: scale(var(--fs, 1)); }   /* centred on the hero's bottom-right corner (the hero is viewport-tall) */
+  .tvf-card { width: 260px; left: -130px; transform: rotate(calc(var(--i) * 40deg)) translateY(-400px) rotate(90deg); }
+}
+@media (max-width: 900px) {
+  /* Tournament page hero (tablet and mobile): a 390px portrait storyboard frame. Its last cut is plain stacked type;
+     landing.js scales the frame to the screen (about 2x on a portrait tablet) and flies the C1-C4 cuts into these
+     places. Without JS it sits under the header as is. */
+  .tk-frame { left: 0; top: 80px; width: 390px; height: auto; padding: 24px 20px 32px; }
+  .tk-slot { position: static; white-space: normal; }
+  .tk-h { width: auto; font-size: 34px; line-height: 1.1; }
+  .tk-lede { width: auto; margin-top: 14px; font-size: 15px; line-height: 1.5; }
+  .tk-list { margin-top: calc(36px + var(--tk-a, 0px)); display: flex; flex-wrap: wrap; column-gap: 14px; }   /* --tk-a / --tk-b: landing.js spreads the list so the hero fills the screen height */
+  .tk-list li { flex-basis: 100%; }
+  .tk-list .tk-s18 { font-size: 14px; }
+  .tk-list .tk-s40 { flex-basis: auto; font-size: 32px; }
+  .tk-list .tk-s32 { font-size: 22px; margin-top: calc(8px + var(--tk-b, 0px)); }
+  .tk-list [data-pop]:nth-child(5) { margin-top: calc(26px + var(--tk-b, 0px)); }
+}
+@media (max-width: 900px) {
+  /* Landing hero (tablet and mobile): the first screen fills the viewport, hero above the ticker strip, as on desktop */
+  .fold { min-height: 100vh; min-height: 100svh; }
+  .fold > .hero { flex: 1 0 auto; min-height: calc(100svh - 76px - var(--strip-h, 50px)); }
+}
+@media (max-width: 600px) {
+  /* Landing hero (phones): keep 240px under the copy for the profit graph (label, OHAYO and STOCKS stacks, 10x), so
+     on short phones the hero grows past the screen instead of the graph running into the copy */
+  .fold > .hero { padding-bottom: 240px; }
+  /* header (phones): logo and the menu button only; "Get the app" stays in the hero and in the full-screen menu */
+  header.top .hdr-end > .btn { display: none; }
+  /* page intro (phones): the counting number scales with the screen instead of a 96px floor, so "+4.8%" / "+48%"
+     keep clear margins even at the 1.15x slam and while the plates wipe; layout unchanged */
+  .hi-word { font-size: clamp(56px, 17vw, 96px); }
+  /* hero belt profit graph (phones, Figma 178:51218): OHAYO's amount and the 10x at 36px (desktop 50) */
+  .hb-col--us .hb-val { font-size: 36px; line-height: 44px; }
+  .hb-x { font-size: 36px; line-height: 44px; }
+  /* Creators (phones): the first three cards only */
+  .creators .creator-grid > .creator:nth-child(n + 4) { display: none; }
+  /* Try it board (phones): kept short. The two sample trades on one line; the trade (ticker, side, trader) and its
+     P&L side by side; the Put in amounts on one line */
+  .pos-top .group { flex-wrap: nowrap; gap: 6px; }
+  .pos-top .chip { display: inline-flex; align-items: center; min-height: 36px; padding: 2px clamp(6px, 2.2vw, 9px) 0; font-size: clamp(10px, 2.9vw, 11px); line-height: 1; white-space: nowrap; }   /* Doto has no descender: 2px top nudge centres the visible glyphs */
+  #chart { height: 184px; }   /* phones: a lower chart so the whole board fits on one screen */
+  .pos-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin: 4px 0 14px; }
+  .pos-row .pos-head { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .pos-row .pos-head > div:first-child { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .pos-row .pos-name { font-size: 20px; margin-right: 0; white-space: nowrap; }
+  .pos-row .pos-pnl { flex-direction: column; align-items: flex-end; gap: 4px; margin: 0; }
+  .pos-row .pos-pnl .big { font-size: clamp(32px, 10vw, 40px); }
+  .pos-row .pos-pnl .roe { font-size: clamp(16px, 4.6vw, 18px); }
+  .pos-meta .group { flex-wrap: nowrap; gap: 6px; }
+  .pos-meta .chip { display: inline-flex; align-items: center; min-height: 36px; padding: 1px 9px 0; font-size: 12px; line-height: 1; white-space: nowrap; }
+  /* Compare table (phones): two columns. Each row's title becomes a label across the full width, the broker and
+     OHAYO cells sit side by side under it; the header keeps just the two column names */
+  #compare table { min-width: 0; }
+  #compare table, #compare thead, #compare tbody { display: block; }
+  #compare tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  #compare thead th:first-child { display: none; }
+  #compare th, #compare td { padding: 12px 14px; font-size: 13px; line-height: 20px; }
+  #compare thead th { font-size: 11px; line-height: 16px; }
+  #compare tbody th[scope="row"] { grid-column: 1 / -1; width: auto; padding: 14px 14px 4px; font-size: 12px; line-height: 16px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-muted); }
+  #compare tbody td { border-top: 0; padding-top: 6px; padding-bottom: 14px; }
+  #compare td.us, #compare thead th.us { background: none; }   /* no shaded OHAYO column on phones: it broke up the rows */
+  /* Tournament cards (phones): the strip runs to the screen edges and scrolls sideways without a scrollbar; a side
+     with more cards beyond it fades into black (landing.js sets --fl / --fr from the scroll position) */
+  .carousel { margin: 0 -20px 28px; padding: 0 20px 4px; scroll-padding-left: 20px; scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--fl, 0px), #000 calc(100% - var(--fr, 72px)), transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0, #000 var(--fl, 0px), #000 calc(100% - var(--fr, 72px)), transparent 100%); }
+  .carousel::-webkit-scrollbar { display: none; }
+  /* TradeView picker (phones): no filter; collapsed, just the selected trader as a compact row with a dropdown arrow;
+     open (.is-open), every trader in compact rows (landing.js) */
+  .tv-side { padding: 10px; gap: 6px; }
+  .tv-side .tv-filter { display: none; }
+  .tv-side > .muted { padding-top: 2px; font-size: 11px; }
+  .tv-side .tv-list { gap: 6px; }
+  .tv-side .tv-row { grid-template-columns: 32px minmax(0, 1fr) auto 14px; gap: 10px; padding: 8px 10px; }
+  .tv-side .tv-row .av { width: 32px; height: 32px; }
+  .tv-side .tv-row b { font-size: 14px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tv-side .tv-row small { display: block; font-size: 11px; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tv-side .tv-row .led { font-size: 15px; }
+  .tv-side .tv-row::after { content: ""; width: 8px; height: 8px; margin: -4px 0 0 2px; border-right: 2px solid var(--fg-subtle); border-bottom: 2px solid var(--fg-subtle); transform: rotate(45deg); transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .tv-side .tv-row[aria-pressed="false"]::after { visibility: hidden; }
+  .tv-side.is-open .tv-row[aria-pressed="true"]::after { transform: translateY(4px) rotate(-135deg); }
+  .tv-side:not(.is-open) .tv-row[aria-pressed="false"] { display: none; }
+  .tv-side:not(.is-open) > .muted { display: none; }
+  /* Final CTA (phones): the live trading screen above the title */
+  .fin-web { order: -1; margin-top: 0; margin-bottom: 8px; }
+}
+
+/* ===================== HIDDEN FOR NOW (2026-11-27) =====================
+   Every button that opens the launch-update sign-up (email -> #reg dialog, [data-open]) is hidden on all screens:
+   the hero's "Not ready yet? Get launch updates", "Notify me when tournaments open", "Notify me at launch", the final
+   CTA's "Get launch updates" and the tournament cards' "Notify me". Markup, dialog and JS are untouched.
+   To bring them all back, delete this block. (Logged in docs/decisions.md.) */
+[data-open] { display: none !important; }
+.tour-cta:not(:has(> :not([data-open]))) { display: none; }   /* a CTA row left with nothing in it */
